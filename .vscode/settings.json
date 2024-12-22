@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "joystick_driver.h": "c",
+    "joystick.h": "c"
+  },
+  "editor.defaultFormatter": "ms-vscode.cpptools"
+}

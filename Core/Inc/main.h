@@ -27,11 +27,13 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "System/pin_definitions.h"
-#include "System/system_conf.h"
-#include "Console_Peripherals/console_peripherals_conf.h"
-#include "Utils/system_utils.h"
 
+#ifndef UNITY_TEST
+    #include "System/pin_definitions.h"
+    #include "System/system_conf.h"
+    #include "Console_Peripherals/console_peripherals_conf.h"
+    #include "Utils/system_utils.h"
+#endif
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 

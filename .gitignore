@@ -2,8 +2,21 @@
 /Debug/
 /Test/
 
-# Ignore IDE-specific settings
+# Ignore Eclipse IDE-specific settings
+.cproject
+.project
 .settings/
+
+# EditorConfig
+.editorconfig
+
+# Specific to STM32CubeIDE
+*.launch
+
+# Compiler-generated files
+*.hex
+*.bin
+*.elf
 
 # Ignore object files and compiled outputs
 *.o
@@ -22,3 +35,6 @@
 *.tmp
 *.swp
 *~
+
+# Ignore test-runner
+run_tests
