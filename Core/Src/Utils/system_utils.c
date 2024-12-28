@@ -15,7 +15,12 @@ void add_delay(uint32_t value) {
 
 void blink_led1() {
 	HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-	add_delay(1000);
+//	add_delay(1000);
+}
+
+void blink_led2() {
+	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+//	add_delay(1000);
 }
 
 void blink_error_led() {

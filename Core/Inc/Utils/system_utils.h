@@ -13,6 +13,7 @@
 #include "System/pin_definitions.h"
 
 void blink_led1();
+void blink_led2();
 void blink_error_led();
 void add_delay(uint32_t);
 

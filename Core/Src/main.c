@@ -90,10 +90,20 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	 JoystickStatus js_status = joystick_get_status();
-	 if(js_status.is_new) {
-		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
-		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
+//	 JoystickStatus js_status = joystick_get_status();
+//	 if(js_status.is_new) {
+//		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
+//		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
+//	 }
+
+	 if(pb1_get_state() == 1) {
+		 DEBUG_PRINTF("PB1 is pressed\n");
+		 blink_led1();
+	 }
+
+	 if(pb2_get_state() == 1) {
+		 DEBUG_PRINTF("PB2 is pressed\n");
+		 blink_led2();
 	 }
 
     /* USER CODE BEGIN 3 */

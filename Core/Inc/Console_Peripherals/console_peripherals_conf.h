@@ -9,6 +9,7 @@
 #define INC_CONSOLE_PERIPHERALS_CONSOLE_PERIPHERALS_CONF_H_
 
 #include "joystick.h"
+#include "push_button.h"
 
 void console_peripherals_init(void);
 

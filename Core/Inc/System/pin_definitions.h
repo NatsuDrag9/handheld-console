@@ -56,5 +56,9 @@
 /* Game Peripherals */
 #define JS_Button_Pin GPIO_PIN_13
 #define JS_Button_GPIO_Port GPIOF
+#define PB_1_Pin GPIO_PIN_15
+#define PB_2_Pin GPIO_PIN_14
+#define PB_GPIO_Port GPIOF
+
 
 #endif /* INC_SYSTEM_PIN_DEFINITIONS_H_ */
