@@ -1,8 +1,8 @@
-// Tests/all_tests.c
 #include "./Unity/unity_fixture.h"
 
 static void RunAllTests(void) {
     RUN_TEST_GROUP(Joystick);
+    RUN_TEST_GROUP(PushButton);
 }
 
 int main(int argc, const char* argv[]) {

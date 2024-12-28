@@ -7,6 +7,9 @@
 .project
 .settings/
 
+# Ignore .vscode
+.vscode/
+
 # EditorConfig
 .editorconfig
 

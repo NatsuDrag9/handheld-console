@@ -1,7 +1,10 @@
 {
   "files.associations": {
     "joystick_driver.h": "c",
-    "joystick.h": "c"
+    "joystick.h": "c",
+    "mock_push_button_driver.h": "c",
+    "push_button_driver.h": "c",
+    "push_button.h": "c"
   },
   "editor.defaultFormatter": "ms-vscode.cpptools"
 }

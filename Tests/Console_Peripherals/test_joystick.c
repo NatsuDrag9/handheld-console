@@ -1,4 +1,3 @@
-// test_joystick.c
 #include "../Unity/unity.h"
 #include "../Unity/unity_fixture.h"
 #include "Console_Peripherals/joystick.h"

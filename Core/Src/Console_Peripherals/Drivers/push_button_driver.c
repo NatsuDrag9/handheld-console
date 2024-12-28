@@ -7,12 +7,12 @@
 
 #include "Console_Peripherals/Drivers/push_button_driver.h"
 
-GPIO_PinState PB_Driver_ReadPin1(void) {
-    return HAL_GPIO_ReadPin(PB_GPIO_Port, PB_1_Pin);
+uint8_t PB_Driver_ReadPin1(void) {
+    return (HAL_GPIO_ReadPin(PB_GPIO_Port, PB_1_Pin) == GPIO_PIN_SET) ? 1 : 0;
 }
 
-GPIO_PinState PB_Driver_ReadPin2(void) {
-    return HAL_GPIO_ReadPin(PB_GPIO_Port, PB_2_Pin);
+uint8_t PB_Driver_ReadPin2(void) {
+    return (HAL_GPIO_ReadPin(PB_GPIO_Port, PB_2_Pin) == GPIO_PIN_SET) ? 1 : 0;
 }
 
 uint32_t PB_Driver_GetTick(void) {

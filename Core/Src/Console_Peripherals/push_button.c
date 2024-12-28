@@ -7,26 +7,26 @@
 
 #include "Console_Peripherals/push_button.h"
 
-// Debounce configuration
+ // Debounce configuration
 #define DEBOUNCE_DELAY_MS    100
 
 // Button instances
-static Button_TypeDef button1 = {0};
-static Button_TypeDef button2 = {0};
+static Button_TypeDef button1 = { 0 };
+static Button_TypeDef button2 = { 0 };
 
 void pb_init(void) {
-    button1.current_state = GPIO_PIN_RESET;
-    button1.last_reading = GPIO_PIN_RESET;
+    button1.current_state = 0;
+    button1.last_reading = 0;
     button1.last_debounce_time = 0;
     button1.pressed = 0;
 
-    button2.current_state = GPIO_PIN_RESET;
-    button2.last_reading = GPIO_PIN_RESET;
+    button2.current_state = 0;
+    button2.last_reading = 0;
     button2.last_debounce_time = 0;
     button2.pressed = 0;
 }
 
-void process_button(Button_TypeDef *button, GPIO_PinState current_reading, uint32_t current_time) {
+void process_button(Button_TypeDef* button, uint8_t current_reading, uint32_t current_time) {
     button->pressed = 0;  // Reset pressed flag
 
     // If the switch reading changed, due to noise or pressing
@@ -42,7 +42,7 @@ void process_button(Button_TypeDef *button, GPIO_PinState current_reading, uint3
             button->current_state = current_reading;
 
             // Set pressed flag only on rising edge (button press)
-            if (button->current_state == GPIO_PIN_SET) {
+            if (button->current_state == 1) {
                 button->pressed = 1;
             }
         }
