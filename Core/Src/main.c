@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,14 +75,16 @@ int main(void)
   /* USER CODE END Init */
 
   /* Configure the system clock */
-  System_Init();
+  SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
+  /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
   console_peripherals_init();
+  oled_display_string("Hello, test oled", Font_7x10, White);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -90,26 +92,28 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-//	 JoystickStatus js_status = joystick_get_status();
-//	 if(js_status.is_new) {
-//		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
-//		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
-//	 }
-
-	 if(pb1_get_state() == 1) {
-		 DEBUG_PRINTF("PB1 is pressed\n");
-		 blink_led1();
-	 }
-
-	 if(pb2_get_state() == 1) {
-		 DEBUG_PRINTF("PB2 is pressed\n");
-		 blink_led2();
-	 }
 
     /* USER CODE BEGIN 3 */
+	  //	 JoystickStatus js_status = joystick_get_status();
+	  //	 if(js_status.is_new) {
+	  //		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
+	  //		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
+	  //	 }
+
+	  	 if(pb1_get_state() == 1) {
+	  		 DEBUG_PRINTF("PB1 is pressed\n");
+	  		 blink_led1();
+	  	 }
+
+	  	 if(pb2_get_state() == 1) {
+	  		 DEBUG_PRINTF("PB2 is pressed\n");
+	  		 blink_led2();
+	  	 }
   }
   /* USER CODE END 3 */
 }
+
+
 
 /* USER CODE BEGIN 4 */
 

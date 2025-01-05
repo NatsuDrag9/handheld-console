@@ -59,6 +59,12 @@
 #define PB_1_Pin GPIO_PIN_15
 #define PB_2_Pin GPIO_PIN_14
 #define PB_GPIO_Port GPIOF
+#define OLED_CS_Port         GPIOD
+#define OLED_CS_Pin          GPIO_PIN_14
+#define OLED_DC_Port         GPIOD
+#define OLED_DC_Pin          GPIO_PIN_15
+#define OLED_Reset_Port      GPIOF
+#define OLED_Reset_Pin       GPIO_PIN_12
 
 
 #endif /* INC_SYSTEM_PIN_DEFINITIONS_H_ */

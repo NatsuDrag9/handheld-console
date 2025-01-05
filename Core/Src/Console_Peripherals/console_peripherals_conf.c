@@ -10,4 +10,5 @@
 void console_peripherals_init(void) {
 	joystick_init();
 	pb_init();
+	oled_init();
 }

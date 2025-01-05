@@ -16,6 +16,7 @@
 #include "System/Peripherals/uart_conf.h"
 #include "System/Peripherals/usb_conf.h"
 #include "System/Peripherals/timer_conf.h"
+#include "System/Peripherals/spi_conf.h"
 #include "Utils/debug_conf.h"
 
 void System_Init(void);
