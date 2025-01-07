@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -75,10 +74,9 @@ int main(void)
   /* USER CODE END Init */
 
   /* Configure the system clock */
-  SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  System_Init();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -113,11 +111,10 @@ int main(void)
   /* USER CODE END 3 */
 }
 
-
-
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
 
 #ifdef  USE_FULL_ASSERT
 /**

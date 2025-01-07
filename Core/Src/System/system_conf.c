@@ -15,7 +15,8 @@ void System_Init(void)
   MX_DMA_Init();
   MX_USART3_UART_Init();
   MX_ADC1_Init();
-  MX_USB_OTG_FS_PCD_Init();
+  MX_SPI1_Init();
+//  MX_USB_OTG_FS_PCD_Init();
   MX_TIM6_Init();
 }
 
