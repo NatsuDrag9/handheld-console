@@ -16,20 +16,10 @@ static volatile uint8_t conversion_complete = 0;
 
 #include "stm32f4xx_hal.h"
 
-void joystick_driver_init(void) {
-    HAL_StatusTypeDef status = HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, 2);
-    if (status != HAL_OK) {
-        for(int i = 0; i < 5; i++) {
-            blink_error_led();
-        }
-        Error_Handler();
-    }
-
-    HAL_TIM_Base_Start_IT(&htim6);
-}
-
 void joystick_driver_start_conversion(void) {
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, 2);
+    if(HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buf, 2) != HAL_OK) {
+    	Error_Handler();
+    }
 }
 
 uint8_t joystick_driver_read_button(void) {
@@ -50,8 +40,17 @@ void joystick_driver_tim_callback(TIM_HandleTypeDef *htim) {
 
 void joystick_driver_adc_callback(ADC_HandleTypeDef* hadc) {
     if(hadc->Instance == ADC1) {
+    	 DEBUG_PRINTF("ADC callback\n");
         conversion_complete = 1;
         HAL_ADC_Stop_DMA(&hadc1);
+    }
+}
+
+void joystick_driver_init(void) {
+	joystick_driver_start_conversion();
+
+    if(HAL_TIM_Base_Start_IT(&htim6) != HAL_OK) {
+            Error_Handler();
     }
 }
 

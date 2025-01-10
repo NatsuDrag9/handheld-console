@@ -141,6 +141,7 @@ PB7.GPIOParameters=GPIO_Label
 PB7.GPIO_Label=LD2 [Blue]
 PB7.Locked=true
 PB7.Signal=GPIO_Output
+PC0.Locked=true
 PC0.Signal=ADCx_IN10
 PC13.GPIOParameters=GPIO_Label
 PC13.GPIO_Label=USER_Btn [B1]

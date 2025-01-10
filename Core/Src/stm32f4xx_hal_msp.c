@@ -26,7 +26,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-
+extern DMA_HandleTypeDef hdma_adc1;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -142,6 +142,73 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 }
 
 /* USER CODE BEGIN 1 */
+/**
+* @brief ADC MSP Initialization
+* This function configures the hardware resources used for ADC
+* @param hadc: ADC handle pointer
+* @retval None
+*/
+void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    if(hadc->Instance==ADC1)
+    {
+        /* Enable ADC and GPIO clocks */
+        __HAL_RCC_ADC1_CLK_ENABLE();
+        __HAL_RCC_GPIOA_CLK_ENABLE();  // ADC pins are on GPIOA
+        __HAL_RCC_GPIOC_CLK_ENABLE();  // ADC pins are on GPIOC
 
+        /* Configure ADC pins */
+        GPIO_InitStruct.Pin = GPIO_PIN_3;      // ADC Channel 3
+        GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_0;      // ADC Channel 10
+        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+        /* ADC1 DMA Init */
+        hdma_adc1.Instance = DMA2_Stream0;
+        hdma_adc1.Init.Channel = DMA_CHANNEL_0;
+        hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_adc1.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+        hdma_adc1.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+        hdma_adc1.Init.Mode = DMA_NORMAL;
+        hdma_adc1.Init.Priority = DMA_PRIORITY_HIGH;
+        hdma_adc1.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+        if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
+        {
+            Error_Handler();
+        }
+
+        /* Link DMA to ADC */
+        __HAL_LINKDMA(hadc, DMA_Handle, hdma_adc1);
+    }
+}
+
+/**
+* @brief ADC MSP De-Initialization
+* This function freezes the hardware resources used for ADC
+* @param hadc: ADC handle pointer
+* @retval None
+*/
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
+{
+    if(hadc->Instance==ADC1)
+    {
+        /* Disable clocks */
+        __HAL_RCC_ADC1_CLK_DISABLE();
+
+        /* DeInit GPIO pins */
+        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_3);
+        HAL_GPIO_DeInit(GPIOC, GPIO_PIN_0);
+
+        /* DeInit DMA */
+        HAL_DMA_DeInit(hadc->DMA_Handle);
+    }
+}
 /* USER CODE END 1 */
 
