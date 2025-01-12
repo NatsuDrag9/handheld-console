@@ -26,16 +26,15 @@
 extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
+    /* Includes ------------------------------------------------------------------*/
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+    /* Private includes ----------------------------------------------------------*/
+    /* USER CODE BEGIN Includes */
 #ifndef UNITY_TEST
-    #include "System/pin_definitions.h"
-    #include "System/system_conf.h"
-    #include "Console_Peripherals/console_peripherals_conf.h"
-    #include "Utils/system_utils.h"
+#include "System/pin_definitions.h"
+#include "System/system_conf.h"
+#include "Console_Peripherals/console_peripherals_conf.h"
+#include "Utils/system_utils.h"
 #endif
 /* USER CODE END Includes */
 

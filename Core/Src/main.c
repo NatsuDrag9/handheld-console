@@ -82,7 +82,8 @@ int main(void)
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
   console_peripherals_init();
-  oled_display_string("Hello, test oled", Font_7x10, White);
+  oled_show_screen(SCREEN_WELCOME);
+  oled_show_screen(SCREEN_MENU);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -92,11 +93,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  //	 JoystickStatus js_status = joystick_get_status();
-	  //	 if(js_status.is_new) {
-	  //		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
-	  //		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
-	  //	 }
+	  	 JoystickStatus js_status = joystick_get_status();
+//	  	 if(js_status.is_new) {
+//	  		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
+//	  		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
+//	  	 }
+	  	oled_menu_handle_input(js_status);
 
 	  	 if(pb1_get_state() == 1) {
 	  		 DEBUG_PRINTF("PB1 is pressed\n");
