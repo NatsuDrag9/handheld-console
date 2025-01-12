@@ -9,27 +9,44 @@
 #define INC_CONSOLE_PERIPHERALS_OLED_H_
 
 #include <stdbool.h>
-#include "Console_Peripherals/Drivers/ssd1306.h"
-#include "Utils/system_utils.h"
+#include "string.h"
+#include "Console_Peripherals/types.h"
+#include "Console_Peripherals/Drivers/display_driver.h"
+
+#define SCREEN_WIDTH    DISPLAY_WIDTH
+#define SCREEN_HEIGHT   DISPLAY_HEIGHT
+#define MAX_MENU_ITEMS  5  // Maximum number of games that can be displayed in menu
+#define MENU_START_Y     25    // Y position where menu items start
+#define MENU_ITEM_HEIGHT 12    // Height of each menu item
+#define VISIBLE_ITEMS    3     // Number of items visible at once
+
+typedef enum {
+    SCREEN_WELCOME,
+    SCREEN_MENU,
+    SCREEN_GAME_SNAKE,
+	SCREEN_GAME_2,
+	SCREEN_GAME_3,
+	SCREEN_GAME_4,
+	SCREEN_GAME_5,
+    // Add more screens as you add games
+} ScreenType;
+
+typedef struct {
+    char* title;
+    uint8_t selected;  // For menu items that can be selected
+} MenuItem;
+
 
 /* OLED function prototype */
-void oled_init();
-void oled_fillWhite();
-void oled_display_string(char* str, FontDef Font, SSD1306_COLOR color);
 
-// Add more as the game will be developed
-//void oled_display();
+// Core OLED functions
+void oled_init(void);
+void oled_clear_screen(void);
 
-//  ssd1306_Init();
-//  HAL_Delay(20);
+// Screen management functions
+void oled_show_screen(ScreenType screen);
+void oled_show_menu(MenuItem* items, uint8_t num_items);
+void oled_menu_handle_input(JoystickStatus js_status);
 
-//  ssd1306_Fill(White);
-//  ssd1306_UpdateScreen();
-//  HAL_Delay(100);
-
-//  ssd1306_SetCursor(20, 20);
-//  ssd1306_WriteString("Hello", Font_7x10, White);
-//  ssd1306_UpdateScreen();
-//  HAL_Delay(1000);
 
 #endif /* INC_CONSOLE_PERIPHERALS_OLED_H_ */
