@@ -40,7 +40,6 @@ void joystick_driver_tim_callback(TIM_HandleTypeDef *htim) {
 
 void joystick_driver_adc_callback(ADC_HandleTypeDef* hadc) {
     if(hadc->Instance == ADC1) {
-    	 DEBUG_PRINTF("ADC callback\n");
         conversion_complete = 1;
         HAL_ADC_Stop_DMA(&hadc1);
     }
