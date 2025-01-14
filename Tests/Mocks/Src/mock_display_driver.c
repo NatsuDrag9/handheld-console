@@ -85,6 +85,13 @@ void display_set_cursor(uint8_t x, uint8_t y) {
 void display_write_string(char* str, FontDef font, DisplayColor color) {
     current_color = color;
     cursor_x += strlen(str) * font.FontWidth;
+    // Set some bits in the buffer to simulate text
+    if (color == DISPLAY_WHITE) {
+        uint16_t buffer_index = cursor_y * (DISPLAY_WIDTH / 8) + (cursor_x / 8);
+        if (buffer_index < sizeof(display_buffer)) {
+            display_buffer[buffer_index] = 0xFF;  // Set some bits
+        }
+    }
     screen_updated++;
 }
 
@@ -94,6 +101,14 @@ void display_write_string_centered(char* str, FontDef font, uint8_t y, DisplayCo
     cursor_y = y;
     current_color = color;
     screen_updated++;
+
+    // Set some bits in the buffer to simulate text
+    if (color == DISPLAY_WHITE) {
+        uint16_t buffer_index = cursor_y * (DISPLAY_WIDTH / 8) + (cursor_x / 8);
+        if (buffer_index < sizeof(display_buffer)) {
+            display_buffer[buffer_index] = 0xFF;  // Set some bits
+        }
+    }
 
     // Check if this is an error message - the string is taken from oled_init() in oled.c file
     if (strcmp(str, "Menu Init Error") == 0) {

@@ -52,57 +52,142 @@ TEST(OLED, InitializationWithLargeMenuTest) {
 }
 
 TEST(OLED, ClearScreenTest) {
+    // First draw something on the screen
+    oled_show_screen(SCREEN_WELCOME);
+    uint8_t buffer_before[DISPLAY_WIDTH * DISPLAY_HEIGHT / 8];
+    mock_display_get_buffer(buffer_before, sizeof(buffer_before));
+
+    // Verify screen has content
+    bool has_content = false;
+    for (uint16_t i = 0; i < sizeof(buffer_before); i++) {
+        if (buffer_before[i] != 0x00) {
+            has_content = true;
+            break;
+        }
+    }
+    TEST_ASSERT_TRUE(has_content);
+
+    // Now clear the screen
     oled_clear_screen();
-    uint8_t buffer[DISPLAY_WIDTH * DISPLAY_HEIGHT / 8];
-    mock_display_get_buffer(buffer, sizeof(buffer));
 
     // Verify buffer is cleared
-    for (uint16_t i = 0; i < sizeof(buffer); i++) {
-        TEST_ASSERT_EQUAL_UINT8(0x00, buffer[i]);
+    uint8_t buffer_after[DISPLAY_WIDTH * DISPLAY_HEIGHT / 8];
+    mock_display_get_buffer(buffer_after, sizeof(buffer_after));
+    for (uint16_t i = 0; i < sizeof(buffer_after); i++) {
+        TEST_ASSERT_EQUAL_UINT8(0x00, buffer_after[i]);
     }
+
+    // Verify display state
+    mock_display_get_state(&display_state);
+    TEST_ASSERT_EQUAL(DISPLAY_BLACK, display_state.current_color);
+    TEST_ASSERT_EQUAL(0, display_state.cursor_x);
+    TEST_ASSERT_EQUAL(0, display_state.cursor_y);
 }
 
 TEST(OLED, ShowWelcomeScreenTest) {
+    // Initialize OLED first
+    oled_init(test_menu, 3);
+
+    // Get initial state
+    mock_display_get_state(&display_state);
+    uint8_t initial_updates = display_state.screen_updated;
+
+    // Show welcome screen
     oled_show_screen(SCREEN_WELCOME);
     mock_display_get_state(&display_state);
 
+    // Verify screen structure
     TEST_ASSERT_EQUAL(1, display_state.border_drawn);
-    TEST_ASSERT_TRUE(display_state.screen_updated > 0);
+    TEST_ASSERT_TRUE(display_state.screen_updated > initial_updates);
+
+    // Verify welcome messages are centered - checking a range
+    TEST_ASSERT_GREATER_OR_EQUAL(15, display_state.cursor_x);
+    TEST_ASSERT_LESS_OR_EQUAL(DISPLAY_WIDTH - 15, display_state.cursor_x);
 }
 
 TEST(OLED, ShowMenuTest) {
+    // Initialize OLED first
+    oled_init(test_menu, 3);
+
+    // Get initial state
+    mock_display_get_state(&display_state);
+    uint8_t initial_updates = display_state.screen_updated;
+
+    // Show menu
     oled_show_menu(test_menu, 3);
     mock_display_get_state(&display_state);
 
+    // Verify basic screen structure
     TEST_ASSERT_EQUAL(1, display_state.border_drawn);
-    TEST_ASSERT_TRUE(display_state.screen_updated > 0);
+    TEST_ASSERT_TRUE(display_state.screen_updated > initial_updates);
+
+    // Verify menu title is centered
+    TEST_ASSERT_GREATER_OR_EQUAL(20, display_state.cursor_x);
+    TEST_ASSERT_LESS_OR_EQUAL(DISPLAY_WIDTH - 20, display_state.cursor_x);
+
+    // Verify initial cursor position
+    TEST_ASSERT_EQUAL(0, oled_get_current_cursor_item());
+
+    // Verify correct number of items displayed
+    TEST_ASSERT_EQUAL(3, oled_get_current_menu_size());
+
+    // Verify display properties
+    TEST_ASSERT_EQUAL(DISPLAY_WHITE, display_state.current_color);
+
+    // Verify no scrollbar for short menu
+    TEST_ASSERT_EQUAL(0, display_state.scrollbar_drawn);
 }
 
 TEST(OLED, MenuNavigationDownTest) {
+    // Initialize menu
+    oled_init(test_menu, 3);
     oled_show_menu(test_menu, 3);
+    mock_display_get_state(&display_state);
     uint8_t initial_updates = display_state.screen_updated;
+
+    // Get initial cursor position
+    uint8_t initial_cursor = oled_get_current_cursor_item();
+    TEST_ASSERT_EQUAL(0, initial_cursor);  // Should start at first item
 
     // Test down navigation
     JoystickStatus js_down = { JS_DIR_DOWN, 1, 0 };
     oled_menu_handle_input(js_down);
     mock_display_get_state(&display_state);
 
+    // Verify screen was updated
     TEST_ASSERT_TRUE(display_state.screen_updated > initial_updates);
+
+    // Verify cursor moved down
+    TEST_ASSERT_EQUAL(1, oled_get_current_cursor_item());
+
+    // Verify cursor is displayed at new position
+    // The '>' cursor should now be at the second menu item position
+    TEST_ASSERT_GREATER_THAN(initial_cursor, display_state.cursor_y);
 }
 
 TEST(OLED, MenuNavigationUpTest) {
+    // Initialize menu first
+    oled_init(test_menu, 3);
+    oled_show_menu(test_menu, 3);
+
     // First move down
     JoystickStatus js_down = { JS_DIR_DOWN, 1, 0 };
     oled_menu_handle_input(js_down);
 
+    mock_display_get_state(&display_state);
     uint8_t initial_updates = display_state.screen_updated;
+    uint8_t initial_cursor = oled_get_current_cursor_item();
 
     // Then test up navigation
     JoystickStatus js_up = { JS_DIR_UP, 1, 0 };
     oled_menu_handle_input(js_up);
     mock_display_get_state(&display_state);
 
+    // Verify screen was updated
     TEST_ASSERT_TRUE(display_state.screen_updated > initial_updates);
+
+    // Verify cursor moved up
+    TEST_ASSERT_LESS_THAN(initial_cursor, oled_get_current_cursor_item());
 }
 
 TEST(OLED, MenuSelectionTest) {
