@@ -10,6 +10,7 @@
 
 #include "joystick.h"
 #include "push_button.h"
+#include "Game_Engine/game_menu.h"
 #include "oled.h"
 
 void console_peripherals_init(void);
