@@ -6,27 +6,6 @@
 #include "../Mocks/Inc/mock_push_button_driver.h"
 
 // Helper function for edge detection
-static void detect_button_press(uint8_t button_state, uint32_t initial_time, uint32_t debounced_time) {
-    // Set initial state
-    if (button_state == 1) {
-        mock_pb1_state = 1;
-    }
-    else {
-        mock_pb1_state = 0;
-    }
-
-    // First check - Button change detected but not debounced
-    mock_tick_count = initial_time;
-    TEST_ASSERT_EQUAL(0, pb1_get_state());
-
-    // Second check - After debounce time
-    mock_tick_count = debounced_time;
-    TEST_ASSERT_EQUAL(button_state, pb1_get_state());
-
-    // Third check - Edge detected, should be 0
-    TEST_ASSERT_EQUAL(0, pb1_get_state());
-}
-
 static void detect_button1_press(uint8_t button_state, uint32_t initial_time, uint32_t debounced_time) {
     // Set initial state
     mock_pb1_state = button_state;
@@ -78,7 +57,7 @@ TEST(PushButton, InitialState) {
 }
 
 TEST(PushButton, SinglePress) {
-    detect_button_press(1, 150, 300);
+    detect_button1_press(1, 150, 300);
 }
 
 TEST(PushButton, ButtonBounce) {
@@ -93,18 +72,18 @@ TEST(PushButton, ButtonBounce) {
     TEST_ASSERT_EQUAL(0, pb1_get_state());
 
     // Stable press
-    detect_button_press(1, 150, 300);
+    detect_button1_press(1, 150, 300);
 }
 
 TEST(PushButton, MultiplePress) {
     // First press
-    detect_button_press(1, 150, 300);
+    detect_button1_press(1, 150, 300);
 
     // Release and wait for debounce
-    detect_button_press(0, 450, 600);
+    detect_button1_press(0, 450, 600);
 
     // Second press
-    detect_button_press(1, 750, 900);
+    detect_button2_press(1, 750, 900);
 }
 
 TEST(PushButton, TwoButtonsIndependent) {
@@ -155,7 +134,7 @@ TEST(PushButton, QuickPressIgnored) {
 
 TEST(PushButton, LongPress) {
     // Initial press detection
-    detect_button_press(1, 150, 300);
+    detect_button1_press(1, 150, 300);
 
     // Long press should not trigger again
     mock_tick_count = 1000;

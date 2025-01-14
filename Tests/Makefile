@@ -1,13 +1,18 @@
-# Tests/Makefile
 CC=gcc
+
 CFLAGS=-I. \
        -I../Core/Inc \
-       -I../Tests/Unity \
-       -I../Tests/Mocks/Inc \
+       -I./Unity \
+       -I./Mocks/Inc \
+       -I../ \
        -DUNITY_TEST \
        -DDEBUG \
        -Wall \
        -g3
+       # -DSSD1306_INCLUDE_FONT_7x10 # Using this font
+
+INCLUDE_DIRS := $(shell find ../Core/Inc -type d)
+CFLAGS += $(addprefix -I,$(INCLUDE_DIRS))
 
 # Source files
 UNITY_SRCS=Unity/unity.c Unity/unity_fixture.c
@@ -25,7 +30,9 @@ TEST_SRCS=$(wildcard Console_Peripherals/test_*.c) \
 MOCK_SRCS=$(wildcard Mocks/Src/mock_*.c)
 
 SRC_FILES=../Core/Src/Console_Peripherals/joystick.c \
-          ../Core/Src/Console_Peripherals/push_button.c
+          ../Core/Src/Console_Peripherals/push_button.c \
+          ../Core/Src/Console_Peripherals/oled.c \
+          # Add more src files here
 
 # Object files
 UNITY_OBJS=$(UNITY_SRCS:.c=.o)

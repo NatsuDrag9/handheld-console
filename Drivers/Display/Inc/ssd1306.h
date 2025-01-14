@@ -11,12 +11,13 @@
 #include <stddef.h>
 
 #ifndef UNITY_TEST
+
 #include <_ansi.h>
 
 
 _BEGIN_STD_C
 
-#include "../../../../Drivers/Display/Inc/ssd1306_conf_template.h"
+#include "ssd1306_conf_template.h"
 
 #if defined(STM32F0)
 #include "stm32f0xx_hal.h"
@@ -53,7 +54,7 @@ _BEGIN_STD_C
 #define SSD1306_X_OFFSET_UPPER 0
 #endif
 
-#include "../../../../Drivers/Display/Inc/ssd1306_fonts.h"
+#include "ssd1306_fonts.h"
 
 /* vvv I2C config vvv */
 

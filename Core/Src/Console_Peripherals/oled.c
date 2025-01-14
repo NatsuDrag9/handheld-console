@@ -7,7 +7,7 @@
 
 #include "Console_Peripherals/oled.h"
 
-static MenuItem current_menu[MAX_MENU_ITEMS] = {0};
+static MenuItem current_menu[MAX_MENU_ITEMS] = { 0 };
 static uint8_t current_menu_size = 0;
 static uint8_t menu_scroll_position = 0;  // Top visible item index
 static uint8_t current_cursor_item = 0;         // Currently selected item index
@@ -44,16 +44,20 @@ void oled_init(MenuItem* menu, uint8_t menu_size) {
     // Zero out current_menu first
     memset(current_menu, 0, sizeof(current_menu));
 
+    // Reset navigation state - we were initializing it to 0 but it's getting changed somewhere
+    current_cursor_item = 0;
+    menu_scroll_position = 0;
+
     // Limit the number of items to MAX_MENU_ITEMS
     current_menu_size = (menu_size <= MAX_MENU_ITEMS) ? menu_size : MAX_MENU_ITEMS;
 
-    DEBUG_PRINTF("Menu Size: %u\n", current_menu_size);
+    // DEBUG_PRINTF("Menu Size: %u\n", current_menu_size);
 
     // Copy menu items
     for (uint8_t i = 0; i < current_menu_size; i++) {
         current_menu[i] = menu[i];
-        DEBUG_PRINTF("Oled Item %u: Title=%s, Selected=%u\n",
-        	                     i, current_menu[i].title, current_menu[i].selected);
+        // DEBUG_PRINTF("Oled Item %u: Title=%s, Selected=%u\n",
+        // 	                     i, current_menu[i].title, current_menu[i].selected);
     }
 }
 
@@ -67,6 +71,24 @@ static void oled_show_welcome(char* str1, char* str2) {
 
     display_update();
     add_delay(5000);  // Show welcome screen for 3 seconds
+}
+
+/* Private function for drawing scrollbar */
+static void oled_draw_scrollbar(uint8_t num_items) {
+    if (num_items > VISIBLE_ITEMS) {
+        uint8_t scrollbar_height = SCREEN_HEIGHT - MENU_START_Y - 4;
+        uint8_t thumb_height = (scrollbar_height * VISIBLE_ITEMS) / num_items;
+        uint8_t thumb_position = MENU_START_Y +
+            (scrollbar_height - thumb_height) * menu_scroll_position / (num_items - VISIBLE_ITEMS);
+
+        // Draw scrollbar background
+        display_draw_rectangle(SCREEN_WIDTH - 5, MENU_START_Y,
+            SCREEN_WIDTH - 3, SCREEN_HEIGHT - 4, DISPLAY_WHITE);
+
+        // Draw scrollbar thumb
+        display_fill_rectangle(SCREEN_WIDTH - 4, thumb_position,
+            SCREEN_WIDTH - 4, thumb_position + thumb_height, DISPLAY_WHITE);
+    }
 }
 
 void oled_show_menu(MenuItem* items, uint8_t num_items) {
@@ -96,20 +118,7 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
     }
 
     // Draw scrollbar if needed
-    if (num_items > VISIBLE_ITEMS) {
-        uint8_t scrollbar_height = SCREEN_HEIGHT - MENU_START_Y - 4;
-        uint8_t thumb_height = (scrollbar_height * VISIBLE_ITEMS) / num_items;
-        uint8_t thumb_position = MENU_START_Y +
-            (scrollbar_height - thumb_height) * menu_scroll_position / (num_items - VISIBLE_ITEMS);
-
-        // Draw scrollbar background
-        display_draw_rectangle(SCREEN_WIDTH - 5, MENU_START_Y,
-            SCREEN_WIDTH - 3, SCREEN_HEIGHT - 4, DISPLAY_WHITE);
-
-        // Draw scrollbar thumb
-        display_fill_rectangle(SCREEN_WIDTH - 4, thumb_position,
-            SCREEN_WIDTH - 4, thumb_position + thumb_height, DISPLAY_WHITE);
-    }
+    oled_draw_scrollbar(num_items);
 
     display_update();
 }
@@ -173,4 +182,24 @@ void oled_show_screen(ScreenType screen) {
     default:
         break;
     }
+}
+
+MenuItem oled_get_selected_menu_item() {
+    for (uint8_t i = 0; i < current_menu_size; i++) {
+        if (current_menu[i].selected == 1) {
+            return current_menu[i];
+        }
+    }
+    // Return an empty MenuItem if nothing is selected
+    MenuItem empty = { NULL, 0 };
+    return empty;
+}
+
+// Primarily used in unit-testing
+uint8_t oled_get_current_menu_size(void) {
+    return current_menu_size;
+}
+
+uint8_t oled_get_current_cursor_item(void) {
+    return current_cursor_item;
 }

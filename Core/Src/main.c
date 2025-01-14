@@ -99,6 +99,7 @@ int main(void)
 //	  		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
 //	  	 }
 	  	oled_menu_handle_input(js_status);
+	  	DEBUG_PRINTF("Selected menu item: %s\n", oled_get_selected_menu_item().title);
 
 	  	 if(pb1_get_state() == 1) {
 	  		 DEBUG_PRINTF("PB1 is pressed\n");

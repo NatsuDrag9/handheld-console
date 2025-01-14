@@ -13,14 +13,15 @@
 #include "Utils/system_utils.h"
 #include "../../../../Drivers/Display/Inc/ssd1306_conf_template.h"
 #include "../../../../Drivers/Display/Inc/ssd1306.h"
+#include "../../../../Drivers/Display/Inc/ssd1306_fonts.h"
 
-// Display dimensions
+ // Display dimensions
 #ifndef UNITY_TEST
-    #define DISPLAY_WIDTH    SSD1306_WIDTH
-    #define DISPLAY_HEIGHT   SSD1306_HEIGHT
+#define DISPLAY_WIDTH    SSD1306_WIDTH
+#define DISPLAY_HEIGHT   SSD1306_HEIGHT
 #else
-    #define DISPLAY_WIDTH    128
-    #define DISPLAY_HEIGHT   64
+#define DISPLAY_WIDTH    128
+#define DISPLAY_HEIGHT   64
 #endif
 
 // Display colors
