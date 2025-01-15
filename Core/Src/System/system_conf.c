@@ -11,6 +11,7 @@
 void System_Init(void)
 {
   SystemClock_Config();
+  fpu_init();
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART3_UART_Init();
