@@ -41,6 +41,8 @@ void display_write_string_centered(char* str, FontDef font, uint8_t y, DisplayCo
 void display_draw_rectangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, DisplayColor color);
 void display_fill_rectangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, DisplayColor color);
 void display_draw_border(void);
+void display_draw_pixel(uint8_t x, uint8_t y, DisplayColor color);
+void display_draw_bitmap(uint8_t x, uint8_t y, const uint8_t* bitmap, uint8_t width, uint8_t height, DisplayColor color);
 
 
 #endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_DISPLAY_DRIVER_H_ */

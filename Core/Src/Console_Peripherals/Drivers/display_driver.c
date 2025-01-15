@@ -58,3 +58,12 @@ void display_fill_rectangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, Disp
 void display_draw_border(void) {
     ssd1306_DrawRectangle(1, 1, DISPLAY_WIDTH-1, DISPLAY_HEIGHT-1, White);
 }
+
+void display_draw_pixel(uint8_t x, uint8_t y, DisplayColor color) {
+    ssd1306_DrawPixel(x, y, color);
+}
+
+void display_draw_bitmap(uint8_t x, uint8_t y, const uint8_t* bitmap,
+                        uint8_t width, uint8_t height, DisplayColor color) {
+    ssd1306_DrawBitmap(x, y, bitmap, width, height, color);
+}
