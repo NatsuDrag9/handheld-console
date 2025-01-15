@@ -27,3 +27,7 @@ void blink_error_led() {
 	HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 	add_delay(1000);
 }
+
+uint32_t get_current_ms(void) {
+    return HAL_GetTick();
+}

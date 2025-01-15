@@ -16,5 +16,6 @@ void blink_led1();
 void blink_led2();
 void blink_error_led();
 void add_delay(uint32_t);
+uint32_t get_current_ms(void);
 
 #endif /* INC_UTILS_MISC_UTILS_H_ */
