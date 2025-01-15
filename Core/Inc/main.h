@@ -34,7 +34,7 @@ extern "C" {
 #include "System/pin_definitions.h"
 #include "System/system_conf.h"
 #include "Console_Peripherals/console_peripherals_conf.h"
-#include "Utils/system_utils.h"
+#include <Utils/misc_utils.h>
 #endif
 /* USER CODE END Includes */
 

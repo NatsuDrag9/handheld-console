@@ -9,8 +9,8 @@
 #define INC_CONSOLE_PERIPHERALS_DRIVERS_DISPLAY_DRIVER_H_
 
 #include <stdint.h>
+#include <Utils/misc_utils.h>
 #include "string.h"
-#include "Utils/system_utils.h"
 #include "../../../../Drivers/Display/Inc/ssd1306_conf_template.h"
 #include "../../../../Drivers/Display/Inc/ssd1306.h"
 #include "../../../../Drivers/Display/Inc/ssd1306_fonts.h"
