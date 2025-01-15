@@ -21,6 +21,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "main.h"
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +42,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+volatile float angle = 0.0f;      // Made volatile to prevent optimization
+volatile float result_sin = 0.0f;
+volatile float result_cos = 0.0f;
 
 /* USER CODE END PV */
 
@@ -93,23 +97,42 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  // Compute sine and cosine using FPU
+	  float rad = angle * 3.14159f / 180.0f;
+	      result_sin = sinf(rad);
+	      result_cos = cosf(rad);
+
+	      // Complex floating point operation to ensure FPU usage
+	      float complex_calc = (sinf(rad) * cosf(rad)) / (1.0f + rad);
+
+	      // Set a breakpoint here to check FPU registers
+	      __asm("NOP");  // Add NOP to prevent optimization
+
+	      angle += 22.5f;  // Use floating point increment
+	      if(angle >= 360.0f) {
+	          angle = 0.0f;
+	      }
+
+	      DEBUG_PRINTF(1, "Angle=%.1f, Sin=%.3f, Cos=%.3f\r\n",
+	                  angle, result_sin, result_cos);
+
 	  	 JoystickStatus js_status = joystick_get_status();
 //	  	 if(js_status.is_new) {
 //	  		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
 //	  		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
 //	  	 }
 	  	oled_menu_handle_input(js_status);
-	  	DEBUG_PRINTF("Selected menu item: %s\n", oled_get_selected_menu_item().title);
+//	  	DEBUG_PRINTF(0, "Selected menu item: %s\n", oled_get_selected_menu_item().title);
 
-	  	 if(pb1_get_state() == 1) {
-	  		 DEBUG_PRINTF("PB1 is pressed\n");
-	  		 blink_led1();
-	  	 }
-
-	  	 if(pb2_get_state() == 1) {
-	  		 DEBUG_PRINTF("PB2 is pressed\n");
-	  		 blink_led2();
-	  	 }
+//	  	 if(pb1_get_state() == 1) {
+//	  		 DEBUG_PRINTF("PB1 is pressed\n");
+//	  		 blink_led1();
+//	  	 }
+//
+//	  	 if(pb2_get_state() == 1) {
+//	  		 DEBUG_PRINTF("PB2 is pressed\n");
+//	  		 blink_led2();
+//	  	 }
   }
   /* USER CODE END 3 */
 }
