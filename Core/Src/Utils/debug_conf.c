@@ -12,6 +12,7 @@
 
 #if DEBUG_ENABLE
 static volatile int debug_enabled = 1;
+static char printf_buf[256];  // Static buffer for float printing
 
 void debug_enable(void) {
     debug_enabled = 1;
@@ -33,6 +34,26 @@ int _write(int file, char *ptr, int len) {
     }
     return len;
 }
+
+void debug_printf(int is_float, const char* format, ...) {
+    if (!debug_enabled) return;
+
+    va_list args;
+    va_start(args, format);
+
+    if (is_float) {
+        vsnprintf(printf_buf, sizeof(printf_buf), format, args);
+        // Directly send to ITM
+               for(int i = 0; printf_buf[i] != '\0'; i++) {
+                   ITM_SendChar(printf_buf[i]);
+               }
+    } else {
+        vprintf(format, args);
+    }
+
+    va_end(args);
+}
+
 #endif
 
 
