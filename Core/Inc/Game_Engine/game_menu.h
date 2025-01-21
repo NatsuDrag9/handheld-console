@@ -28,6 +28,8 @@ typedef enum {
 typedef struct {
     char* title;
     uint8_t selected;  // For menu items that can be selected
+    uint8_t screen;
+    uint8_t is_game; // For menu items that are games
 } MenuItem;
 
 // Function to get the menu and its size

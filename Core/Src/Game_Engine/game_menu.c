@@ -11,12 +11,11 @@
 #include "Game_Engine/game_menu.h"
 
 MenuItem game_menu[] = {
-    {"Snake Game", 1},
-    {"Game 2", 0},
-    {"Game 3", 0},
-    {"Game 4", 0},
-    {"Game 5", 0},
-    // Add more games here
+    {"Snake Game", 0, SCREEN_GAME_SNAKE, 1},
+    {"Game 2", 0, SCREEN_GAME_2, 1},
+    {"Game 3", 0, SCREEN_GAME_3, 1},
+    {"Game 4", 0, SCREEN_GAME_4, 1},
+    {"Game 5", 0, SCREEN_GAME_5, 1},
 };
 
 const uint8_t game_menu_size = sizeof(game_menu) / sizeof(game_menu[0]);
