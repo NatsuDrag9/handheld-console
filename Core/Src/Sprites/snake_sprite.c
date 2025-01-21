@@ -7,40 +7,40 @@
 
 #include "Sprites/snake_sprite.h"
 
-// Snake head bitmap (8x8 pixels)
+// Snake head bitmap (8x8 pixels) with vertical pair of eyes
 // Two frames: normal and tongue out
 static const uint8_t snake_head_bitmap[] = {
-    0x3C, // 00111100
-    0x7E, // 01111110
+    0x7E, // 01111110  - Less rounded top
+    0xFF, // 11111111  - Full width
+	  0xE7, // 11100111  - Two eyes (** **)
     0xFF, // 11111111
     0xFF, // 11111111
-    0xE7, // 11100111
-    0xC3, // 11000011
-    0xC3, // 11000011
-    0x66  // 01100110
+	  0xE7, // 11100111  - Two eyes (** **)
+    0xFF, // 11111111
+    0x7E  // 01111110  - Less rounded bottom
 };
 
 static const uint8_t snake_head_tongue_bitmap[] = {
-    0x3C, // 00111100
-    0x7E, // 01111110
+    0x7E, // 01111110  - Less rounded top
+    0xFF, // 11111111  - Full width
+	  0xE7, // 11100111  - Two eyes (** **)
     0xFF, // 11111111
     0xFF, // 11111111
-    0xE7, // 11100111
-    0xC3, // 11000011
-    0xC3, // 11000011
-    0x6E  // 01101110 (tongue sticking out)
+	  0xE7, // 11100111  - Two eyes (** **)
+    0xFF, // 11111111
+    0x7F  // 01111111  - Tongue on right
 };
 
 // Snake body segment bitmap (8x8 pixels)
 static const uint8_t snake_body_bitmap[] = {
-    0x3C, // 00111100
-    0x7E, // 01111110
     0xFF, // 11111111
     0xFF, // 11111111
     0xFF, // 11111111
     0xFF, // 11111111
-    0x7E, // 01111110
-    0x3C  // 00111100
+    0xFF, // 11111111
+    0xFF, // 11111111
+    0xFF, // 11111111
+    0xFF  // 11111111
 };
 
 // Define the sprites
