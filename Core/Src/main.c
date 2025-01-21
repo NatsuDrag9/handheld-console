@@ -98,31 +98,40 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  // Compute sine and cosine using FPU
-	  float rad = angle * 3.14159f / 180.0f;
-	      result_sin = sinf(rad);
-	      result_cos = cosf(rad);
+//	  float rad = angle * 3.14159f / 180.0f;
+//	      result_sin = sinf(rad);
+//	      result_cos = cosf(rad);
+//
+//	      // Complex floating point operation to ensure FPU usage
+//	      float complex_calc = (sinf(rad) * cosf(rad)) / (1.0f + rad);
+//
+//	      // Set a breakpoint here to check FPU registers
+//	      __asm("NOP");  // Add NOP to prevent optimization
+//
+//	      angle += 22.5f;  // Use floating point increment
+//	      if(angle >= 360.0f) {
+//	          angle = 0.0f;
+//	      }
+//
+//	      DEBUG_PRINTF(1, "Angle=%.1f, Sin=%.3f, Cos=%.3f\r\n",
+//	                  angle, result_sin, result_cos);
 
-	      // Complex floating point operation to ensure FPU usage
-	      float complex_calc = (sinf(rad) * cosf(rad)) / (1.0f + rad);
-
-	      // Set a breakpoint here to check FPU registers
-	      __asm("NOP");  // Add NOP to prevent optimization
-
-	      angle += 22.5f;  // Use floating point increment
-	      if(angle >= 360.0f) {
-	          angle = 0.0f;
-	      }
-
-	      DEBUG_PRINTF(1, "Angle=%.1f, Sin=%.3f, Cos=%.3f\r\n",
-	                  angle, result_sin, result_cos);
-
-	  	 JoystickStatus js_status = joystick_get_status();
+//	  	 JoystickStatus js_status = joystick_get_status();
 //	  	 if(js_status.is_new) {
 //	  		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
 //	  		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
 //	  	 }
-	  	oled_menu_handle_input(js_status);
+//	  	oled_menu_handle_input(js_status);
 //	  	DEBUG_PRINTF(0, "Selected menu item: %s\n", oled_get_selected_menu_item().title);
+
+	  	if (oled_is_game_active()) {
+	  	        oled_run_game();
+
+	  	        add_delay(50);  // Control game speed
+	  	    } else {
+	  	        JoystickStatus js_status = joystick_get_status();
+	  	        oled_menu_handle_input(js_status);
+	  	    }
 
 //	  	 if(pb1_get_state() == 1) {
 //	  		 DEBUG_PRINTF("PB1 is pressed\n");
@@ -133,6 +142,9 @@ int main(void)
 //	  		 DEBUG_PRINTF("PB2 is pressed\n");
 //	  		 blink_led2();
 //	  	 }
+
+//	  	 game_engine_update(&snake_game_engine, js_status);
+//	  	    game_engine_render(&snake_game_engine);
   }
   /* USER CODE END 3 */
 }

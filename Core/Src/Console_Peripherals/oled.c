@@ -6,15 +6,21 @@
  */
 
 #include "Console_Peripherals/oled.h"
+#include "Game_Engine/game_engine.h"
+#include "Game_Engine/Games/snake_game.h"
 
 static MenuItem current_menu[MAX_MENU_ITEMS] = { 0 };
 static uint8_t current_menu_size = 0;
 static uint8_t menu_scroll_position = 0;  // Top visible item index
 static uint8_t current_cursor_item = 0;         // Currently selected item index
+static bool is_in_game = false;
 
 /* Private functions */
 static void oled_show_welcome(char* str1, char* str2);
 static void oled_display_string(char* str, FontDef Font, DisplayColor color);
+static void oled_draw_scrollbar(uint8_t num_items);
+static bool handle_menu_navigation(JoystickStatus js_status);
+static void handle_menu_selection(void);
 
 /* Displays a string on the screen */
 static void oled_display_string(char* str, FontDef Font, DisplayColor color) {
@@ -70,7 +76,7 @@ static void oled_show_welcome(char* str1, char* str2) {
     display_write_string_centered(str2, Font_7x10, 35, DISPLAY_WHITE);
 
     display_update();
-    add_delay(5000);  // Show welcome screen for 3 seconds
+    add_delay(3000);  // Show welcome screen for 3 seconds
 }
 
 /* Private function for drawing scrollbar */
@@ -123,42 +129,81 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
     display_update();
 }
 
+static bool handle_menu_navigation(JoystickStatus js_status) {
+    switch (js_status.direction) {
+        case JS_DIR_UP:
+            if (current_cursor_item > 0) {
+                current_cursor_item--;
+                if (current_cursor_item < menu_scroll_position) {
+                    menu_scroll_position = current_cursor_item;
+                }
+                return true;
+            }
+            break;
+
+        case JS_DIR_DOWN:
+            if (current_cursor_item < current_menu_size - 1) {
+                current_cursor_item++;
+                if (current_cursor_item >= menu_scroll_position + VISIBLE_ITEMS) {
+                    menu_scroll_position = current_cursor_item - VISIBLE_ITEMS + 1;
+                }
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+
+static void handle_menu_selection(void) {
+    // Clear previous selections
+    for (uint8_t i = 0; i < current_menu_size; i++) {
+        current_menu[i].selected = 0;
+    }
+
+    // Set new selection
+    current_menu[current_cursor_item].selected = 1;
+
+    // Handle selected item
+    MenuItem selected = current_menu[current_cursor_item];
+    if (selected.title != NULL) {
+        if (selected.is_game) {
+            oled_set_is_game_active(true);
+        }
+        oled_show_screen(selected.screen);
+    }
+}
+
 void oled_menu_handle_input(JoystickStatus js_status) {
-    if (!js_status.is_new) return;
-
-    bool menu_updated = false;
-
-    // Handle up/down navigation
-    if (js_status.direction == JS_DIR_UP && current_cursor_item > 0) {
-        current_cursor_item--;
-        if (current_cursor_item < menu_scroll_position) {
-            menu_scroll_position = current_cursor_item;
-        }
-        menu_updated = true;
-    }
-    else if (js_status.direction == JS_DIR_DOWN && current_cursor_item < current_menu_size - 1) {
-        current_cursor_item++;
-        if (current_cursor_item >= menu_scroll_position + VISIBLE_ITEMS) {
-            menu_scroll_position = current_cursor_item - VISIBLE_ITEMS + 1;
-        }
-        menu_updated = true;
+    if (!js_status.is_new) {
+        return;
     }
 
-    // Handle selection via button press
-    if (js_status.button) {
-        // Clear all selections first
-        for (uint8_t i = 0; i < current_menu_size; i++) {
-            current_menu[i].selected = 0;
-        }
-        // Set new selection
-        current_menu[current_cursor_item].selected = 1;
-        menu_updated = true;
-    }
-
-    // Update display if needed
-    if (menu_updated) {
+    // Handle navigation
+    if (handle_menu_navigation(js_status)) {
         oled_show_menu(current_menu, current_menu_size);
+        return;
     }
+
+    // Handle selection
+    if (js_status.button) {
+        handle_menu_selection();
+    }
+}
+
+void oled_run_game(void) {
+    if (!is_in_game) {
+        return;
+    }
+
+    static uint32_t last_frame_time = 0;
+    uint32_t current_time = get_current_ms();
+
+    if (current_time - last_frame_time >= FRAME_RATE	) {
+            JoystickStatus js_status = joystick_get_status();
+            game_engine_update(&snake_game_engine, js_status);
+            game_engine_render(&snake_game_engine);
+            last_frame_time = current_time;
+        }
 }
 
 void oled_show_screen(ScreenType screen) {
@@ -177,6 +222,8 @@ void oled_show_screen(ScreenType screen) {
 
     case SCREEN_GAME_SNAKE:
         // Initialize snake game screen
+    	DEBUG_PRINTF(false, "Initializing snake game...\n");
+    	game_engine_init(&snake_game_engine);
         break;
 
     default:
@@ -193,6 +240,14 @@ MenuItem oled_get_selected_menu_item() {
     // Return an empty MenuItem if nothing is selected
     MenuItem empty = { NULL, 0 };
     return empty;
+}
+
+bool oled_is_game_active(void) {
+	return is_in_game;
+}
+
+void oled_set_is_game_active(bool is_active) {
+	is_in_game = is_active;
 }
 
 // Primarily used in unit-testing

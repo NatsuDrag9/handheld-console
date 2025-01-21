@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include "string.h"
 #include "Console_Peripherals/types.h"
+#include "Console_Peripherals/joystick.h"
 #include "Console_Peripherals/Drivers/display_driver.h"
 #include "Game_Engine/game_menu.h"
 
@@ -36,6 +37,9 @@ void oled_menu_handle_input(JoystickStatus js_status);
 
 // Functions for game engine
 MenuItem oled_get_selected_menu_item(void);
+void oled_run_game(void);
+bool oled_is_game_active(void);
+void oled_set_is_game_active(bool is_active);
 
 // For tests
 uint8_t oled_get_current_menu_size(void);
