@@ -168,6 +168,7 @@ static void snake_render(void) {
     // Draw score on top
     char score_text[16];
     snprintf(score_text, sizeof(score_text), "Score: %lu", snake_game_engine.base_state.score);
+    display_set_cursor(2, 2);
     display_write_string(score_text, Font_7x10, DISPLAY_WHITE);
 }
 
