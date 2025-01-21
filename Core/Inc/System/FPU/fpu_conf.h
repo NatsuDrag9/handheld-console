@@ -8,7 +8,9 @@
 #ifndef INC_SYSTEM_FPU_FPU_CONF_H_
 #define INC_SYSTEM_FPU_FPU_CONF_H_
 
+#ifndef UNITY_TEST
 #include "stm32f4xx.h"
+#endif
 
 void fpu_init(void);
 
