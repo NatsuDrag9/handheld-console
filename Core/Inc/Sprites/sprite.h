@@ -20,7 +20,7 @@ typedef struct {
     const Sprite* frames;     // Array of sprite frames
     uint8_t num_frames;       // Number of frames
     uint8_t current_frame;    // Current frame index
-    uint8_t frame_delay;      // Delay between frames
+    uint32_t frame_delay;      // Delay between frames
     uint32_t last_update;     // Time of last frame update
 } AnimatedSprite;
 
@@ -28,7 +28,8 @@ typedef struct {
 void sprite_draw(const Sprite* sprite, uint8_t x, uint8_t y, DisplayColor color);
 void sprite_draw_rotated(const Sprite* sprite, uint8_t x, uint8_t y, uint8_t angle, DisplayColor color);
 void sprite_draw_scaled(const Sprite* sprite, uint8_t x, uint8_t y, float scale, DisplayColor color);
-//void animated_sprite_update(AnimatedSprite* sprite);
-//void animated_sprite_draw(const AnimatedSprite* sprite, uint8_t x, uint8_t y, DisplayColor color);
+void animated_sprite_update(AnimatedSprite* sprite);
+void animated_sprite_draw(const AnimatedSprite* sprite, uint8_t x, uint8_t y, DisplayColor color);
+void animated_sprite_update(AnimatedSprite* sprite);
 
 #endif /* INC_SPRITES_SPRITE_H_ */

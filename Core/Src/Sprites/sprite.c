@@ -7,7 +7,7 @@
 
 #include "Sprites/sprite.h"
 #include <math.h>
-#include "Utils/system_utils.h"  // For get_current_ms()
+#include <Utils/misc_utils.h>  // For get_current_ms()
 
 void sprite_draw(const Sprite* sprite, uint8_t x, uint8_t y, DisplayColor color) {
     display_draw_bitmap(x, y, sprite->bitmap, sprite->width, sprite->height, color);
@@ -26,7 +26,7 @@ void sprite_draw_rotated(const Sprite* sprite, uint8_t x, uint8_t y, uint8_t ang
             uint8_t byte_idx = sy * ((sprite->width + 7) / 8) + sx / 8;
             uint8_t bit_idx = 7 - (sx % 8);
 
-            // If this pixel is set in the bitmap
+            // If this pixel i+s set in the bitmap
             if(sprite->bitmap[byte_idx] & (1 << bit_idx)) {
                 // Calculate rotated position
                 float dx = (float)(sx - sprite->width/2);
@@ -71,17 +71,17 @@ void sprite_draw_scaled(const Sprite* sprite, uint8_t x, uint8_t y, float scale,
     }
 }
 
-//void animated_sprite_update(AnimatedSprite* sprite) {
-//    uint32_t current_time = get_current_ms();
-//
-//    // Update frame if enough time has passed
-//    if(current_time - sprite->last_update >= sprite->frame_delay) {
-//        sprite->current_frame = (sprite->current_frame + 1) % sprite->num_frames;
-//        sprite->last_update = current_time;
-//    }
-//}
-//
-//void animated_sprite_draw(const AnimatedSprite* sprite, uint8_t x, uint8_t y, DisplayColor color) {
-//    // Draw current frame
-//    sprite_draw(&sprite->frames[sprite->current_frame], x, y, color);
-//}
+void animated_sprite_update(AnimatedSprite* sprite) {
+    uint32_t current_time = get_current_ms();
+
+    // Update frame if enough time has passed
+    if(current_time - sprite->last_update >= sprite->frame_delay) {
+        sprite->current_frame = (sprite->current_frame + 1) % sprite->num_frames;
+        sprite->last_update = current_time;
+    }
+}
+
+void animated_sprite_draw(const AnimatedSprite* sprite, uint8_t x, uint8_t y, DisplayColor color) {
+    // Draw current frame
+    sprite_draw(&sprite->frames[sprite->current_frame], x, y, color);
+}
