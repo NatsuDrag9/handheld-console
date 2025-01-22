@@ -131,25 +131,25 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
 
 static bool handle_menu_navigation(JoystickStatus js_status) {
     switch (js_status.direction) {
-        case JS_DIR_UP:
-            if (current_cursor_item > 0) {
-                current_cursor_item--;
-                if (current_cursor_item < menu_scroll_position) {
-                    menu_scroll_position = current_cursor_item;
-                }
-                return true;
+    case JS_DIR_UP:
+        if (current_cursor_item > 0) {
+            current_cursor_item--;
+            if (current_cursor_item < menu_scroll_position) {
+                menu_scroll_position = current_cursor_item;
             }
-            break;
+            return true;
+        }
+        break;
 
-        case JS_DIR_DOWN:
-            if (current_cursor_item < current_menu_size - 1) {
-                current_cursor_item++;
-                if (current_cursor_item >= menu_scroll_position + VISIBLE_ITEMS) {
-                    menu_scroll_position = current_cursor_item - VISIBLE_ITEMS + 1;
-                }
-                return true;
+    case JS_DIR_DOWN:
+        if (current_cursor_item < current_menu_size - 1) {
+            current_cursor_item++;
+            if (current_cursor_item >= menu_scroll_position + VISIBLE_ITEMS) {
+                menu_scroll_position = current_cursor_item - VISIBLE_ITEMS + 1;
             }
-            break;
+            return true;
+        }
+        break;
     }
     return false;
 }
@@ -198,12 +198,12 @@ void oled_run_game(void) {
     static uint32_t last_frame_time = 0;
     uint32_t current_time = get_current_ms();
 
-    if (current_time - last_frame_time >= FRAME_RATE	) {
-            JoystickStatus js_status = joystick_get_status();
-            game_engine_update(&snake_game_engine, js_status);
-            game_engine_render(&snake_game_engine);
-            last_frame_time = current_time;
-        }
+    if (current_time - last_frame_time >= FRAME_RATE) {
+        JoystickStatus js_status = joystick_get_status();
+        game_engine_update(&snake_game_engine, js_status);
+        game_engine_render(&snake_game_engine);
+        last_frame_time = current_time;
+    }
 }
 
 void oled_show_screen(ScreenType screen) {
@@ -222,8 +222,8 @@ void oled_show_screen(ScreenType screen) {
 
     case SCREEN_GAME_SNAKE:
         // Initialize snake game screen
-    	DEBUG_PRINTF(false, "Initializing snake game...\n");
-    	game_engine_init(&snake_game_engine);
+        // DEBUG_PRINTF(false, "Initializing snake game...\n");
+        game_engine_init(&snake_game_engine);
         break;
 
     default:
@@ -243,11 +243,11 @@ MenuItem oled_get_selected_menu_item() {
 }
 
 bool oled_is_game_active(void) {
-	return is_in_game;
+    return is_in_game;
 }
 
 void oled_set_is_game_active(bool is_active) {
-	is_in_game = is_active;
+    is_in_game = is_active;
 }
 
 // Primarily used in unit-testing

@@ -58,8 +58,8 @@ static void snake_init(void) {
     data->food.x = 16;
     data->food.y = 16;
 
-//    DEBUG_PRINTF(false, "Snake initialized: x=%d, y=%d, direction=%d\n",
-//                  data->head_x, data->head_y, data->direction);
+    //    DEBUG_PRINTF(false, "Snake initialized: x=%d, y=%d, direction=%d\n",
+    //                  data->head_x, data->head_y, data->direction);
 }
 
 static void snake_update(JoystickStatus js_status) {
@@ -71,57 +71,57 @@ static void snake_update(JoystickStatus js_status) {
     // Handle direction changes based on joystick
     if (js_status.is_new) {
         switch (js_status.direction) {
-            case JS_DIR_RIGHT:
-                if (data->direction != JS_DIR_LEFT) {
-                    data->direction = JS_DIR_RIGHT;
-                }
-                break;
+        case JS_DIR_RIGHT:
+            if (data->direction != JS_DIR_LEFT) {
+                data->direction = JS_DIR_RIGHT;
+            }
+            break;
 
-            case JS_DIR_LEFT:
-                if (data->direction != JS_DIR_RIGHT) {
-                    data->direction = JS_DIR_LEFT;
-                }
-                break;
+        case JS_DIR_LEFT:
+            if (data->direction != JS_DIR_RIGHT) {
+                data->direction = JS_DIR_LEFT;
+            }
+            break;
 
-            case JS_DIR_UP:
-                if (data->direction != JS_DIR_DOWN) {
-                    data->direction = JS_DIR_UP;
-                }
-                break;
+        case JS_DIR_UP:
+            if (data->direction != JS_DIR_DOWN) {
+                data->direction = JS_DIR_UP;
+            }
+            break;
 
-            case JS_DIR_DOWN:
-                if (data->direction != JS_DIR_UP) {
-                    data->direction = JS_DIR_DOWN;
-                }
-                break;
+        case JS_DIR_DOWN:
+            if (data->direction != JS_DIR_UP) {
+                data->direction = JS_DIR_DOWN;
+            }
+            break;
 
             // Handle diagonal movements if needed
-            case JS_DIR_LEFT_UP:
-                if (data->direction != JS_DIR_DOWN && data->direction != JS_DIR_RIGHT) {
-                    data->direction = JS_DIR_UP;  // Prioritize vertical movement
-                }
-                break;
+        case JS_DIR_LEFT_UP:
+            if (data->direction != JS_DIR_DOWN && data->direction != JS_DIR_RIGHT) {
+                data->direction = JS_DIR_UP;  // Prioritize vertical movement
+            }
+            break;
 
-            case JS_DIR_LEFT_DOWN:
-                if (data->direction != JS_DIR_UP && data->direction != JS_DIR_RIGHT) {
-                    data->direction = JS_DIR_DOWN;
-                }
-                break;
+        case JS_DIR_LEFT_DOWN:
+            if (data->direction != JS_DIR_UP && data->direction != JS_DIR_RIGHT) {
+                data->direction = JS_DIR_DOWN;
+            }
+            break;
 
-            case JS_DIR_RIGHT_UP:
-                if (data->direction != JS_DIR_DOWN && data->direction != JS_DIR_LEFT) {
-                    data->direction = JS_DIR_UP;
-                }
-                break;
+        case JS_DIR_RIGHT_UP:
+            if (data->direction != JS_DIR_DOWN && data->direction != JS_DIR_LEFT) {
+                data->direction = JS_DIR_UP;
+            }
+            break;
 
-            case JS_DIR_RIGHT_DOWN:
-                if (data->direction != JS_DIR_UP && data->direction != JS_DIR_LEFT) {
-                    data->direction = JS_DIR_DOWN;
-                }
-                break;
+        case JS_DIR_RIGHT_DOWN:
+            if (data->direction != JS_DIR_UP && data->direction != JS_DIR_LEFT) {
+                data->direction = JS_DIR_DOWN;
+            }
+            break;
 
-            default:
-                break;
+        default:
+            break;
         }
     }
 
@@ -136,21 +136,21 @@ static void snake_render(void) {
 
     // Calculate rotation based on direction
     uint8_t rotation;
-    switch(data->direction) {
-        case JS_DIR_RIGHT:
-            rotation = 0;
-            break;
-        case JS_DIR_DOWN:
-            rotation = 90;
-            break;
-        case JS_DIR_LEFT:
-            rotation = 180;
-            break;
-        case JS_DIR_UP:
-            rotation = (uint8_t)270;
-            break;
-        default:
-            rotation = 0;
+    switch (data->direction) {
+    case JS_DIR_RIGHT:
+        rotation = 0;
+        break;
+    case JS_DIR_DOWN:
+        rotation = 90;
+        break;
+    case JS_DIR_LEFT:
+        rotation = 180;
+        break;
+    case JS_DIR_UP:
+        rotation = (uint8_t)270;
+        break;
+    default:
+        rotation = 0;
     }
 
     // Draw game border
@@ -158,7 +158,7 @@ static void snake_render(void) {
 
     // Draw snake head with appropriate rotation
     sprite_draw_rotated(&snake_head_animated.frames[snake_head_animated.current_frame],
-                       data->head_x, data->head_y, rotation, DISPLAY_WHITE);
+        data->head_x, data->head_y, rotation, DISPLAY_WHITE);
 
     // Draw body segments
     for (uint8_t i = 0; i < data->length; i++) {
@@ -167,7 +167,7 @@ static void snake_render(void) {
 
     // Draw score on top
     char score_text[16];
-    snprintf(score_text, sizeof(score_text), "Score: %lu", snake_game_engine.base_state.score);
+    snprintf(score_text, sizeof(score_text), "Score: %u", snake_game_engine.base_state.score);
     display_set_cursor(2, 2);
     display_write_string(score_text, Font_7x10, DISPLAY_WHITE);
 }
