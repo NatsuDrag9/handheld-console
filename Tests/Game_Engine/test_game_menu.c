@@ -15,12 +15,16 @@ static MenuItem test_menu[] = {
 };
 static const uint8_t test_menu_size = sizeof(test_menu) / sizeof(test_menu[0]);
 
+// Variables to store menu returned by get_game_menu
+static MenuItem* menu_ptr;
+static uint8_t menu_size;
+
 TEST_SETUP(GameMenu) {
     // Reset test menu to initial state
     for (uint8_t i = 0; i < test_menu_size; i++) {
         test_menu[i].selected = 0;
     }
-    get_game_menu(&menu, &size);
+    get_game_menu(&menu_ptr, &menu_size);
 }
 
 TEST_TEAR_DOWN(GameMenu) {
@@ -28,40 +32,40 @@ TEST_TEAR_DOWN(GameMenu) {
 }
 
 TEST(GameMenu, MenuSizeIsCorrect) {
-    TEST_ASSERT_EQUAL_UINT8(MAX_MENU_ITEMS, size);
-    TEST_ASSERT_EQUAL_UINT8(test_menu_size, size);
+    TEST_ASSERT_EQUAL_UINT8(MAX_MENU_ITEMS, menu_size);
+    TEST_ASSERT_EQUAL_UINT8(test_menu_size, menu_size);
 }
 
 TEST(GameMenu, FirstGameIsSnake) {
-    TEST_ASSERT_EQUAL_STRING("Test Snake", menu[0].title);
-    TEST_ASSERT_EQUAL_UINT8(SCREEN_GAME_SNAKE, menu[0].screen);
-    TEST_ASSERT_TRUE(menu[0].is_game);
+    TEST_ASSERT_EQUAL_STRING("Snake Game", menu_ptr[0].title);
+    TEST_ASSERT_EQUAL_UINT8(SCREEN_GAME_SNAKE, menu_ptr[0].screen);
+    TEST_ASSERT_TRUE(menu_ptr[0].is_game);
 }
 
 TEST(GameMenu, AllItemsHaveValidTitles) {
-    for (uint8_t i = 0; i < size; i++) {
-        TEST_ASSERT_NOT_NULL(menu[i].title);
-        TEST_ASSERT_TRUE(strlen(menu[i].title) > 0);
+    for (uint8_t i = 0; i < menu_size; i++) {
+        TEST_ASSERT_NOT_NULL(menu_ptr[i].title);
+        TEST_ASSERT_TRUE(strlen(menu_ptr[i].title) > 0);
     }
 }
 
 TEST(GameMenu, AllItemsAreInitiallyUnselected) {
-    for (uint8_t i = 0; i < size; i++) {
-        TEST_ASSERT_EQUAL_UINT8(0, menu[i].selected);
+    for (uint8_t i = 0; i < menu_size; i++) {
+        TEST_ASSERT_EQUAL_UINT8(0, menu_ptr[i].selected);
     }
 }
 
 TEST(GameMenu, AllItemsAreGames) {
-    for (uint8_t i = 0; i < size; i++) {
-        TEST_ASSERT_TRUE(menu[i].is_game);
+    for (uint8_t i = 0; i < menu_size; i++) {
+        TEST_ASSERT_TRUE(menu_ptr[i].is_game);
     }
 }
 
 TEST(GameMenu, ScreenTypesAreUnique) {
     // Check that each menu item has a unique screen type
-    for (uint8_t i = 0; i < size; i++) {
-        for (uint8_t j = i + 1; j < size; j++) {
-            TEST_ASSERT_NOT_EQUAL(menu[i].screen, menu[j].screen);
+    for (uint8_t i = 0; i < menu_size; i++) {
+        for (uint8_t j = i + 1; j < menu_size; j++) {
+            TEST_ASSERT_NOT_EQUAL(menu_ptr[i].screen, menu_ptr[j].screen);
         }
     }
 }
@@ -81,9 +85,9 @@ TEST(GameMenu, NullPointerHandling) {
 
 TEST(GameMenu, CanSelectMenuItem) {
     // Select second menu item
-    menu[1].selected = 1;
-    TEST_ASSERT_EQUAL_UINT8(1, menu[1].selected);
-    TEST_ASSERT_EQUAL_UINT8(0, menu[0].selected);  // Other items remain unselected
+    menu_ptr[1].selected = 1;
+    TEST_ASSERT_EQUAL_UINT8(1, menu_ptr[1].selected);
+    TEST_ASSERT_EQUAL_UINT8(0, menu_ptr[0].selected);  // Other items remain unselected
 }
 
 // Test Group Runner

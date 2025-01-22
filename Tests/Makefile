@@ -25,7 +25,8 @@ UNITY_SRCS=Unity/unity.c Unity/unity_fixture.c
 #           Mocks/Src/mock_push_button_driver.c
 
 TEST_SRCS=$(wildcard Console_Peripherals/test_*.c) \
-       all_tests.c
+         $(wildcard Game_Engine/test_*.c) \
+         all_tests.c
 
 MOCK_SRCS=$(wildcard Mocks/Src/mock_*.c)
 
