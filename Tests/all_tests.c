@@ -5,6 +5,7 @@ static void RunAllTests(void) {
     RUN_TEST_GROUP(PushButton);
     RUN_TEST_GROUP(OLED);
     RUN_TEST_GROUP(GameMenu);
+    RUN_TEST_GROUP(GameEngine);
 }
 
 int main(int argc, const char* argv[]) {
