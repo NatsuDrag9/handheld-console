@@ -142,3 +142,73 @@ void display_draw_border(void) {
     current_color = DISPLAY_WHITE;
     screen_updated++;
 }
+
+void display_draw_pixel(uint8_t x, uint8_t y, DisplayColor color) {
+    // Bounds checking
+    if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) {
+        return;
+    }
+
+    // Calculate byte position in the buffer
+    // Each byte represents 8 horizontal pixels
+    uint16_t byte_pos = (y * (DISPLAY_WIDTH / 8)) + (x / 8);
+
+    // Calculate bit position within the byte (7 - to account for MSB first)
+    uint8_t bit_pos = 7 - (x % 8);
+
+    if (byte_pos < sizeof(display_buffer)) {
+        if (color == DISPLAY_WHITE) {
+            // Set pixel
+            display_buffer[byte_pos] |= (1 << bit_pos);
+        }
+        else {
+            // Clear pixel
+            display_buffer[byte_pos] &= ~(1 << bit_pos);
+        }
+    }
+
+    current_color = color;
+    screen_updated++;
+}
+
+void display_draw_bitmap(uint8_t x, uint8_t y, const uint8_t* bitmap, uint8_t width, uint8_t height, DisplayColor color) {
+    // Bounds checking
+    if (bitmap == NULL || x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) {
+        return;
+    }
+
+    // Calculate bytes per row in the bitmap
+    uint8_t bytes_per_row = (width + 7) / 8;
+
+    // Iterate through each row
+    for (uint8_t y_pos = 0; y_pos < height; y_pos++) {
+        // Stop if we go beyond display height
+        if ((y + y_pos) >= DISPLAY_HEIGHT) break;
+
+        // Iterate through each byte in the row
+        for (uint8_t byte_idx = 0; byte_idx < bytes_per_row; byte_idx++) {
+            uint8_t byte = bitmap[y_pos * bytes_per_row + byte_idx];
+
+            // Process each bit in the byte
+            for (uint8_t bit_idx = 0; bit_idx < 8; bit_idx++) {
+                // Stop if we go beyond bitmap width
+                if ((byte_idx * 8 + bit_idx) >= width) break;
+
+                // Calculate x position for this bit
+                uint8_t x_pos = x + (byte_idx * 8 + bit_idx);
+
+                // Stop if we go beyond display width
+                if (x_pos >= DISPLAY_WIDTH) break;
+
+                // Check if bit is set in bitmap
+                if (byte & (0x80 >> bit_idx)) {
+                    // Draw pixel using the existing function
+                    display_draw_pixel(x_pos, y + y_pos, color);
+                }
+            }
+        }
+    }
+
+    current_color = color;
+    screen_updated++;
+}
