@@ -6,6 +6,7 @@ static void RunAllTests(void) {
     RUN_TEST_GROUP(OLED);
     RUN_TEST_GROUP(GameMenu);
     RUN_TEST_GROUP(GameEngine);
+    RUN_TEST_GROUP(Sprite);
 }
 
 int main(int argc, const char* argv[]) {

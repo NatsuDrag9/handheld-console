@@ -26,6 +26,7 @@ UNITY_SRCS=Unity/unity.c Unity/unity_fixture.c
 
 TEST_SRCS=$(wildcard Console_Peripherals/test_*.c) \
          $(wildcard Game_Engine/test_*.c) \
+         $(wildcard Sprites/test_*.c) \
          all_tests.c
 
 MOCK_SRCS=$(wildcard Mocks/Src/mock_*.c)
