@@ -7,6 +7,7 @@ static void RunAllTests(void) {
     RUN_TEST_GROUP(GameMenu);
     RUN_TEST_GROUP(GameEngine);
     RUN_TEST_GROUP(Sprite);
+    RUN_TEST_GROUP(SnakeGame);
 }
 
 int main(int argc, const char* argv[]) {

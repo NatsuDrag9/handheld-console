@@ -127,7 +127,7 @@ int main(void)
 	  	if (oled_is_game_active()) {
 	  	        oled_run_game();
 
-	  	        add_delay(50);  // Control game speed
+	  	        add_delay(1);  // Control game speed
 	  	    } else {
 	  	        JoystickStatus js_status = joystick_get_status();
 	  	        oled_menu_handle_input(js_status);
