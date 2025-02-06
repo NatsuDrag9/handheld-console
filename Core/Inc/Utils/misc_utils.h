@@ -18,4 +18,7 @@ void blink_error_led();
 void add_delay(uint32_t);
 uint32_t get_current_ms(void);
 
+void init_random(void);
+uint32_t get_random(void);
+
 #endif /* INC_UTILS_MISC_UTILS_H_ */

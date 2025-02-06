@@ -8,6 +8,7 @@
 
 #include <Utils/misc_utils.h>
 
+static uint32_t random_seed = 1;
 
 void add_delay(uint32_t value) {
 	HAL_Delay(value);
@@ -30,4 +31,13 @@ void blink_error_led() {
 
 uint32_t get_current_ms(void) {
     return HAL_GetTick();
+}
+
+void init_random(void) {
+	random_seed = HAL_GetTick();
+}
+
+uint32_t get_random(void) {
+    random_seed = random_seed * 1103515245 + 12345;
+    return random_seed;
 }
