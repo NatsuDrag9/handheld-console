@@ -143,6 +143,27 @@ void display_draw_border(void) {
     screen_updated++;
 }
 
+void display_draw_border_at(uint8_t x_offset, uint8_t y_offset, uint8_t dist_from_width, uint8_t dist_from_height) {
+    border_drawn = 1;
+    current_color = DISPLAY_WHITE;
+
+    // Set buffer bits to simulate border
+    uint16_t x2 = DISPLAY_WIDTH - dist_from_width;
+    uint16_t y2 = DISPLAY_HEIGHT - dist_from_height;
+
+    // Draw border in buffer using existing pixel drawing function
+    for (uint8_t x = x_offset; x <= x2; x++) {
+        display_draw_pixel(x, y_offset, DISPLAY_WHITE);  // Top line
+        display_draw_pixel(x, y2, DISPLAY_WHITE);        // Bottom line
+    }
+    for (uint8_t y = y_offset; y <= y2; y++) {
+        display_draw_pixel(x_offset, y, DISPLAY_WHITE);  // Left line
+        display_draw_pixel(x2, y, DISPLAY_WHITE);        // Right line
+    }
+
+    screen_updated++;
+}
+
 void display_draw_pixel(uint8_t x, uint8_t y, DisplayColor color) {
     // Bounds checking
     if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) {
