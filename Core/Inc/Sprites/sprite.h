@@ -25,11 +25,10 @@ typedef struct {
 } AnimatedSprite;
 
 // Sprite operations
-void sprite_draw(const Sprite* sprite, uint8_t x, uint8_t y, DisplayColor color);
-void sprite_draw_rotated(const Sprite* sprite, uint8_t x, uint8_t y, uint8_t angle, DisplayColor color);
-void sprite_draw_scaled(const Sprite* sprite, uint8_t x, uint8_t y, float scale, DisplayColor color);
+void sprite_draw(const Sprite* sprite, uint16_t x, uint16_t y, DisplayColor color);
+void sprite_draw_rotated(const Sprite* sprite, uint16_t x, uint16_t y, uint16_t angle, DisplayColor color);
+void sprite_draw_scaled(const Sprite* sprite, uint16_t x, uint16_t y, float scale, DisplayColor color);
 void animated_sprite_update(AnimatedSprite* sprite);
-void animated_sprite_draw(const AnimatedSprite* sprite, uint8_t x, uint8_t y, DisplayColor color);
-void animated_sprite_update(AnimatedSprite* sprite);
+void animated_sprite_draw(const AnimatedSprite* sprite, uint16_t x, uint16_t y, DisplayColor color);
 
 #endif /* INC_SPRITES_SPRITE_H_ */
