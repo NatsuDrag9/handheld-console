@@ -43,6 +43,18 @@ static const uint8_t snake_body_bitmap[] = {
     0xFF  // 11111111
 };
 
+// Food bitmap (8x8 pixels) - apple shape
+static const uint8_t food_bitmap[] = {
+    0x18, // 00011000 - Stem
+    0x3C, // 00111100 - Top curve
+    0x7E, // 01111110 - Upper body
+    0xFF, // 11111111 - Middle
+    0xFF, // 11111111 - Middle
+    0x7E, // 01111110 - Lower body
+    0x3C, // 00111100 - Bottom curve
+    0x18  // 00011000 - Base
+};
+
 // Define the sprites
 const Sprite snake_head_frame1 = {
     .bitmap = snake_head_bitmap,
@@ -75,4 +87,11 @@ AnimatedSprite snake_head_animated = {
     .current_frame = 0,
     .frame_delay = 500, // 500ms between frames
     .last_update = 0
+};
+
+// Food
+const Sprite food_sprite = {
+    .bitmap = food_bitmap,
+    .width = 8,
+    .height = 8
 };

@@ -14,6 +14,7 @@
 extern const Sprite snake_head_sprite;
 extern const Sprite snake_body_sprite;
 extern const Sprite snake_head_frames[];
+extern const Sprite food_sprite;
 
 // Animated snake head (for tongue flicking animation)
 extern AnimatedSprite snake_head_animated;
