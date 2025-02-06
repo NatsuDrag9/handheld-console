@@ -59,6 +59,10 @@ void display_draw_border(void) {
     ssd1306_DrawRectangle(1, 1, DISPLAY_WIDTH-1, DISPLAY_HEIGHT-1, White);
 }
 
+void display_draw_border_at(uint8_t x_offset, uint8_t y_offset, uint8_t dist_from_width, uint8_t dist_from_height) {
+    ssd1306_DrawRectangle(x_offset, y_offset, DISPLAY_WIDTH-dist_from_width, DISPLAY_HEIGHT-dist_from_height, White);
+}
+
 void display_draw_pixel(uint8_t x, uint8_t y, DisplayColor color) {
     ssd1306_DrawPixel(x, y, color);
 }
