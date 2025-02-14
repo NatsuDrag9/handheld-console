@@ -61,7 +61,7 @@ TEST(SnakeGame, SnakeMovesSpriteWidthInDirectionOfMovement) {
     mock_time_set_ms(SNAKE_SPEED + 1);
     snake_game_engine.update(js);
 
-    TEST_ASSERT_EQUAL(initial_x + SNAKE_SPRITE_SIZE, game_data->head_x);
+    TEST_ASSERT_EQUAL(initial_x + SPRITE_SIZE, game_data->head_x);
     TEST_ASSERT_EQUAL(initial_y, game_data->head_y);
 }
 
@@ -73,7 +73,7 @@ TEST(SnakeGame, CannotReverseDirection) {
 }
 
 TEST(SnakeGame, SnakeWrapsHorizontally) {
-    game_data->head_x = DISPLAY_WIDTH - SNAKE_SPRITE_SIZE;
+    game_data->head_x = DISPLAY_WIDTH - SPRITE_SIZE;
     JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
     mock_time_set_ms(SNAKE_SPEED + 1);
     snake_game_engine.update(js);
@@ -90,7 +90,7 @@ TEST(SnakeGame, SnakeSpeedIncreases) {
 }
 
 TEST(SnakeGame, SnakeWrapsVertically) {
-    game_data->head_y = DISPLAY_HEIGHT - SNAKE_SPRITE_SIZE;
+    game_data->head_y = DISPLAY_HEIGHT - SPRITE_SIZE;
     JoystickStatus js = { .direction = JS_DIR_DOWN, .is_new = true };
     mock_time_set_ms(SNAKE_SPEED + 1);
     snake_game_engine.update(js);
@@ -107,7 +107,7 @@ TEST(SnakeGame, MovementOnlyOccursAtCorrectInterval) {
 
 TEST(SnakeGame, SnakeLengthLimitedToMaxSize) {
     for (int i = 0; i < 65; i++) {
-        game_data->food.x = game_data->head_x + SNAKE_SPRITE_SIZE;
+        game_data->food.x = game_data->head_x + SPRITE_SIZE;
         game_data->food.y = game_data->head_y;
         mock_time_set_ms((i + 1) * SNAKE_SPEED + 1);
         JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
@@ -120,12 +120,12 @@ TEST(SnakeGame, SnakeLengthLimitedToMaxSize) {
 TEST(SnakeGame, FoodSpawnsInBoundsAfterCollection) {
     // Initial food position from init
     TEST_ASSERT_GREATER_OR_EQUAL(BORDER_OFFSET, game_data->food.x);
-    TEST_ASSERT_LESS_THAN(DISPLAY_WIDTH - BORDER_OFFSET - SNAKE_SPRITE_SIZE, game_data->food.x);
+    TEST_ASSERT_LESS_THAN(DISPLAY_WIDTH - BORDER_OFFSET - SPRITE_SIZE, game_data->food.x);
     TEST_ASSERT_GREATER_OR_EQUAL(GAME_AREA_TOP, game_data->food.y);
-    TEST_ASSERT_LESS_THAN(DISPLAY_HEIGHT - BORDER_OFFSET - SNAKE_SPRITE_SIZE, game_data->food.y);
+    TEST_ASSERT_LESS_THAN(DISPLAY_HEIGHT - BORDER_OFFSET - SPRITE_SIZE, game_data->food.y);
 
     // Trigger food respawn through collection
-    game_data->head_x = game_data->food.x - SNAKE_SPRITE_SIZE;
+    game_data->head_x = game_data->food.x - SPRITE_SIZE;
     game_data->head_y = game_data->food.y;
 
     mock_random_set_next_value(50);
@@ -136,9 +136,9 @@ TEST(SnakeGame, FoodSpawnsInBoundsAfterCollection) {
 
     // Check new food position is also in bounds
     TEST_ASSERT_GREATER_OR_EQUAL(BORDER_OFFSET, game_data->food.x);
-    TEST_ASSERT_LESS_THAN(DISPLAY_WIDTH - BORDER_OFFSET - SNAKE_SPRITE_SIZE, game_data->food.x);
+    TEST_ASSERT_LESS_THAN(DISPLAY_WIDTH - BORDER_OFFSET - SPRITE_SIZE, game_data->food.x);
     TEST_ASSERT_GREATER_OR_EQUAL(GAME_AREA_TOP, game_data->food.y);
-    TEST_ASSERT_LESS_THAN(DISPLAY_HEIGHT - BORDER_OFFSET - SNAKE_SPRITE_SIZE, game_data->food.y);
+    TEST_ASSERT_LESS_THAN(DISPLAY_HEIGHT - BORDER_OFFSET - SPRITE_SIZE, game_data->food.y);
 }
 
 TEST(SnakeGame, FoodRelocatesAfterCollection) {
@@ -146,7 +146,7 @@ TEST(SnakeGame, FoodRelocatesAfterCollection) {
     uint8_t old_food_y = game_data->food.y;
 
     // Move snake to food
-    game_data->head_x = old_food_x - SNAKE_SPRITE_SIZE;  // Position just before food
+    game_data->head_x = old_food_x - SPRITE_SIZE;  // Position just before food
     game_data->head_y = old_food_y;
 
     mock_random_set_next_value(50);
@@ -167,7 +167,7 @@ TEST(SnakeGame, SnakeCollectsFood) {
     mock_time_set_ms(SNAKE_SPEED + 1);
 
     // Position the food where snake will collide
-    game_data->food.x = game_data->head_x + SNAKE_SPRITE_SIZE;
+    game_data->food.x = game_data->head_x + SPRITE_SIZE;
     game_data->food.y = game_data->head_y;
 
     JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
@@ -182,7 +182,7 @@ TEST(SnakeGame, SnakeSelfCollisionReducesLives) {
     // Set up collision with body segment. Length must be sufficiently large for self collision to occur
     // Chose 10 based on experience
     game_data->length = 10;
-    game_data->body[1].x = game_data->head_x + SNAKE_SPRITE_SIZE;
+    game_data->body[1].x = game_data->head_x + SPRITE_SIZE;
     game_data->body[1].y = game_data->head_y;
 
     JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
@@ -195,7 +195,7 @@ TEST(SnakeGame, SnakeSelfCollisionReducesLives) {
 TEST(SnakeGame, SelfCollisionWithNoLivesEndsGame) {
     snake_game_engine.base_state.lives = 1;
     game_data->length = 10;
-    game_data->body[1].x = game_data->head_x + SNAKE_SPRITE_SIZE;
+    game_data->body[1].x = game_data->head_x + SPRITE_SIZE;
     game_data->body[1].y = game_data->head_y;
     JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
     mock_time_set_ms(SNAKE_SPEED + 1);

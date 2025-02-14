@@ -24,6 +24,11 @@ typedef struct {
     uint32_t last_update;     // Time of last frame update
 } AnimatedSprite;
 
+// Macros
+#define SPRITE_SIZE  8    // Size of sprites in pixels
+#define BORDER_OFFSET     8    // Offset from screen border
+#define GAME_AREA_TOP 12       // Offset from top to draw border as score and lives are displayed
+
 // Sprite operations
 void sprite_draw(const Sprite* sprite, uint16_t x, uint16_t y, DisplayColor color);
 void sprite_draw_rotated(const Sprite* sprite, uint16_t x, uint16_t y, uint16_t angle, DisplayColor color);

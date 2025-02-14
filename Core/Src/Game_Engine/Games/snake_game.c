@@ -50,9 +50,9 @@ GameEngine snake_game_engine = {
 
 static void wrap_coordinates(uint8_t* x, uint8_t* y) {
     if (*x >= DISPLAY_WIDTH) *x = BORDER_OFFSET;
-    if (*x < BORDER_OFFSET) *x = DISPLAY_WIDTH - SNAKE_SPRITE_SIZE - BORDER_OFFSET;
+    if (*x < BORDER_OFFSET) *x = DISPLAY_WIDTH - SPRITE_SIZE - BORDER_OFFSET;
     if (*y >= DISPLAY_HEIGHT) *y = GAME_AREA_TOP;
-    if (*y < GAME_AREA_TOP) *y = DISPLAY_HEIGHT - SNAKE_SPRITE_SIZE - BORDER_OFFSET;
+    if (*y < GAME_AREA_TOP) *y = DISPLAY_HEIGHT - SPRITE_SIZE - BORDER_OFFSET;
 }
 
 static void snake_init(void) {
@@ -81,14 +81,14 @@ static void snake_init(void) {
 static void spawn_food(SnakeGameData* data) {
     // Generate random position for food
     data->food.x = BORDER_OFFSET +
-        (get_random() % (DISPLAY_WIDTH - 2 * BORDER_OFFSET - SNAKE_SPRITE_SIZE));
+        (get_random() % (DISPLAY_WIDTH - 2 * BORDER_OFFSET - SPRITE_SIZE));
     data->food.y = GAME_AREA_TOP +
-        (get_random() % (DISPLAY_HEIGHT - GAME_AREA_TOP - BORDER_OFFSET - SNAKE_SPRITE_SIZE));
+        (get_random() % (DISPLAY_HEIGHT - GAME_AREA_TOP - BORDER_OFFSET - SPRITE_SIZE));
 
     // Ensure food doesn't spawn on snake
     for (uint8_t i = 0; i < data->length; i++) {
-        if (abs(data->food.x - data->body[i].x) < SNAKE_SPRITE_SIZE &&
-            abs(data->food.y - data->body[i].y) < SNAKE_SPRITE_SIZE) {
+        if (abs(data->food.x - data->body[i].x) < SPRITE_SIZE &&
+            abs(data->food.y - data->body[i].y) < SPRITE_SIZE) {
             spawn_food(data);  // Try again
             return;
         }
@@ -101,8 +101,8 @@ static bool check_collision(SnakeGameData* data) {
         uint8_t body_y = data->body[i].y;
         wrap_coordinates(&body_x, &body_y);
 
-        if (abs(data->head_x - body_x) < SNAKE_SPRITE_SIZE &&
-            abs(data->head_y - body_y) < SNAKE_SPRITE_SIZE) {
+        if (abs(data->head_x - body_x) < SPRITE_SIZE &&
+            abs(data->head_y - body_y) < SPRITE_SIZE) {
             return true;
         }
     }
@@ -135,10 +135,10 @@ static void move_snake(SnakeGameData* data) {
     uint8_t prev_y = data->head_y;
 
     switch (data->direction) {
-    case JS_DIR_RIGHT: data->head_x += SNAKE_SPRITE_SIZE; break;
-    case JS_DIR_LEFT:  data->head_x -= SNAKE_SPRITE_SIZE; break;
-    case JS_DIR_UP:    data->head_y -= SNAKE_SPRITE_SIZE; break;
-    case JS_DIR_DOWN:  data->head_y += SNAKE_SPRITE_SIZE; break;
+    case JS_DIR_RIGHT: data->head_x += SPRITE_SIZE; break;
+    case JS_DIR_LEFT:  data->head_x -= SPRITE_SIZE; break;
+    case JS_DIR_UP:    data->head_y -= SPRITE_SIZE; break;
+    case JS_DIR_DOWN:  data->head_y += SPRITE_SIZE; break;
     }
 
     // Wrap around screen borders
@@ -160,8 +160,8 @@ static void handle_food_collision(SnakeGameData* data) {
     uint8_t food_y = data->food.y;
     wrap_coordinates(&food_x, &food_y);
 
-    if (abs(data->head_x - food_x) < SNAKE_SPRITE_SIZE &&
-        abs(data->head_y - food_y) < SNAKE_SPRITE_SIZE) {
+    if (abs(data->head_x - food_x) < SPRITE_SIZE &&
+        abs(data->head_y - food_y) < SPRITE_SIZE) {
         data->length++;
         data->body[data->length - 1].x = data->body[data->length - 2].x;
         data->body[data->length - 1].y = data->body[data->length - 2].y;

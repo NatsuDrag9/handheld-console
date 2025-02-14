@@ -12,9 +12,6 @@
 #include "Sprites/snake_sprite.h"
 
 #define SNAKE_SPEED        500  // Movement delay in ms
-#define SNAKE_SPRITE_SIZE  8    // Size of snake sprites in pixels
-#define BORDER_OFFSET     8    // Offset from screen border
-#define GAME_AREA_TOP 12       // Offset from top to draw border as score and lives are displayed
 
  // Snake game specific data structure
 typedef struct {
