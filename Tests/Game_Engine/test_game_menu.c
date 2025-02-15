@@ -8,7 +8,7 @@ TEST_GROUP(GameMenu);
 // Test menu data
 static MenuItem test_menu[] = {
     {"Test Snake", 0, SCREEN_GAME_SNAKE, 1},
-    {"Test Game 2", 0, SCREEN_GAME_2, 1},
+    {"Test Game 2", 0, SCREEN_GAME_PACMAN, 1},
     {"Test Game 3", 0, SCREEN_GAME_3, 1},
     {"Test Game 4", 0, SCREEN_GAME_4, 1},
     {"Test Game 5", 0, SCREEN_GAME_5, 1},

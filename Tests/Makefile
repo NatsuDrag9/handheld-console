@@ -37,8 +37,11 @@ SRC_FILES=../Core/Src/Console_Peripherals/joystick.c \
           ../Core/Src/Game_Engine/game_menu.c \
           ../Core/Src/Game_Engine/game_engine.c \
           ../Core/Src/Game_Engine/Games/snake_game.c \
+          ../Core/Src/Game_Engine/Games/pacman_game.c \
+          ../Core/Src/Game_Engine/Games/pacman_maze.c \
           ../Core/Src/Sprites/sprite.c \
           ../Core/Src/Sprites/snake_sprite.c \
+          ../Core/Src/Sprites/pacman_sprite.c \
           # Add more src files here
 
 # Object files

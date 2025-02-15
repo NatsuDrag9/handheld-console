@@ -28,6 +28,7 @@ typedef struct {
 #define SPRITE_SIZE  8    // Size of sprites in pixels
 #define BORDER_OFFSET     8    // Offset from screen border
 #define GAME_AREA_TOP 12       // Offset from top to draw border as score and lives are displayed
+#define TILE_SIZE 8
 
 // Sprite operations
 void sprite_draw(const Sprite* sprite, uint16_t x, uint16_t y, DisplayColor color);
