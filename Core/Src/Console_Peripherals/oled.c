@@ -8,6 +8,8 @@
 #include "Console_Peripherals/oled.h"
 #include "Game_Engine/game_engine.h"
 #include "Game_Engine/Games/snake_game.h"
+#include "Game_Engine/Games/pacman_game.h"
+#include "Utils/debug_conf.h"
 
 static MenuItem current_menu[MAX_MENU_ITEMS] = { 0 };
 static uint8_t current_menu_size = 0;
@@ -28,43 +30,6 @@ static void oled_display_string(char* str, FontDef Font, DisplayColor color) {
     display_write_string_centered(str, Font_7x10, 25, DISPLAY_WHITE);
     display_update();
     add_delay(100);
-}
-
-/* Clears the oled screen */
-void oled_clear_screen() {
-    display_clear();
-    display_update();
-}
-
-/* Initializes SPI, OLED and sets the menu */
-void oled_init(MenuItem* menu, uint8_t menu_size) {
-    display_init();
-    add_delay(10);
-    display_clear();
-
-    if (menu == NULL || menu_size == 0) {
-        oled_display_string("Menu Init Error", Font_7x10, DISPLAY_WHITE);
-        return;
-    }
-
-    // Zero out current_menu first
-    memset(current_menu, 0, sizeof(current_menu));
-
-    // Reset navigation state - we were initializing it to 0 but it's getting changed somewhere
-    current_cursor_item = 0;
-    menu_scroll_position = 0;
-
-    // Limit the number of items to MAX_MENU_ITEMS
-    current_menu_size = (menu_size <= MAX_MENU_ITEMS) ? menu_size : MAX_MENU_ITEMS;
-
-    // DEBUG_PRINTF("Menu Size: %u\n", current_menu_size);
-
-    // Copy menu items
-    for (uint8_t i = 0; i < current_menu_size; i++) {
-        current_menu[i] = menu[i];
-        // DEBUG_PRINTF("Oled Item %u: Title=%s, Selected=%u\n",
-        // 	                     i, current_menu[i].title, current_menu[i].selected);
-    }
 }
 
 static void oled_show_welcome(char* str1, char* str2) {
@@ -95,38 +60,6 @@ static void oled_draw_scrollbar(uint8_t num_items) {
         display_fill_rectangle(SCREEN_WIDTH - 4, thumb_position,
             SCREEN_WIDTH - 4, thumb_position + thumb_height, DISPLAY_WHITE);
     }
-}
-
-void oled_show_menu(MenuItem* items, uint8_t num_items) {
-    display_clear();
-    display_draw_border();
-
-    // Menu title
-    display_write_string_centered("Select Game", Font_7x10, 10, DISPLAY_WHITE);
-
-    // Draw visible menu items
-    uint8_t display_count = (num_items < VISIBLE_ITEMS) ? num_items : VISIBLE_ITEMS;
-
-    for (uint8_t i = 0; i < display_count; i++) {
-        uint8_t menu_index = menu_scroll_position + i;
-        if (menu_index >= num_items) break;
-
-        display_set_cursor(20, MENU_START_Y + (i * MENU_ITEM_HEIGHT));
-
-        // Show selection cursor only for selected item
-        if (menu_index == current_cursor_item) {
-            display_write_string("> ", Font_7x10, DISPLAY_WHITE);
-        }
-        else {
-            display_write_string("  ", Font_7x10, DISPLAY_WHITE);
-        }
-        display_write_string(items[menu_index].title, Font_7x10, DISPLAY_WHITE);
-    }
-
-    // Draw scrollbar if needed
-    oled_draw_scrollbar(num_items);
-
-    display_update();
 }
 
 static bool handle_menu_navigation(JoystickStatus js_status) {
@@ -173,6 +106,76 @@ static void handle_menu_selection(void) {
     }
 }
 
+
+/* Clears the oled screen */
+void oled_clear_screen() {
+    display_clear();
+    display_update();
+}
+
+/* Initializes SPI, OLED and sets the menu */
+void oled_init(MenuItem* menu, uint8_t menu_size) {
+    display_init();
+    add_delay(10);
+    display_clear();
+
+    if (menu == NULL || menu_size == 0) {
+        oled_display_string("Menu Init Error", Font_7x10, DISPLAY_WHITE);
+        return;
+    }
+
+    // Zero out current_menu first
+    memset(current_menu, 0, sizeof(current_menu));
+
+    // Reset navigation state - we were initializing it to 0 but it's getting changed somewhere
+    current_cursor_item = 0;
+    menu_scroll_position = 0;
+
+    // Limit the number of items to MAX_MENU_ITEMS
+    current_menu_size = (menu_size <= MAX_MENU_ITEMS) ? menu_size : MAX_MENU_ITEMS;
+
+    // DEBUG_PRINTF("Menu Size: %u\n", current_menu_size);
+
+    // Copy menu items
+    for (uint8_t i = 0; i < current_menu_size; i++) {
+        current_menu[i] = menu[i];
+        // DEBUG_PRINTF("Oled Item %u: Title=%s, Selected=%u\n",
+        // 	                     i, current_menu[i].title, current_menu[i].selected);
+    }
+}
+
+void oled_show_menu(MenuItem* items, uint8_t num_items) {
+    display_clear();
+    display_draw_border();
+
+    // Menu title
+    display_write_string_centered("Select Game", Font_7x10, 10, DISPLAY_WHITE);
+
+    // Draw visible menu items
+    uint8_t display_count = (num_items < VISIBLE_ITEMS) ? num_items : VISIBLE_ITEMS;
+
+    for (uint8_t i = 0; i < display_count; i++) {
+        uint8_t menu_index = menu_scroll_position + i;
+        if (menu_index >= num_items) break;
+
+        display_set_cursor(20, MENU_START_Y + (i * MENU_ITEM_HEIGHT));
+
+        // Show selection cursor only for selected item
+        if (menu_index == current_cursor_item) {
+            display_write_string("> ", Font_7x10, DISPLAY_WHITE);
+        }
+        else {
+            display_write_string("  ", Font_7x10, DISPLAY_WHITE);
+        }
+        display_write_string(items[menu_index].title, Font_7x10, DISPLAY_WHITE);
+    }
+
+    // Draw scrollbar if needed
+    oled_draw_scrollbar(num_items);
+
+    display_update();
+}
+
 void oled_menu_handle_input(JoystickStatus js_status) {
     if (!js_status.is_new) {
         return;
@@ -200,11 +203,37 @@ void oled_run_game(void) {
 
     if (current_time - last_frame_time >= FRAME_RATE) {
         JoystickStatus js_status = joystick_get_status();
-        game_engine_update(&snake_game_engine, js_status);
-        game_engine_render(&snake_game_engine);
+        MenuItem selected = oled_get_selected_menu_item();
+
+        GameEngine* current_engine = NULL;
+        switch (selected.screen) {
+        case SCREEN_GAME_SNAKE:
+            current_engine = &snake_game_engine;
+            break;
+        case SCREEN_GAME_PACMAN:
+            current_engine = &pacman_game_engine;
+            break;
+        default:
+            break;
+        }
+
+        if (current_engine) {
+            game_engine_update(current_engine, js_status);
+            display_clear();
+            game_engine_render(current_engine);
+
+            // Handle game over state and timing after rendering
+            if (current_engine->base_state.game_over && current_engine->countdown_over) {
+                game_engine_cleanup(current_engine);
+                oled_set_is_game_active(false);
+                oled_show_screen(SCREEN_MENU);
+            }
+        }
+
         last_frame_time = current_time;
     }
 }
+
 
 void oled_show_screen(ScreenType screen) {
     switch (screen) {
@@ -224,6 +253,11 @@ void oled_show_screen(ScreenType screen) {
         // Initialize snake game screen
         // DEBUG_PRINTF(false, "Initializing snake game...\n");
         game_engine_init(&snake_game_engine);
+        break;
+    case SCREEN_GAME_PACMAN:
+        // Initialize snake game screen
+        // DEBUG_PRINTF(false, "Initializing snake game...\n");
+        game_engine_init(&pacman_game_engine);
         break;
 
     default:

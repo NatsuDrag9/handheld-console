@@ -23,7 +23,7 @@ typedef enum {
 
 // Calculate maze dimensions based on screen size
 #define MAZE_WIDTH  ((DISPLAY_WIDTH - 2*BORDER_OFFSET) / TILE_SIZE)   // = 14 tiles
-#define MAZE_HEIGHT ((DISPLAY_HEIGHT - GAME_AREA_TOP - BORDER_OFFSET) / TILE_SIZE)  // = 5 tiles
+#define MAZE_HEIGHT ((DISPLAY_HEIGHT - GAME_AREA_TOP - BORDER_OFFSET) / TILE_SIZE) + 1  // = 6 tiles
 
 // Function declarations
 
@@ -38,11 +38,12 @@ uint8_t maze_to_screen_y(uint8_t y);
 // Maze layout (14x5 tiles)
 // 0 = path, 1 = wall, 2 = dot, 3 = power pellet
 static const uint8_t MAZE_LAYOUT[MAZE_HEIGHT][MAZE_WIDTH] = {
-    {1,1,1,1,1,1,1,0,1,1,1,1,1,1},
-    {1,3,0,2,1,0,0,0,0,1,2,0,3,1},
-    {1,0,1,2,0,1,0,0,1,0,2,1,0,1},
-    {1,2,0,2,1,0,0,0,0,1,2,0,2,1},
-    {1,1,1,1,1,1,1,0,1,1,1,1,1,1}
+    {1,1,1,0,0,0,0,0,0,0,0,1,1,1},  // row 0 - Shorter top walls
+    {1,3,0,0,0,0,0,0,0,0,0,0,3,1},  // row 1 - Open row with power pellets
+    {1,0,1,1,0,1,1,1,1,0,1,1,0,1},  // row 2 - Some obstacles
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,1},  // row 3 - Open row for movement
+    {1,0,1,1,0,1,1,1,1,0,1,1,0,1},  // row 4 - Mirror of row 2
+    {1,1,1,0,0,0,0,0,0,0,0,1,1,1}   // row 5 - Shorter bottom walls (mirror of row 0)
 };
 
 // Function declarations

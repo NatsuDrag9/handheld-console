@@ -6,7 +6,6 @@
  */
 
 #include "Game_Engine/Games/pacman_maze.h"
-#include "Utils/debug_conf.h"
 
 inline int screen_to_maze_x(uint8_t x) {
     // Convert to first tile if before border
@@ -43,14 +42,10 @@ bool is_wall(uint8_t x, uint8_t y) {
     uint8_t maze_y = screen_to_maze_y(y);
 
     if (maze_x >= MAZE_WIDTH || maze_y >= MAZE_HEIGHT) {
-        // DEBUG_PRINTF(false, "Out of maze bounds: maze(%d,%d)\n", maze_x, maze_y);
-        return true;  // Out of bounds is considered a wall
+        return true;
     }
 
-    //    return MAZE_LAYOUT[maze_y][maze_x] == MAZE_WALL;
     bool is_wall_collision = MAZE_LAYOUT[maze_y][maze_x] == MAZE_WALL;
-    // DEBUG_PRINTF(false, "Maze element: %d, Is wall: %d\n",
-    //     MAZE_LAYOUT[maze_y][maze_x], is_wall_collision);
 
     return is_wall_collision;
 }
@@ -67,14 +62,13 @@ void draw_maze(void) {
 
             switch (MAZE_LAYOUT[y][x]) {
             case MAZE_WALL:
-                // Only draw internal walls, skip border walls
-                if (x > 0 && x < MAZE_WIDTH - 1 && y > 0 && y < MAZE_HEIGHT - 1) {
-                    display_fill_rectangle(screen_x, screen_y,
-                        screen_x + TILE_SIZE - 1,
-                        screen_y + TILE_SIZE - 1,
-                        DISPLAY_WHITE);
-                }
+                // Draw ALL walls
+                display_fill_rectangle(screen_x, screen_y,
+                    screen_x + TILE_SIZE - 1,
+                    screen_y + TILE_SIZE - 1,
+                    DISPLAY_WHITE);
                 break;
+
 
             case MAZE_DOT:
                 // Single pixel dot

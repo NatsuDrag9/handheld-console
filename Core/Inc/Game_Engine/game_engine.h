@@ -13,6 +13,7 @@
 #include "Console_Peripherals/types.h"
 #include "Utils/misc_utils.h"
 #include "game_engine_conf.h"
+#include "Console_Peripherals/Drivers/display_driver.h"
 
 typedef struct {
     void (*init)(void);              // Initialize game state
@@ -28,6 +29,7 @@ typedef struct {
     } base_state;
 
     void* game_data;  // Game-specific data
+    bool countdown_over;
 } GameEngine;
 
 // Game Engine core functions
@@ -35,5 +37,6 @@ void game_engine_init(GameEngine* engine);
 void game_engine_update(GameEngine* engine, JoystickStatus js_status);
 void game_engine_render(GameEngine* engine);
 void game_engine_cleanup(GameEngine* engine);
+void game_engine_render_countdown(GameEngine* engine);
 
 #endif /* INC_GAME_ENGINE_GAME_ENGINE_H_ */

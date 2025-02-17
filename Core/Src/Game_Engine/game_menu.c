@@ -12,7 +12,7 @@
 
 MenuItem game_menu[] = {
     {"Snake Game", 0, SCREEN_GAME_SNAKE, 1},
-    {"Game 2", 0, SCREEN_GAME_2, 1},
+    {"Pacman Game", 0, SCREEN_GAME_PACMAN, 1},
     {"Game 3", 0, SCREEN_GAME_3, 1},
     {"Game 4", 0, SCREEN_GAME_4, 1},
     {"Game 5", 0, SCREEN_GAME_5, 1},
