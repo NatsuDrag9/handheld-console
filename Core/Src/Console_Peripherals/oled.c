@@ -23,6 +23,11 @@ static void oled_display_string(char* str, FontDef Font, DisplayColor color);
 static void oled_draw_scrollbar(uint8_t num_items);
 static bool handle_menu_navigation(JoystickStatus js_status);
 static void handle_menu_selection(void);
+static GameEngine* get_current_game_engine(void);
+static bool handle_game_button_actions(GameEngine* engine);
+static void process_game_loop(GameEngine* engine);
+static bool handle_game_over(GameEngine* engine);
+
 
 /* Displays a string on the screen */
 static void oled_display_string(char* str, FontDef Font, DisplayColor color) {
@@ -193,6 +198,73 @@ void oled_menu_handle_input(JoystickStatus js_status) {
     }
 }
 
+// Gets the current game engine based on the selected menu item
+static GameEngine* get_current_game_engine(void) {
+    MenuItem selected = oled_get_selected_menu_item();
+
+    switch (selected.screen) {
+    case SCREEN_GAME_SNAKE:
+        return &snake_game_engine;
+    case SCREEN_GAME_PACMAN:
+        return &pacman_game_engine;
+    default:
+        return NULL;
+    }
+}
+
+// Handles actions requested by button presses
+// Returns: true to continue game loop, false to exit early
+static bool handle_game_button_actions(GameEngine* engine) {
+    // Check for game reset request
+    if (engine->base_state.is_reset) {
+        game_engine_cleanup(engine);
+        game_engine_init(engine);
+        engine->base_state.is_reset = false;  // Clear flag
+    }
+
+    // Check for return to main menu request
+    if (engine->return_to_main_menu) {
+        add_delay(100);  // Add a small delay for display processing
+
+        game_engine_cleanup(engine);
+        engine->return_to_main_menu = false;  // Clear flag
+
+        // Exit game mode AFTER cleanup
+        oled_set_is_game_active(false);
+        oled_show_screen(SCREEN_MENU);
+        return false;  // Signal to exit oled_run_game
+    }
+
+    return true;  // Continue with game loop
+}
+
+
+// Main game update and render loop
+static void process_game_loop(GameEngine* engine) {
+    JoystickStatus js_status = joystick_get_status();
+
+    // Update game state
+    game_engine_update(engine, js_status);
+
+    // Render the game
+    display_clear();
+    game_engine_render(engine);
+}
+
+// Handle game over condition
+// Returns: true to continue, false if game over and transitioned to menu
+static bool handle_game_over(GameEngine* engine) {
+    if (engine->base_state.game_over && engine->countdown_over) {
+        game_engine_cleanup(engine);
+        oled_set_is_game_active(false);
+        oled_show_screen(SCREEN_MENU);
+
+        return false;  // Signal to exit oled_run_game
+    }
+
+    return true;  // Continue with game loop
+}
+
 void oled_run_game(void) {
     if (!is_in_game) {
         return;
@@ -202,38 +274,30 @@ void oled_run_game(void) {
     uint32_t current_time = get_current_ms();
 
     if (current_time - last_frame_time >= FRAME_RATE) {
-        JoystickStatus js_status = joystick_get_status();
-        MenuItem selected = oled_get_selected_menu_item();
-
-        GameEngine* current_engine = NULL;
-        switch (selected.screen) {
-        case SCREEN_GAME_SNAKE:
-            current_engine = &snake_game_engine;
-            break;
-        case SCREEN_GAME_PACMAN:
-            current_engine = &pacman_game_engine;
-            break;
-        default:
-            break;
-        }
+        GameEngine* current_engine = get_current_game_engine();
 
         if (current_engine) {
-            game_engine_update(current_engine, js_status);
-            display_clear();
-            game_engine_render(current_engine);
+            // Handle button-triggered actions (reset, return to menu)
+            // If it returns false, we exit early
+            if (!handle_game_button_actions(current_engine)) {
+                last_frame_time = current_time;
+                return;
+            }
 
-            // Handle game over state and timing after rendering
-            if (current_engine->base_state.game_over && current_engine->countdown_over) {
-                game_engine_cleanup(current_engine);
-                oled_set_is_game_active(false);
-                oled_show_screen(SCREEN_MENU);
+            // Regular game processing
+            process_game_loop(current_engine);
+
+            // Handle game over condition
+            // If it returns false, the game is over and we've transitioned to menu
+            if (!handle_game_over(current_engine)) {
+                last_frame_time = current_time;
+                return;
             }
         }
 
         last_frame_time = current_time;
     }
 }
-
 
 void oled_show_screen(ScreenType screen) {
     switch (screen) {

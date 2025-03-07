@@ -24,12 +24,14 @@ typedef struct {
     struct {
         uint32_t score;
         uint8_t lives;
-        bool paused;		// To be implemented
+        bool paused;
         bool game_over;
+        bool is_reset;
     } base_state;
 
     void* game_data;  // Game-specific data
     bool countdown_over;
+    bool return_to_main_menu;
 } GameEngine;
 
 // Game Engine core functions
