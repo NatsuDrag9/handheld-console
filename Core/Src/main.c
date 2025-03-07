@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "main.h"
@@ -124,50 +123,45 @@ int main(void)
 //	  	oled_menu_handle_input(js_status);
 //	  	DEBUG_PRINTF(0, "Selected menu item: %s\n", oled_get_selected_menu_item().title);
 
-	  	if (oled_is_game_active()) {
-	  	        oled_run_game();
-
-	  	        add_delay(1);  // Control game speed
-	  	    } else {
-	  	        JoystickStatus js_status = joystick_get_status();
-	  	        oled_menu_handle_input(js_status);
-	  	    }
+//	  	if (oled_is_game_active()) {
+//	  	        oled_run_game();
+//
+//	  	        add_delay(1);  // Control game speed
+//	  	    } else {
+//	  	        JoystickStatus js_status = joystick_get_status();
+//	  	        oled_menu_handle_input(js_status);
+//	  	    }
 
 //	  	 if(pb1_get_state() == 1) {
-//	  		 DEBUG_PRINTF("PB1 is pressed\n");
+//	  		 DEBUG_PRINTF(false, "PB1 is pressed\n");
 //	  		 blink_led1();
 //	  	 }
 //
 //	  	 if(pb2_get_state() == 1) {
-//	  		 DEBUG_PRINTF("PB2 is pressed\n");
+//	  		 DEBUG_PRINTF(false, "PB2 is pressed\n");
 //	  		 blink_led2();
 //	  	 }
+
+//	  if(dpad_pin_down_get_state() == 1) {
+//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_DOWN\n");
+//	  	  		blink_led2();
+//	  	  	 }
+//	  if(dpad_pin_up_get_state() == 1) {
+//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_UP\n");
+//	  	  		blink_led1();
+//	  	  	 }
+//	  if(dpad_pin_left_get_state() == 1) {
+//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_LEFT\n");
+//	  	  		blink_led1();
+//	  	  	 }
+//	  if(dpad_pin_right_get_state() == 1) {
+//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_RIGHT\n");
+//	  	  		blink_led2();
+//	  	  	 }
 
 //	  	 game_engine_update(&snake_game_engine, js_status);
 //	  	    game_engine_render(&snake_game_engine);
   }
   /* USER CODE END 3 */
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
-
-
-#ifdef  USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */
 

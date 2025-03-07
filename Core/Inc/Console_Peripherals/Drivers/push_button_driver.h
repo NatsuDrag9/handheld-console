@@ -15,6 +15,10 @@
  // Read raw pin state
 uint8_t PB_Driver_ReadPin1(void);
 uint8_t PB_Driver_ReadPin2(void);
+uint8_t read_dpad_pin_left(void);
+uint8_t read_dpad_pin_right(void);
+uint8_t read_dpad_pin_up(void);
+uint8_t read_dpad_pin_down(void);
 
 // Get system time for debouncing
 uint32_t PB_Driver_GetTick(void);
