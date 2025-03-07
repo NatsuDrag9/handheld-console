@@ -24,6 +24,10 @@ void pb_init(void);
 // Get debounced button states
 uint8_t pb1_get_state(void);
 uint8_t pb2_get_state(void);
+uint8_t dpad_pin_left_get_state();
+uint8_t dpad_pin_right_get_state();
+uint8_t dpad_pin_up_get_state();
+uint8_t dpad_pin_down_get_state();
 
 // Made public for testing
 void process_button(Button_TypeDef *button, uint8_t current_reading, uint32_t current_time);

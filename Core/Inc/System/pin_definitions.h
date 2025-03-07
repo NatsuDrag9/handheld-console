@@ -59,6 +59,12 @@
 #define PB_1_Pin GPIO_PIN_15
 #define PB_2_Pin GPIO_PIN_14
 #define PB_GPIO_Port GPIOF
+#define D_PAD_GPIO_Port_1 GPIOE
+#define D_PAD_GPIO_Port_2 GPIOG
+#define D_PAD_Pin_Left GPIO_PIN_14
+#define D_PAD_Pin_Right GPIO_PIN_13
+#define D_PAD_Pin_Up GPIO_PIN_11
+#define D_PAD_Pin_Down GPIO_PIN_9
 #define OLED_CS_Port         GPIOD
 #define OLED_CS_Pin          GPIO_PIN_14
 #define OLED_DC_Port         GPIOD
