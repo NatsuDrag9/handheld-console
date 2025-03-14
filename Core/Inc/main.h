@@ -27,14 +27,16 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#ifndef UNITY_TEST
 #include "System/pin_definitions.h"
 #include "System/system_conf.h"
 #include "Console_Peripherals/console_peripherals_conf.h"
-#include "Utils/system_utils.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
+#include <Utils/misc_utils.h>
+#include "Game_Engine/game_engine.h"
+#include "Game_Engine/Games/snake_game.h"
+#endif
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -59,7 +61,6 @@ extern "C" {
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

@@ -1,2 +1,43 @@
+# Ignore build directories
 /Debug/
+/Test/
+
+# Ignore Eclipse IDE-specific settings
+.cproject
+.project
 .settings/
+
+# Ignore .vscode
+.vscode/
+
+# EditorConfig
+.editorconfig
+
+# Specific to STM32CubeIDE
+*.launch
+
+# Compiler-generated files
+*.hex
+*.bin
+*.elf
+
+# Ignore object files and compiled outputs
+*.o
+*.out
+*.elf
+*.bin
+*.map
+*.hex
+*.lst   # Assembly listings
+*.d     # Dependency files
+*.a     # Static libraries
+*.so    # Shared objects
+*.dSYM/ # Debug symbols (macOS)
+
+# Ignore temporary files
+*.tmp
+*.swp
+*~
+
+# Ignore test-runner
+run_tests

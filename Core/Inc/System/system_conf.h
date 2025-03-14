@@ -10,12 +10,14 @@
 
 #include "stm32f4xx_hal.h"
 #include "System/Clock/clock_conf.h"
+#include "System/FPU/fpu_conf.h"
 #include "System/Peripherals/adc_conf.h"
 #include "System/Peripherals/dma_conf.h"
 #include "System/Peripherals/gpio_conf.h"
 #include "System/Peripherals/uart_conf.h"
 #include "System/Peripherals/usb_conf.h"
 #include "System/Peripherals/timer_conf.h"
+#include "System/Peripherals/spi_conf.h"
 #include "Utils/debug_conf.h"
 
 void System_Init(void);

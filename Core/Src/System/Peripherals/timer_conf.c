@@ -42,7 +42,7 @@ void MX_TIM6_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM6_Init 2 */
-  HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 0, 0);
+   HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 0, 0);
    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
   /* USER CODE END TIM6_Init 2 */
 
