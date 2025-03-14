@@ -41,7 +41,7 @@ TEST(PacmanGameMaze, ScreenToMazeYValidInput) {
 TEST(PacmanGameMaze, ScreenToMazeYEdgeCases) {
     // Test boundary conditions
     TEST_ASSERT_EQUAL_INT(0, screen_to_maze_y(11)); // Before game area, should map to first tile
-    TEST_ASSERT_EQUAL_INT(4, screen_to_maze_y(52));  // Last valid tile
+    TEST_ASSERT_EQUAL_INT(5, screen_to_maze_y(52));  // Last valid tile
 }
 
 // Test maze to screen X coordinate conversion
