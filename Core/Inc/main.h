@@ -27,7 +27,6 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #ifndef UNITY_TEST
@@ -62,7 +61,6 @@ extern "C" {
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

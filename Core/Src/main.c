@@ -15,10 +15,11 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+  /* USER CODE END Header */
+  /* Includes ------------------------------------------------------------------*/
+
+  /* Private includes ----------------------------------------------------------*/
+  /* USER CODE BEGIN Includes */
 #include "main.h"
 #include <math.h>
 /* USER CODE END Includes */
@@ -77,7 +78,6 @@ int main(void)
   /* USER CODE END Init */
 
   /* Configure the system clock */
-
   /* USER CODE BEGIN SysInit */
   System_Init();
   /* USER CODE END SysInit */
@@ -96,7 +96,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  // Compute sine and cosine using FPU
+    // Compute sine and cosine using FPU
 //	  float rad = angle * 3.14159f / 180.0f;
 //	      result_sin = sinf(rad);
 //	      result_cos = cosf(rad);
@@ -114,11 +114,11 @@ int main(void)
 //
 //	      DEBUG_PRINTF(1, "Angle=%.1f, Sin=%.3f, Cos=%.3f\r\n",
 //	                  angle, result_sin, result_cos);
-
+//
 //	  	 JoystickStatus js_status = joystick_get_status();
 //	  	 if(js_status.is_new) {
-//	  		 DEBUG_PRINTF("JS direction: %d\n", js_status.direction);
-//	  		 DEBUG_PRINTF("JS button: %d\n", js_status.button);
+//	  		 DEBUG_PRINTF(false, "JS direction: %d\n", js_status.direction);
+//	  		 DEBUG_PRINTF(false, "JS button: %d\n", js_status.button);
 //	  	 }
 //	  	oled_menu_handle_input(js_status);
 //	  	DEBUG_PRINTF(0, "Selected menu item: %s\n", oled_get_selected_menu_item().title);
@@ -142,26 +142,35 @@ int main(void)
 //	  		 blink_led2();
 //	  	 }
 
-//	  if(dpad_pin_down_get_state() == 1) {
-//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_DOWN\n");
-//	  	  		blink_led2();
+//	  	  	 if(dpad_pin_left_get_state() == 1) {
+//	  	  		 DEBUG_PRINTF(false, "D-pad left is pressed\n");
+//	  	  		 blink_led1();
 //	  	  	 }
-//	  if(dpad_pin_up_get_state() == 1) {
-//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_UP\n");
-//	  	  		blink_led1();
+//
+//	  	  	 if(dpad_pin_right_get_state() == 1) {
+//	  	  		 DEBUG_PRINTF(false, "D-pad right is pressed\n");
+//	  	  		 blink_led2();
 //	  	  	 }
-//	  if(dpad_pin_left_get_state() == 1) {
-//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_LEFT\n");
-//	  	  		blink_led1();
-//	  	  	 }
-//	  if(dpad_pin_right_get_state() == 1) {
-//	  	  		 DEBUG_PRINTF(false, "Pressed D_PAD_RIGHT\n");
-//	  	  		blink_led2();
-//	  	  	 }
+//
+//		  	 if(dpad_pin_up_get_state() == 1) {
+//		  	  		 DEBUG_PRINTF(false, "D-pad up is pressed\n");
+//		  	  		 blink_led1();
+//		  	  	 }
+//
+//		  	  	 if(dpad_pin_down_get_state() == 1) {
+//		  	  		 DEBUG_PRINTF(false, "D-pad down is pressed\n");
+//		  	  		 blink_led2();
+//		  	  	 }
 
-//	  	 game_engine_update(&snake_game_engine, js_status);
-//	  	    game_engine_render(&snake_game_engine);
+
+    DPAD_STATUS d_pad_status = d_pad_get_status();
+    if (d_pad_status.is_new) {
+      DEBUG_PRINTF(false, "Dpad direction: %d\n", d_pad_status.direction);
+    }
+
+
+    //	  	 game_engine_update(&snake_game_engine, js_status);
+    //	  	    game_engine_render(&snake_game_engine);
   }
   /* USER CODE END 3 */
 }
-

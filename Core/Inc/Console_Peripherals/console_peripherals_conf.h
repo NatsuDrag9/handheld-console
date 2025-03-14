@@ -10,6 +10,7 @@
 
 #include "joystick.h"
 #include "push_button.h"
+#include "d_pad.h"
 #include "Game_Engine/game_menu.h"
 #include "oled.h"
 

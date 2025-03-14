@@ -43,4 +43,15 @@ typedef struct {
 #define JS_DIR_DOWN 8
 #define JS_DIR_CENTERED 0
 
+/* D-PAD types and macros */
+typedef struct {
+	uint8_t direction;
+	uint8_t is_new;
+} DPAD_STATUS;
+
+#define DPAD_DIR_UP 1
+#define DPAD_DIR_RIGHT 2
+#define DPAD_DIR_DOWN 3
+#define DPAD_DIR_LEFT 4
+
 #endif /* INC_CONSOLE_PERIPHERALS_TYPES_H_ */
