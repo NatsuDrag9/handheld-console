@@ -25,7 +25,7 @@ typedef enum {
     GHOST_CLYDE    // Orange - random movement
 } GhostType;
 
-// Movement directions
+// Movement directionsgame_data
 typedef enum {
     DIR_UP,
     DIR_RIGHT,
