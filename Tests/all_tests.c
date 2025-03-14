@@ -9,6 +9,7 @@ static void RunAllTests(void) {
     RUN_TEST_GROUP(Sprite);
     RUN_TEST_GROUP(SnakeGame);
     RUN_TEST_GROUP(PacmanGameMaze);
+    RUN_TEST_GROUP(DPad);
 }
 
 int main(int argc, const char* argv[]) {
