@@ -20,10 +20,10 @@ void game_engine_init(GameEngine* engine) {
 		engine->base_state.score = 0;
 		engine->base_state.lives = 3;
 		engine->base_state.paused = false;
-		 engine->base_state.is_reset = false;
+		engine->base_state.is_reset = false;
 		engine->base_state.game_over = false;
 		engine->countdown_over = false;
-		 engine->return_to_main_menu = false;
+		engine->return_to_main_menu = false;
 
 		// Reset game over timer
 		game_over_start_time = 0;
@@ -44,7 +44,7 @@ void game_engine_handle_buttons(GameEngine* engine) {
 	// Handle Button 1 (Play/Pause) - toggle on press
 	if (pb1_state && !engine->base_state.game_over) {
 		engine->base_state.paused = !engine->base_state.paused;
-		DEBUG_PRINTF(false, "Game %s\n", engine->base_state.paused ? "Paused" : "Resumed");
+
 	}
 
 	// Handle Button 2 (Restart/Main Menu)
@@ -56,14 +56,16 @@ void game_engine_handle_buttons(GameEngine* engine) {
 			// Start tracking button press duration
 			button2_being_held = true;
 			button2_press_start_time = current_time;
-		} else {
+		}
+		else {
 			// Calculate how long button has been held
 			//            uint32_t hold_duration = current_time - button2_press_start_time;
 
 			// For UI feedback, could add code here to show hold progress
 			// (e.g., drawing a progress bar when holding for main menu)
 		}
-	} else {
+	}
+	else {
 		// Button was released or is not pressed
 		if (button2_being_held) {
 			// Button was released after being held
@@ -71,12 +73,12 @@ void game_engine_handle_buttons(GameEngine* engine) {
 
 			if (hold_duration <= BUTTON_RESTART_MAX_DURATION) {  // Short press ≤ 1.2 seconds
 				if (!engine->base_state.game_over) {
-					DEBUG_PRINTF(false, "Game Restart requested\n");
+
 					engine->base_state.is_reset = true;
 				}
 			}
 			else if (hold_duration >= BUTTON_MENU_MIN_DURATION) {  // Long press 3 seconds
-				DEBUG_PRINTF(false, "Return to Main Menu requested\n");
+
 				engine->return_to_main_menu = true;
 			}
 
@@ -111,13 +113,13 @@ void game_engine_render_countdown(GameEngine* engine) {
 
 		// Only show countdown message between 5-10 seconds
 		if (elapsed_time >= RETURN_MESSAGE_START_TIME
-				&& elapsed_time < GAME_OVER_MESSAGE_TIME) {
+			&& elapsed_time < GAME_OVER_MESSAGE_TIME) {
 			uint32_t remaining_secs = (GAME_OVER_MESSAGE_TIME - elapsed_time) / 1000;
 			char countdown_msg[32];
 			snprintf(countdown_msg, sizeof(countdown_msg),
-					"Returning to main\n menu in: %lu", remaining_secs + 1);
+				"Returning to main\n menu in: %lu", remaining_secs + 1);
 			display_write_string_centered(countdown_msg, Font_7x10, 45, DISPLAY_WHITE);
-			DEBUG_PRINTF(false, "Remaining sec: %lu\n", remaining_secs);
+
 		}
 
 		if (elapsed_time >= GAME_OVER_MESSAGE_TIME) {
