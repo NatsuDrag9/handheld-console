@@ -38,11 +38,31 @@ static void detect_button2_press(uint8_t button_state, uint32_t initial_time, ui
     TEST_ASSERT_EQUAL(0, pb2_get_state());
 }
 
+static void set_dpad_left_state(uint8_t button_state) {
+    mock_dpad_left_state = button_state;
+}
+
+static void set_dpad_right_state(uint8_t button_state) {
+    mock_dpad_right_state = button_state;
+}
+
+static void set_dpad_up_state(uint8_t button_state) {
+    mock_dpad_up_state = button_state;
+}
+
+static void set_dpad_down_state(uint8_t button_state) {
+    mock_dpad_down_state = button_state;
+}
+
 TEST_GROUP(PushButton);
 
 TEST_SETUP(PushButton) {
     mock_pb1_state = 0;
     mock_pb2_state = 0;
+    mock_dpad_left_state = 0;
+    mock_dpad_right_state = 0;
+    mock_dpad_up_state = 0;
+    mock_dpad_down_state = 0;
     mock_tick_count = 0;
     pb_init();
 }
@@ -54,6 +74,10 @@ TEST_TEAR_DOWN(PushButton) {
 TEST(PushButton, InitialState) {
     TEST_ASSERT_EQUAL(0, pb1_get_state());
     TEST_ASSERT_EQUAL(0, pb2_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_left_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_right_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_up_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_down_get_state());
 }
 
 TEST(PushButton, SinglePress) {
@@ -141,6 +165,124 @@ TEST(PushButton, LongPress) {
     TEST_ASSERT_EQUAL(0, pb1_get_state());
 }
 
+// New tests for D-pad functionality
+TEST(PushButton, DPadLeftState) {
+    // Test low state
+    set_dpad_left_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_left_get_state());
+
+    // Test high state
+    set_dpad_left_state(1);
+    TEST_ASSERT_EQUAL(1, dpad_pin_left_get_state());
+
+    // Test toggling back to low
+    set_dpad_left_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_left_get_state());
+}
+
+TEST(PushButton, DPadRightState) {
+    // Test low state
+    set_dpad_right_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_right_get_state());
+
+    // Test high state
+    set_dpad_right_state(1);
+    TEST_ASSERT_EQUAL(1, dpad_pin_right_get_state());
+
+    // Test toggling back to low
+    set_dpad_right_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_right_get_state());
+}
+
+TEST(PushButton, DPadUpState) {
+    // Test low state
+    set_dpad_up_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_up_get_state());
+
+    // Test high state
+    set_dpad_up_state(1);
+    TEST_ASSERT_EQUAL(1, dpad_pin_up_get_state());
+
+    // Test toggling back to low
+    set_dpad_up_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_up_get_state());
+}
+
+TEST(PushButton, DPadDownState) {
+    // Test low state
+    set_dpad_down_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_down_get_state());
+
+    // Test high state
+    set_dpad_down_state(1);
+    TEST_ASSERT_EQUAL(1, dpad_pin_down_get_state());
+
+    // Test toggling back to low
+    set_dpad_down_state(0);
+    TEST_ASSERT_EQUAL(0, dpad_pin_down_get_state());
+}
+
+TEST(PushButton, DPadIndependence) {
+    // Test all directions at once
+    set_dpad_left_state(1);
+    set_dpad_right_state(0);
+    set_dpad_up_state(1);
+    set_dpad_down_state(0);
+
+    // Verify each direction reports correct state independently
+    TEST_ASSERT_EQUAL(1, dpad_pin_left_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_right_get_state());
+    TEST_ASSERT_EQUAL(1, dpad_pin_up_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_down_get_state());
+
+    // Change states
+    set_dpad_left_state(0);
+    set_dpad_right_state(1);
+    set_dpad_up_state(0);
+    set_dpad_down_state(1);
+
+    // Verify states changed correctly
+    TEST_ASSERT_EQUAL(0, dpad_pin_left_get_state());
+    TEST_ASSERT_EQUAL(1, dpad_pin_right_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_up_get_state());
+    TEST_ASSERT_EQUAL(1, dpad_pin_down_get_state());
+}
+
+TEST(PushButton, DPadAndButtonsIndependence) {
+    // Set various states for all inputs
+    mock_pb1_state = 1;
+    mock_pb2_state = 0;
+    set_dpad_left_state(1);
+    set_dpad_right_state(0);
+    set_dpad_up_state(1);
+    set_dpad_down_state(0);
+
+    // Check D-pad direct readings
+    TEST_ASSERT_EQUAL(1, dpad_pin_left_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_right_get_state());
+    TEST_ASSERT_EQUAL(1, dpad_pin_up_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_down_get_state());
+
+    // Check debounced button readings (initially 0 due to debounce)
+    mock_tick_count = 50;
+    TEST_ASSERT_EQUAL(0, pb1_get_state());
+    TEST_ASSERT_EQUAL(0, pb2_get_state());
+
+    // After debounce time
+    mock_tick_count = 200;
+    TEST_ASSERT_EQUAL(1, pb1_get_state());
+    TEST_ASSERT_EQUAL(0, pb2_get_state());
+
+    // Edge detection should reset button 1
+    TEST_ASSERT_EQUAL(0, pb1_get_state());
+
+    // D-pad states should remain unchanged
+    TEST_ASSERT_EQUAL(1, dpad_pin_left_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_right_get_state());
+    TEST_ASSERT_EQUAL(1, dpad_pin_up_get_state());
+    TEST_ASSERT_EQUAL(0, dpad_pin_down_get_state());
+}
+
 TEST_GROUP_RUNNER(PushButton) {
     RUN_TEST_CASE(PushButton, InitialState);
     RUN_TEST_CASE(PushButton, SinglePress);
@@ -149,4 +291,10 @@ TEST_GROUP_RUNNER(PushButton) {
     RUN_TEST_CASE(PushButton, TwoButtonsIndependent);
     RUN_TEST_CASE(PushButton, QuickPressIgnored);
     RUN_TEST_CASE(PushButton, LongPress);
+    RUN_TEST_CASE(PushButton, DPadLeftState);
+    RUN_TEST_CASE(PushButton, DPadRightState);
+    RUN_TEST_CASE(PushButton, DPadUpState);
+    RUN_TEST_CASE(PushButton, DPadDownState);
+    RUN_TEST_CASE(PushButton, DPadIndependence);
+    RUN_TEST_CASE(PushButton, DPadAndButtonsIndependence);
 }

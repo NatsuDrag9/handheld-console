@@ -9,6 +9,12 @@ extern uint8_t mock_pb1_state;
 extern uint8_t mock_pb2_state;
 extern uint32_t mock_tick_count;
 
+// D-pad state variables
+extern uint8_t mock_dpad_left_state;
+extern uint8_t mock_dpad_right_state;
+extern uint8_t mock_dpad_up_state;
+extern uint8_t mock_dpad_down_state;
+
 // Function to reset mocks
 void mock_reset(void);
 
