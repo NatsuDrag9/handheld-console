@@ -20,5 +20,6 @@ void console_peripherals_init(void) {
 
 	get_game_menu(&game_menu, &game_menu_size);
 	oled_init(game_menu, game_menu_size);
+	audio_init();
 
 }

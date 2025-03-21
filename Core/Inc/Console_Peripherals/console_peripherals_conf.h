@@ -13,6 +13,7 @@
 #include "d_pad.h"
 #include "Game_Engine/game_menu.h"
 #include "oled.h"
+#include "audio.h"
 
 void console_peripherals_init(void);
 

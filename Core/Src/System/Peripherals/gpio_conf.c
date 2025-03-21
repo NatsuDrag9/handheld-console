@@ -22,6 +22,9 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
+//  /* DAC Clock Enable */
+//  __HAL_RCC_DAC_CLK_ENABLE();
+
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD1_Pin | LD3_Pin | LD2_Pin, GPIO_PIN_RESET);
 
@@ -91,6 +94,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+//  /* Configure GPIO pin : PA4 (DAC1_OUT1) */
+//  GPIO_InitStruct.Pin = GPIO_PIN_4;
+//  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+//  GPIO_InitStruct.Pull = GPIO_NOPULL;
+//  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);

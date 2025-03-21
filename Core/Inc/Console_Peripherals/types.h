@@ -54,4 +54,11 @@ typedef struct {
 #define DPAD_DIR_DOWN 3
 #define DPAD_DIR_LEFT 4
 
+/* Audio types */
+// Melody note structure
+typedef struct {
+    uint16_t frequency;  // Frequency in Hz
+    uint16_t duration;   // Duration in ms
+} Note;
+
 #endif /* INC_CONSOLE_PERIPHERALS_TYPES_H_ */
