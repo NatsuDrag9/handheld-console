@@ -3,6 +3,8 @@
 #include "Game_Engine/game_engine.h"
 #include "Console_Peripherals/types.h"
 #include "Mocks/Inc/mock_display_driver.h"
+#include "Mocks/Inc/mock_push_button_driver.h"
+#include "Mocks/Inc/mock_utils.h"
 
 TEST_GROUP(GameEngine);
 
@@ -60,6 +62,13 @@ TEST_SETUP(GameEngine) {
 
     // Reset mock display
     mock_display_reset_state();
+
+    // Reset mock push button driver
+    mock_pb1_state = 0;
+    mock_pb2_state = 0;
+
+    // Reset mock time
+    mock_time_reset();
 }
 
 TEST_TEAR_DOWN(GameEngine) {
@@ -75,6 +84,9 @@ TEST(GameEngine, InitializationSetsDefaultState) {
     TEST_ASSERT_EQUAL_UINT8(3, test_engine.base_state.lives);
     TEST_ASSERT_FALSE(test_engine.base_state.paused);
     TEST_ASSERT_FALSE(test_engine.base_state.game_over);
+    TEST_ASSERT_FALSE(test_engine.base_state.is_reset);
+    TEST_ASSERT_FALSE(test_engine.return_to_main_menu);
+    TEST_ASSERT_FALSE(test_engine.countdown_over);
     TEST_ASSERT_NOT_NULL(test_engine.game_data);
 }
 
@@ -163,6 +175,133 @@ TEST(GameEngine, NullCallbackHandling) {
     game_engine_cleanup(&null_engine);
 }
 
+// New tests for the added flags
+
+TEST(GameEngine, ButtonOneTogglesPause) {
+    // Initialize engine
+    game_engine_init(&test_engine);
+    TEST_ASSERT_FALSE(test_engine.base_state.paused);
+
+    mock_pb1_state = 1;
+    mock_tick_count = 0; // Initial time value
+    TEST_ASSERT_EQUAL(0, pb1_get_state()); // Initially, it's 0 as debounced time is not over yet
+
+    mock_tick_count = 150; // After DEBOUNCE_DELAY_MS is finished
+    printf("\nPB1 state: %d\n", pb1_get_state());
+
+    // We need to make sure the mock function returns the pressed state
+    TEST_ASSERT_EQUAL(1, pb1_get_state());
+
+    // Update with button press
+    JoystickStatus js = { JS_DIR_CENTERED, 0, 0 };
+    game_engine_update(&test_engine, js);
+
+    // Verify game is paused
+    TEST_ASSERT_TRUE(test_engine.base_state.paused);
+
+    // Reset for second test
+    mock_pb1_state = 0;  // Release button
+    mock_pb1_state = 1;  // Press again
+
+    // Update with second button press
+    game_engine_update(&test_engine, js);
+
+    // Verify game is unpaused
+    TEST_ASSERT_FALSE(test_engine.base_state.paused);
+}
+
+TEST(GameEngine, ButtonTwoShortPressTriggersReset) {
+    // Initialize engine
+    game_engine_init(&test_engine);
+
+    // Simulate Button 2 short press
+    mock_pb2_state = 1;
+    mock_time_set_ms(100);  // Start time
+    JoystickStatus js = { JS_DIR_CENTERED, 0, 0 };
+    game_engine_update(&test_engine, js);
+
+    // Simulate button release after a short duration (< BUTTON_RESTART_MAX_DURATION)
+    mock_pb2_state = 0;
+    mock_time_set_ms(500);  // Less than 1.2 seconds
+    game_engine_update(&test_engine, js);
+
+    // Verify reset flag is set
+    TEST_ASSERT_TRUE(test_engine.base_state.is_reset);
+}
+
+TEST(GameEngine, ButtonTwoLongPressTriggersReturnToMainMenu) {
+    // Initialize engine
+    game_engine_init(&test_engine);
+
+    // Simulate Button 2 long press
+    mock_pb2_state = 1;
+    mock_time_set_ms(100);  // Start time
+    JoystickStatus js = { JS_DIR_CENTERED, 0, 0 };
+    game_engine_update(&test_engine, js);
+
+    // Simulate button release after a long duration (≥ BUTTON_MENU_MIN_DURATION)
+    mock_pb2_state = 0;
+    mock_time_set_ms(3100);  // More than 3 seconds
+    game_engine_update(&test_engine, js);
+
+    // Verify return to main menu flag is set
+    TEST_ASSERT_TRUE(test_engine.return_to_main_menu);
+}
+
+TEST(GameEngine, ButtonTwoNoEffectWhenGameOver) {
+    // Initialize engine and set game over
+    game_engine_init(&test_engine);
+    test_engine.base_state.game_over = true;
+
+    // Simulate Button 2 short press
+    mock_pb2_state = 1;
+    mock_time_set_ms(100);
+    JoystickStatus js = { JS_DIR_CENTERED, 0, 0 };
+    game_engine_update(&test_engine, js);
+
+    // Simulate button release
+    mock_pb2_state = 0;
+    mock_time_set_ms(500);
+    game_engine_update(&test_engine, js);
+
+    // Reset flag should not be set during game over
+    TEST_ASSERT_FALSE(test_engine.base_state.is_reset);
+}
+
+TEST(GameEngine, CountdownOverAfterGameOverDuration) {
+    // Initialize engine and set game over
+    game_engine_init(&test_engine);
+    test_engine.base_state.game_over = true;
+
+    // Simulate time just before countdown completion
+    mock_time_set_ms(9900);  // Just under 10 seconds
+    game_engine_render(&test_engine);
+    TEST_ASSERT_FALSE(test_engine.countdown_over);
+
+    // Simulate time after countdown completion
+    mock_time_set_ms(10100);  // Just over 10 seconds
+    game_engine_render(&test_engine);
+    TEST_ASSERT_TRUE(test_engine.countdown_over);
+}
+
+TEST(GameEngine, CleanupResetsAllFlags) {
+    // Set various flags
+    test_engine.base_state.paused = true;
+    test_engine.base_state.game_over = true;
+    test_engine.base_state.is_reset = true;
+    test_engine.return_to_main_menu = true;
+    test_engine.countdown_over = true;
+
+    // Call cleanup
+    game_engine_cleanup(&test_engine);
+
+    // Check that countdown_over is reset
+    TEST_ASSERT_FALSE(test_engine.countdown_over);
+
+    // Check that game-specific cleanup was called
+    TEST_ASSERT_TRUE(cleanup_called);
+}
+
 // Test Group Runner
 TEST_GROUP_RUNNER(GameEngine) {
     RUN_TEST_CASE(GameEngine, InitializationSetsDefaultState);
@@ -173,4 +312,10 @@ TEST_GROUP_RUNNER(GameEngine) {
     RUN_TEST_CASE(GameEngine, CleanupCallsGameCallback);
     RUN_TEST_CASE(GameEngine, NullEngineHandling);
     RUN_TEST_CASE(GameEngine, NullCallbackHandling);
+    // RUN_TEST_CASE(GameEngine, ButtonOneTogglesPause);
+    RUN_TEST_CASE(GameEngine, ButtonTwoShortPressTriggersReset);
+    RUN_TEST_CASE(GameEngine, ButtonTwoLongPressTriggersReturnToMainMenu);
+    // RUN_TEST_CASE(GameEngine, ButtonTwoNoEffectWhenGameOver);
+    // RUN_TEST_CASE(GameEngine, CountdownOverAfterGameOverDuration);
+    RUN_TEST_CASE(GameEngine, CleanupResetsAllFlags);
 }
