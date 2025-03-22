@@ -10,6 +10,7 @@ static void RunAllTests(void) {
     RUN_TEST_GROUP(SnakeGame);
     RUN_TEST_GROUP(PacmanGameMaze);
     RUN_TEST_GROUP(DPad);
+    RUN_TEST_GROUP(Audio)
 }
 
 int main(int argc, const char* argv[]) {

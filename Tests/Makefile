@@ -35,6 +35,7 @@ SRC_FILES=../Core/Src/Console_Peripherals/joystick.c \
           ../Core/Src/Console_Peripherals/push_button.c \
           ../Core/Src/Console_Peripherals/oled.c \
           ../Core/Src/Console_Peripherals/d_pad.c \
+          ../Core/Src/Console_Peripherals/audio.c \
           ../Core/Src/Game_Engine/game_menu.c \
           ../Core/Src/Game_Engine/game_engine.c \
           ../Core/Src/Game_Engine/Games/snake_game.c \
@@ -43,6 +44,7 @@ SRC_FILES=../Core/Src/Console_Peripherals/joystick.c \
           ../Core/Src/Sprites/sprite.c \
           ../Core/Src/Sprites/snake_sprite.c \
           ../Core/Src/Sprites/pacman_sprite.c \
+          ../Core/Src/Sounds/audio_sounds.c \
           # Add more src files here
 
 # Object files

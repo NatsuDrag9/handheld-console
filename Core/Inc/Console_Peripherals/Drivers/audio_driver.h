@@ -17,6 +17,8 @@ void audio_driver_write_dac(uint16_t value);
 void audio_driver_set_volume(uint8_t volume); // 0-100%
 void audio_driver_mute(bool mute);
 
+#ifndef UNITY_TEST
 extern DAC_HandleTypeDef hdac;
+#endif
 
 #endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_AUDIO_DRIVER_H_ */

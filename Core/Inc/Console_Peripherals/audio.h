@@ -10,12 +10,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "Game_Engine/game_engine_conf.h"
 #include "Console_Peripherals/Drivers/audio_driver.h"
 #include "Sounds/audio_sounds.h"
 #include "Console_Peripherals/types.h"
 
-// Sound types
+ // Sound types
 typedef enum {
     SOUND_NONE = 0,
     SOUND_GAME_START,

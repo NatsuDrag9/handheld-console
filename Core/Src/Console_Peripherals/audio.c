@@ -9,7 +9,7 @@
 #include "Console_Peripherals/audio.h"
 #include <math.h>
 
-// Audio state variables
+ // Audio state variables
 static bool audio_playing = false;
 static uint32_t audio_start_time = 0;
 static uint32_t audio_duration = 0;
@@ -41,7 +41,7 @@ void audio_init(void) {
     audio_driver_init();
 
     // Set default volume
-    audio_driver_set_volume(10); // 80% volume
+    audio_driver_set_volume(80); // 80% volume
 }
 
 void audio_play_sound(SoundEffect effect) {
@@ -50,34 +50,34 @@ void audio_play_sound(SoundEffect effect) {
 
     // Select the appropriate sound effect
     switch (effect) {
-        case SOUND_GAME_START:
-            audio_play_melody(game_start_melody, game_start_melody_length);
-            break;
+    case SOUND_GAME_START:
+        audio_play_melody(game_start_melody, game_start_melody_length);
+        break;
 
-        case SOUND_GAME_OVER:
-            audio_play_melody(game_over_melody, game_over_melody_length);
-            break;
+    case SOUND_GAME_OVER:
+        audio_play_melody(game_over_melody, game_over_melody_length);
+        break;
 
-        case SOUND_POINT_SCORED:
-            audio_play_melody(point_scored_sound, point_scored_sound_length);
-            break;
+    case SOUND_POINT_SCORED:
+        audio_play_melody(point_scored_sound, point_scored_sound_length);
+        break;
 
-        case SOUND_COLLISION:
-            audio_play_melody(collision_sound, collision_sound_length);
-            break;
+    case SOUND_COLLISION:
+        audio_play_melody(collision_sound, collision_sound_length);
+        break;
 
-        case SOUND_MENU_SELECT:
-            audio_play_melody(menu_select_sound, menu_select_sound_length);
-            break;
+    case SOUND_MENU_SELECT:
+        audio_play_melody(menu_select_sound, menu_select_sound_length);
+        break;
 
-        case SOUND_POWER_UP:
-            audio_play_melody(power_up_sound, power_up_sound_length);
-            break;
+    case SOUND_POWER_UP:
+        audio_play_melody(power_up_sound, power_up_sound_length);
+        break;
 
-        case SOUND_NONE:
-        default:
-            // No sound
-            break;
+    case SOUND_NONE:
+    default:
+        // No sound
+        break;
     }
 }
 
@@ -162,11 +162,13 @@ static void handle_tone_completion(uint32_t current_time) {
             audio_start_time = current_time;
             current_frequency = current_melody[current_note_index].frequency;
             audio_duration = current_melody[current_note_index].duration;
-        } else {
+        }
+        else {
             // Melody finished
             audio_stop();
         }
-    } else {
+    }
+    else {
         // Single tone finished
         audio_stop();
     }
@@ -196,3 +198,4 @@ void audio_update(void) {
 bool audio_is_playing(void) {
     return audio_playing;
 }
+
