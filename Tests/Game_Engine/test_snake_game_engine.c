@@ -23,10 +23,11 @@ TEST_TEAR_DOWN(SnakeGame) {
 TEST(SnakeGame, InitializationSetsCorrectStartState) {
     TEST_ASSERT_EQUAL(DISPLAY_WIDTH / 2, game_data->head_x);
     TEST_ASSERT_EQUAL(DISPLAY_HEIGHT / 2, game_data->head_y);
-    TEST_ASSERT_EQUAL(JS_DIR_RIGHT, game_data->direction);
+    TEST_ASSERT_EQUAL(DPAD_DIR_RIGHT, game_data->direction);
     TEST_ASSERT_EQUAL(1, game_data->length);
     TEST_ASSERT_EQUAL(3, snake_game_engine.base_state.lives);
     TEST_ASSERT_EQUAL(0, snake_game_engine.base_state.score);
+    TEST_ASSERT_TRUE(snake_game_engine.is_d_pad_game);
 }
 
 TEST(SnakeGame, BodyFollowsHead) {
@@ -34,49 +35,49 @@ TEST(SnakeGame, BodyFollowsHead) {
     uint8_t initial_body_x = game_data->head_x;
     uint8_t initial_body_y = game_data->head_y;
 
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
     mock_time_set_ms(SNAKE_SPEED + 1);
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
 
     TEST_ASSERT_EQUAL(initial_body_x, game_data->body[0].x);
     TEST_ASSERT_EQUAL(initial_body_y, game_data->body[0].y);
 }
 
 TEST(SnakeGame, DirectionChangeIgnoredIfNotNew) {
-    game_data->direction = JS_DIR_RIGHT;
-    JoystickStatus js = { .direction = JS_DIR_UP, .is_new = false };
-    snake_game_engine.update(js);
-    TEST_ASSERT_EQUAL(JS_DIR_RIGHT, game_data->direction);
+    game_data->direction = DPAD_DIR_RIGHT;
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_UP, .is_new = 0 };
+    snake_game_engine.update_func.update_dpad(dpad);
+    TEST_ASSERT_EQUAL(DPAD_DIR_RIGHT, game_data->direction);
 }
 
 TEST(SnakeGame, SnakeMovesSpriteWidthInDirectionOfMovement) {
     uint8_t initial_x = game_data->head_x;
     uint8_t initial_y = game_data->head_y;
 
-    JoystickStatus js = {
-        .direction = JS_DIR_RIGHT,
-        .is_new = true
+    DPAD_STATUS dpad = {
+        .direction = DPAD_DIR_RIGHT,
+        .is_new = 1
     };
 
     mock_time_set_ms(SNAKE_SPEED + 1);
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
 
     TEST_ASSERT_EQUAL(initial_x + SPRITE_SIZE, game_data->head_x);
     TEST_ASSERT_EQUAL(initial_y, game_data->head_y);
 }
 
 TEST(SnakeGame, CannotReverseDirection) {
-    game_data->direction = JS_DIR_RIGHT;
-    JoystickStatus js = { .direction = JS_DIR_LEFT, .is_new = true };
-    snake_game_engine.update(js);
-    TEST_ASSERT_EQUAL(JS_DIR_RIGHT, game_data->direction);
+    game_data->direction = DPAD_DIR_RIGHT;
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_LEFT, .is_new = 1 };
+    snake_game_engine.update_func.update_dpad(dpad);
+    TEST_ASSERT_EQUAL(DPAD_DIR_RIGHT, game_data->direction);
 }
 
 TEST(SnakeGame, SnakeWrapsHorizontally) {
     game_data->head_x = DISPLAY_WIDTH - SPRITE_SIZE;
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
     mock_time_set_ms(SNAKE_SPEED + 1);
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
     TEST_ASSERT_EQUAL(BORDER_OFFSET, game_data->head_x);
 }
 
@@ -84,24 +85,24 @@ TEST(SnakeGame, SnakeSpeedIncreases) {
     uint8_t initial_x = game_data->head_x;
     snake_game_engine.base_state.score = 200;
     mock_time_set_ms(SNAKE_SPEED - 180);  // Less than reduced speed threshold
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
-    snake_game_engine.update(js);
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
+    snake_game_engine.update_func.update_dpad(dpad);
     TEST_ASSERT_NOT_EQUAL(initial_x, game_data->head_x);
 }
 
 TEST(SnakeGame, SnakeWrapsVertically) {
     game_data->head_y = DISPLAY_HEIGHT - SPRITE_SIZE;
-    JoystickStatus js = { .direction = JS_DIR_DOWN, .is_new = true };
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_DOWN, .is_new = 1 };
     mock_time_set_ms(SNAKE_SPEED + 1);
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
     TEST_ASSERT_EQUAL(GAME_AREA_TOP, game_data->head_y);
 }
 
 TEST(SnakeGame, MovementOnlyOccursAtCorrectInterval) {
     uint8_t initial_x = game_data->head_x;
     mock_time_set_ms(SNAKE_SPEED - 1);
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
-    snake_game_engine.update(js);
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
+    snake_game_engine.update_func.update_dpad(dpad);
     TEST_ASSERT_EQUAL(initial_x, game_data->head_x);
 }
 
@@ -110,8 +111,8 @@ TEST(SnakeGame, SnakeLengthLimitedToMaxSize) {
         game_data->food.x = game_data->head_x + SPRITE_SIZE;
         game_data->food.y = game_data->head_y;
         mock_time_set_ms((i + 1) * SNAKE_SPEED + 1);
-        JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
-        snake_game_engine.update(js);
+        DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
+        snake_game_engine.update_func.update_dpad(dpad);
     }
     TEST_ASSERT_LESS_OR_EQUAL(64, game_data->length);
 }
@@ -131,8 +132,8 @@ TEST(SnakeGame, FoodSpawnsInBoundsAfterCollection) {
     mock_random_set_next_value(50);
     mock_time_set_ms(SNAKE_SPEED + 1);
 
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
-    snake_game_engine.update(js);
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
+    snake_game_engine.update_func.update_dpad(dpad);
 
     // Check new food position is also in bounds
     TEST_ASSERT_GREATER_OR_EQUAL(BORDER_OFFSET, game_data->food.x);
@@ -152,11 +153,11 @@ TEST(SnakeGame, FoodRelocatesAfterCollection) {
     mock_random_set_next_value(50);
     mock_time_set_ms(SNAKE_SPEED + 1);
 
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
-    snake_game_engine.update(js);  // This movement should collect food
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
+    snake_game_engine.update_func.update_dpad(dpad);  // This movement should collect food
 
     mock_time_set_ms(SNAKE_SPEED * 2);  // Wait for another update
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
 
     TEST_ASSERT_NOT_EQUAL(old_food_x, game_data->food.x);
     TEST_ASSERT_NOT_EQUAL(old_food_y, game_data->food.y);
@@ -170,8 +171,8 @@ TEST(SnakeGame, SnakeCollectsFood) {
     game_data->food.x = game_data->head_x + SPRITE_SIZE;
     game_data->food.y = game_data->head_y;
 
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
-    snake_game_engine.update(js);
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
+    snake_game_engine.update_func.update_dpad(dpad);
 
     TEST_ASSERT_EQUAL(2, game_data->length);
     TEST_ASSERT_EQUAL(10, snake_game_engine.base_state.score);
@@ -185,9 +186,9 @@ TEST(SnakeGame, SnakeSelfCollisionReducesLives) {
     game_data->body[1].x = game_data->head_x + SPRITE_SIZE;
     game_data->body[1].y = game_data->head_y;
 
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
     mock_time_set_ms(SNAKE_SPEED + 1);
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
 
     TEST_ASSERT_EQUAL(2, snake_game_engine.base_state.lives);  // Should decrease from 3 to 2
 }
@@ -197,10 +198,14 @@ TEST(SnakeGame, SelfCollisionWithNoLivesEndsGame) {
     game_data->length = 10;
     game_data->body[1].x = game_data->head_x + SPRITE_SIZE;
     game_data->body[1].y = game_data->head_y;
-    JoystickStatus js = { .direction = JS_DIR_RIGHT, .is_new = true };
+    DPAD_STATUS dpad = { .direction = DPAD_DIR_RIGHT, .is_new = 1 };
     mock_time_set_ms(SNAKE_SPEED + 1);
-    snake_game_engine.update(js);
+    snake_game_engine.update_func.update_dpad(dpad);
     TEST_ASSERT_TRUE(snake_game_engine.base_state.game_over);
+}
+
+TEST(SnakeGame, DPadGameFlagIsSet) {
+    TEST_ASSERT_TRUE(snake_game_engine.is_d_pad_game);
 }
 
 TEST_GROUP_RUNNER(SnakeGame) {
@@ -219,4 +224,5 @@ TEST_GROUP_RUNNER(SnakeGame) {
     RUN_TEST_CASE(SnakeGame, SnakeCollectsFood);
     RUN_TEST_CASE(SnakeGame, SnakeSelfCollisionReducesLives);
     RUN_TEST_CASE(SnakeGame, SelfCollisionWithNoLivesEndsGame);
+    RUN_TEST_CASE(SnakeGame, DPadGameFlagIsSet);
 }

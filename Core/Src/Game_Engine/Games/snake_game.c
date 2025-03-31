@@ -12,40 +12,45 @@
 
 static uint32_t last_move_time = 0;
 
-static SnakeGameData snake_data = {
-    .head_x = 0,           // Will be initialized properly in snake_init()
-    .head_y = 0,           // Will be initialized properly in snake_init()
-    .direction = JS_DIR_RIGHT,
-    .length = 1,
-    .body = {{0}},        // Initialize all body segments to 0
-    .food = {
-        .x = 0,
-        .y = 0
-    }
-};
-
 // Forward declarations of game engine functions
 static void snake_init(void);
-static void snake_update(JoystickStatus js_status);
+//static void snake_update(JoystickStatus js_status);
+static void snake_update_dpad(DPAD_STATUS dpad_status);
 static void snake_render(void);
 static void snake_cleanup(void);
 static void wrap_coordinates(uint8_t* x, uint8_t* y);
 static uint16_t calculate_snake_speed(uint32_t score);
 static void spawn_food(SnakeGameData* data);
 
+SnakeGameData snake_data = {
+    .head_x = 0,
+    .head_y = 0,
+    .direction = DPAD_DIR_RIGHT,
+    .length = 1,
+    .body = {{0}},
+    .food = {
+        .x = 0,
+        .y = 0
+    }
+};
+
 // Initialize the snake game engine instance
 GameEngine snake_game_engine = {
     .init = snake_init,
-    .update = snake_update,
     .render = snake_render,
     .cleanup = snake_cleanup,
+    .update_func = {
+        .update_dpad = snake_update_dpad
+    },
     .game_data = &snake_data,
     .base_state = {
         .score = 0,
         .lives = 3,
         .paused = false,
-        .game_over = false
-    }
+        .game_over = false,
+        .is_reset = false
+    },
+    .is_d_pad_game = true  // Snake is a D-pad game
 };
 
 static void wrap_coordinates(uint8_t* x, uint8_t* y) {
@@ -61,7 +66,7 @@ static void snake_init(void) {
     // Initialize snake position (center of screen)
     data->head_x = DISPLAY_WIDTH / 2;
     data->head_y = DISPLAY_HEIGHT / 2;
-    data->direction = JS_DIR_RIGHT;  // Start moving right
+    data->direction = DPAD_DIR_RIGHT;  // Start moving right
     data->length = 1;     // Start with just the head
 
     // Initialize first body segment
@@ -109,22 +114,22 @@ static bool check_collision(SnakeGameData* data) {
     return false;
 }
 
-static void handle_direction_change(SnakeGameData* data, JoystickStatus js_status) {
-    if (!js_status.is_new) return;
+static void handle_direction_change(SnakeGameData* data, DPAD_STATUS dpad_status) {
+    if (!dpad_status.is_new) return;
 
     uint8_t new_direction = data->direction;
-    switch (js_status.direction) {
-    case JS_DIR_RIGHT:
-        if (data->direction != JS_DIR_LEFT) new_direction = JS_DIR_RIGHT;
+    switch (dpad_status.direction) {
+    case DPAD_DIR_RIGHT:
+        if (data->direction != DPAD_DIR_LEFT) new_direction = DPAD_DIR_RIGHT;
         break;
-    case JS_DIR_LEFT:
-        if (data->direction != JS_DIR_RIGHT) new_direction = JS_DIR_LEFT;
+    case DPAD_DIR_LEFT:
+        if (data->direction != DPAD_DIR_RIGHT) new_direction = DPAD_DIR_LEFT;
         break;
-    case JS_DIR_UP:
-        if (data->direction != JS_DIR_DOWN) new_direction = JS_DIR_UP;
+    case DPAD_DIR_UP:
+        if (data->direction != DPAD_DIR_DOWN) new_direction = DPAD_DIR_UP;
         break;
-    case JS_DIR_DOWN:
-        if (data->direction != JS_DIR_UP) new_direction = JS_DIR_DOWN;
+    case DPAD_DIR_DOWN:
+        if (data->direction != DPAD_DIR_UP) new_direction = DPAD_DIR_DOWN;
         break;
     }
     data->direction = new_direction;
@@ -135,10 +140,10 @@ static void move_snake(SnakeGameData* data) {
     uint8_t prev_y = data->head_y;
 
     switch (data->direction) {
-    case JS_DIR_RIGHT: data->head_x += SPRITE_SIZE; break;
-    case JS_DIR_LEFT:  data->head_x -= SPRITE_SIZE; break;
-    case JS_DIR_UP:    data->head_y -= SPRITE_SIZE; break;
-    case JS_DIR_DOWN:  data->head_y += SPRITE_SIZE; break;
+    case DPAD_DIR_RIGHT: data->head_x += SPRITE_SIZE; break;
+    case DPAD_DIR_LEFT:  data->head_x -= SPRITE_SIZE; break;
+    case DPAD_DIR_UP:    data->head_y -= SPRITE_SIZE; break;
+    case DPAD_DIR_DOWN:  data->head_y += SPRITE_SIZE; break;
     }
 
     // Wrap around screen borders
@@ -153,7 +158,6 @@ static void move_snake(SnakeGameData* data) {
         prev_y = temp_y;
     }
 }
-
 
 static void handle_food_collision(SnakeGameData* data) {
     uint8_t food_x = data->food.x;
@@ -189,11 +193,11 @@ static uint16_t calculate_snake_speed(uint32_t score) {
     return (SNAKE_SPEED > speed_reduction) ? SNAKE_SPEED - speed_reduction : 200;  // Minimum time difference of 200ms -> maximum speed
 }
 
-static void snake_update(JoystickStatus js_status) {
+static void snake_update_dpad(DPAD_STATUS dpad_status) {
     SnakeGameData* data = (SnakeGameData*)snake_game_engine.game_data;
     uint32_t current_time = get_current_ms();
 
-    handle_direction_change(data, js_status);
+    handle_direction_change(data, dpad_status);
 
     uint16_t current_speed = calculate_snake_speed(snake_game_engine.base_state.score);
     if (current_time - last_move_time >= current_speed) {
@@ -205,6 +209,8 @@ static void snake_update(JoystickStatus js_status) {
 
     animated_sprite_update(&snake_head_animated);
 }
+
+
 
 static void snake_render(void) {
     SnakeGameData* data = (SnakeGameData*)snake_game_engine.game_data;
@@ -220,13 +226,13 @@ static void snake_render(void) {
     display_set_cursor(2, 2);
     display_write_string(status_text, Font_7x10, DISPLAY_WHITE);
 
-    // Draw snake head with rotation
+    // Draw snake head with rotation based on DPAD direction
     uint16_t rotation = 0;
     switch (data->direction) {
-    case JS_DIR_RIGHT: rotation = 0;   break;
-    case JS_DIR_DOWN:  rotation = 90;  break;
-    case JS_DIR_LEFT:  rotation = 180; break;
-    case JS_DIR_UP:    rotation = 270; break;
+    case DPAD_DIR_RIGHT: rotation = 0;   break;
+    case DPAD_DIR_DOWN:  rotation = 90;  break;
+    case DPAD_DIR_LEFT:  rotation = 180; break;
+    case DPAD_DIR_UP:    rotation = 270; break;
     }
     sprite_draw_rotated(&snake_head_animated.frames[snake_head_animated.current_frame],
         data->head_x, data->head_y, rotation, DISPLAY_WHITE);
@@ -249,7 +255,7 @@ static void snake_cleanup(void) {
     // Reset game state
     snake_data.head_x = 0;
     snake_data.head_y = 0;
-    snake_data.direction = JS_DIR_RIGHT;
+    snake_data.direction = DPAD_DIR_RIGHT;  // Using DPAD direction constant
     snake_data.length = 1;
     memset(snake_data.body, 0, sizeof(snake_data.body));
     snake_data.food.x = 0;

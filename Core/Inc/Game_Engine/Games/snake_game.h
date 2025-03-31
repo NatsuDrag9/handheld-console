@@ -17,7 +17,7 @@
 typedef struct {
     uint8_t head_x;
     uint8_t head_y;
-    uint8_t direction;  // Will use JS_DIR_* values
+    uint8_t direction;  // Will use DPAD_DIR  values
     uint8_t length;
     struct {
         uint8_t x;
