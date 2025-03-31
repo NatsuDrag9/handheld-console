@@ -27,7 +27,9 @@ static PacmanGameData pacman_data = {
 
 // Forward declarations
 static void pacman_init(void);
-static void pacman_update(JoystickStatus js_status);
+//static void pacman_update(JoystickStatus js_status);
+
+static void pacman_update_dpad(DPAD_STATUS dpad_status);
 static void pacman_render(void);
 static void pacman_cleanup(void);
 static void init_dots(void);
@@ -43,7 +45,9 @@ static Direction get_next_direction(Ghost* ghost);
 // Game engine instance
 GameEngine pacman_game_engine = {
     .init = pacman_init,
-    .update = pacman_update,
+	.update_func = {
+			.update_dpad = pacman_update_dpad
+    },
     .render = pacman_render,
     .cleanup = pacman_cleanup,
     .game_data = &pacman_data,
@@ -52,7 +56,8 @@ GameEngine pacman_game_engine = {
         .lives = 3,
         .paused = false,
         .game_over = false
-    }
+    },
+    .is_d_pad_game = true  // Pacman is a D-pad game
 };
 
 static bool check_wall_collision(Position pos) {
@@ -356,28 +361,55 @@ static void handle_ghost_collision(void) {
     }
 }
 
-static void pacman_update(JoystickStatus js_status) {
+//static void pacman_update(JoystickStatus js_status) {
+//    uint32_t current_time = get_current_ms();
+//
+//    // Handle direction change from joystick
+//    if (js_status.is_new) {
+//
+//        switch (js_status.direction) {
+//        case JS_DIR_UP:         pacman_data.next_dir = DIR_UP;    break;
+//        case JS_DIR_RIGHT:      pacman_data.next_dir = DIR_RIGHT; break;
+//        case JS_DIR_DOWN:       pacman_data.next_dir = DIR_DOWN;  break;
+//        case JS_DIR_LEFT:       pacman_data.next_dir = DIR_LEFT;  break;
+//        case JS_DIR_LEFT_UP:    pacman_data.next_dir = DIR_UP;    break;
+//        case JS_DIR_LEFT_DOWN:  pacman_data.next_dir = DIR_DOWN;  break;
+//        case JS_DIR_RIGHT_UP:   pacman_data.next_dir = DIR_UP;    break;
+//        case JS_DIR_RIGHT_DOWN: pacman_data.next_dir = DIR_DOWN;  break;
+//        case JS_DIR_CENTERED:   break;  // 0 - Keep current direction
+//        default: break;
+//        }
+//    }
+//
+//    if (current_time - last_move_time >= PACMAN_SPEED) {
+//
+//        move_pacman();
+//        update_ghosts();
+//        handle_dot_collision();
+//        handle_ghost_collision();
+//
+//        last_move_time = current_time;
+//    }
+//
+//    // Update animations
+//    animated_sprite_update(&pacman_animated);
+//}
+
+static void pacman_update_dpad(DPAD_STATUS dpad_status) {
     uint32_t current_time = get_current_ms();
 
-    // Handle direction change from joystick
-    if (js_status.is_new) {
-
-        switch (js_status.direction) {
-        case JS_DIR_UP:         pacman_data.next_dir = DIR_UP;    break;
-        case JS_DIR_RIGHT:      pacman_data.next_dir = DIR_RIGHT; break;
-        case JS_DIR_DOWN:       pacman_data.next_dir = DIR_DOWN;  break;
-        case JS_DIR_LEFT:       pacman_data.next_dir = DIR_LEFT;  break;
-        case JS_DIR_LEFT_UP:    pacman_data.next_dir = DIR_UP;    break;
-        case JS_DIR_LEFT_DOWN:  pacman_data.next_dir = DIR_DOWN;  break;
-        case JS_DIR_RIGHT_UP:   pacman_data.next_dir = DIR_UP;    break;
-        case JS_DIR_RIGHT_DOWN: pacman_data.next_dir = DIR_DOWN;  break;
-        case JS_DIR_CENTERED:   break;  // 0 - Keep current direction
+    // Handle direction change from D-pad
+    if (dpad_status.is_new) {
+        switch (dpad_status.direction) {
+        case DPAD_DIR_UP:    pacman_data.next_dir = DIR_UP;    break;
+        case DPAD_DIR_RIGHT: pacman_data.next_dir = DIR_RIGHT; break;
+        case DPAD_DIR_DOWN:  pacman_data.next_dir = DIR_DOWN;  break;
+        case DPAD_DIR_LEFT:  pacman_data.next_dir = DIR_LEFT;  break;
         default: break;
         }
     }
 
     if (current_time - last_move_time >= PACMAN_SPEED) {
-
         move_pacman();
         update_ghosts();
         handle_dot_collision();
