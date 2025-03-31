@@ -88,14 +88,41 @@ void game_engine_handle_buttons(GameEngine* engine) {
 	}
 }
 
-void game_engine_update(GameEngine* engine, JoystickStatus js_status) {
+//void game_engine_update(GameEngine* engine, JoystickStatus js_status) {
+//	if (engine) {
+//		// Always handle button input regardless of game state
+//		game_engine_handle_buttons(engine);
+//
+//		// Only update game logic if not paused and not game over
+//		if (engine->update && !engine->base_state.game_over && !engine->base_state.paused) {
+//			engine->update(js_status);
+//		}
+//	}
+//}
+
+void game_engine_update(GameEngine* engine, void* input_data) {
 	if (engine) {
 		// Always handle button input regardless of game state
 		game_engine_handle_buttons(engine);
 
 		// Only update game logic if not paused and not game over
-		if (engine->update && !engine->base_state.game_over && !engine->base_state.paused) {
-			engine->update(js_status);
+		if (!engine->base_state.game_over && !engine->base_state.paused) {
+			if (engine->is_d_pad_game) {
+				// Cast input to DPAD_STATUS for D-pad games
+				DPAD_STATUS* dpad_status = (DPAD_STATUS*)input_data;
+				// Check if the function pointer is valid before calling
+				if (engine->update_func.update_dpad != NULL) {
+					engine->update_func.update_dpad(*dpad_status);
+				}
+			}
+			else {
+				// Cast input to JoystickStatus for joystick games
+				JoystickStatus* js_status = (JoystickStatus*)input_data;
+				// Check if the function pointer is valid before calling
+				if (engine->update_func.update_joystick != NULL) {
+					engine->update_func.update_joystick(*js_status);
+				}
+			}
 		}
 	}
 }

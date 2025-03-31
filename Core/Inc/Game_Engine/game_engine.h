@@ -15,11 +15,20 @@
 #include "game_engine_conf.h"
 #include "Console_Peripherals/Drivers/display_driver.h"
 
+typedef void (*UpdateWithJoystick)(JoystickStatus);
+typedef void (*UpdateWithDPad)(DPAD_STATUS);
+
 typedef struct {
     void (*init)(void);              // Initialize game state
-    void (*update)(JoystickStatus);  // Game logic update
+//    void (*update)(JoystickStatus);  // Game logic update
     void (*render)(void);            // Draw game state
     void (*cleanup)(void);           // Cleanup resources
+
+    // Union for different update function signatures
+       union {
+           UpdateWithJoystick update_joystick;
+           UpdateWithDPad update_dpad;
+       } update_func;  // Game logic update
 
     struct {
         uint32_t score;
@@ -32,11 +41,14 @@ typedef struct {
     void* game_data;  // Game-specific data
     bool countdown_over;
     bool return_to_main_menu;
+    bool is_d_pad_game;  // Flag to determine input type
+
 } GameEngine;
 
 // Game Engine core functions
 void game_engine_init(GameEngine* engine);
-void game_engine_update(GameEngine* engine, JoystickStatus js_status);
+//void game_engine_update(GameEngine* engine, JoystickStatus js_status);
+void game_engine_update(GameEngine* engine, void* input_data);
 void game_engine_render(GameEngine* engine);
 void game_engine_cleanup(GameEngine* engine);
 void game_engine_render_countdown(GameEngine* engine);
