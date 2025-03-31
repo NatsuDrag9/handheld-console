@@ -12,6 +12,7 @@
 #include "Utils/debug_conf.h"
 
 static uint8_t last_direction = 0;
+static uint8_t d_pad_changed = 0;
 static volatile DPAD_STATUS d_pad_status = { 0, 0 };
 
 void update_d_pad_status(void) {
@@ -39,21 +40,36 @@ void update_d_pad_status(void) {
 
 
     if (current_dir != last_direction) {
-        last_direction = current_dir;
-        __disable_irq();
-        d_pad_status.direction = current_dir;
-        d_pad_status.is_new = 1;
-        __enable_irq();
+            last_direction = current_dir;
+            __disable_irq();
+            d_pad_status.direction = current_dir;
+            d_pad_status.is_new = 1;
+            d_pad_changed = 1;
+//            DEBUG_PRINTF(true, "*** SETTING is_new=1 for direction %d ***\n", current_dir);
+            __enable_irq();
     }
 }
+
 
 DPAD_STATUS d_pad_get_status(void) {
     DPAD_STATUS status;
     __disable_irq();
     status = d_pad_status;
+//    if (d_pad_status.is_new) {
+//        DEBUG_PRINTF(true, "*** CLEARING is_new flag, was 1 for direction %d ***\n",
+//                   d_pad_status.direction);
+//    }
     d_pad_status.is_new = 0;
     __enable_irq();
     return status;
+}
+
+uint8_t d_pad_direction_changed(void) {
+    __disable_irq();
+    uint8_t changed = d_pad_changed;
+    d_pad_changed = 0;  // Clear the flag
+    __enable_irq();
+    return changed;
 }
 
 #endif /* SRC_PERIPHERALS_D_PAD_C_ */

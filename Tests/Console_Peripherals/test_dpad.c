@@ -26,8 +26,9 @@ TEST_SETUP(DPad) {
 
     // Reset d-pad status (call update with no buttons pressed)
     update_d_pad_status();
-    // Read status once to clear any "is_new" flag
+    // Clear both status and changed flags
     d_pad_get_status();
+    d_pad_direction_changed();
 }
 
 TEST_TEAR_DOWN(DPad) {
@@ -170,6 +171,45 @@ TEST(DPad, NoChangeInDirection) {
     TEST_ASSERT_EQUAL(0, status.is_new);
 }
 
+TEST(DPad, DirectionChangedFlag) {
+    // Initially, no change should be detected
+    TEST_ASSERT_EQUAL(0, d_pad_direction_changed());
+
+    // Set initial direction to UP
+    set_dpad_direction(1, 0, 0, 0);
+    update_d_pad_status();
+    TEST_ASSERT_EQUAL(1, d_pad_direction_changed());
+
+    // Calling it again should return 0 (flag should be cleared)
+    TEST_ASSERT_EQUAL(0, d_pad_direction_changed());
+
+    // Change direction to RIGHT
+    set_dpad_direction(0, 1, 0, 0);
+    update_d_pad_status();
+    TEST_ASSERT_EQUAL(1, d_pad_direction_changed());
+}
+
+TEST(DPad, GetStatusClearsIsNewOnly) {
+    // Set initial direction
+    set_dpad_direction(1, 0, 0, 0);
+    update_d_pad_status();
+
+    // First read should have is_new=1
+    DPAD_STATUS status = d_pad_get_status();
+    TEST_ASSERT_EQUAL(DPAD_DIR_UP, status.direction);
+    TEST_ASSERT_EQUAL(1, status.is_new);
+
+    // Second read should have is_new=0 but unchanged direction
+    status = d_pad_get_status();
+    TEST_ASSERT_EQUAL(DPAD_DIR_UP, status.direction);
+    TEST_ASSERT_EQUAL(0, status.is_new);
+
+    // Direction changed flag should be independent of get_status
+    TEST_ASSERT_EQUAL(1, d_pad_direction_changed());
+    TEST_ASSERT_EQUAL(0, d_pad_direction_changed());
+}
+
+
 TEST_GROUP_RUNNER(DPad) {
     RUN_TEST_CASE(DPad, InitialState);
     RUN_TEST_CASE(DPad, UpDirection);
@@ -179,4 +219,6 @@ TEST_GROUP_RUNNER(DPad) {
     RUN_TEST_CASE(DPad, DirectionPriority);
     RUN_TEST_CASE(DPad, DirectionChange);
     RUN_TEST_CASE(DPad, NoChangeInDirection);
+    RUN_TEST_CASE(DPad, DirectionChangedFlag);
+    RUN_TEST_CASE(DPad, GetStatusClearsIsNewOnly);
 }
