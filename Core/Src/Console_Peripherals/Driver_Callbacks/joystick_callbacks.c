@@ -22,4 +22,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM6) {
         joystick_driver_tim_callback(htim);
     }
+
+//    if (htim->Instance == TIM4) {
+//    	blink_led1();
+//    }
 }

@@ -51,6 +51,10 @@ void joystick_driver_init(void) {
     if(HAL_TIM_Base_Start_IT(&htim6) != HAL_OK) {
             Error_Handler();
     }
+
+    if(HAL_TIM_Base_Start_IT(&htim4) != HAL_OK) {
+               Error_Handler();
+       }
 }
 
 #endif

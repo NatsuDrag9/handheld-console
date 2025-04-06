@@ -20,6 +20,7 @@ void System_Init(void)
   MX_DAC_Init();
 //  MX_USB_OTG_FS_PCD_Init();
   MX_TIM6_Init();
+  MX_TIM4_Init();
 }
 
 /**

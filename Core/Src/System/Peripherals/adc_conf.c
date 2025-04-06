@@ -8,7 +8,6 @@
 #include "System/Peripherals/adc_conf.h"
 
 ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
 
 void MX_ADC1_Init(void)
 {

@@ -2,7 +2,7 @@
 #define MOCK_AUDIO_DRIVER_H_
 
 // Define SAMPLE_COUNT if not defined in audio.h
-#define SAMPLE_COUNT 32
+// #define SAMPLE_COUNT 128
 
 #include <stdint.h>
 #include <stdbool.h>

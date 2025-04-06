@@ -21,7 +21,7 @@
 #define BUTTON_MENU_MAX_DURATION        5000  // Maximum hold time (5 seconds) for main menu
 
 // Audio
-#define SAMPLE_COUNT 32
+#define SAMPLE_COUNT 128
 extern const uint16_t SINE_WAVE_TABLE[SAMPLE_COUNT]; // Pre-calculated sine wave samples (normalized to DAC range 0-4095)
 
 #endif /* INC_GAME_ENGINE_GAME_ENGINE_CONF_H_ */

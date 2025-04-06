@@ -36,5 +36,6 @@ void audio_play_tone(uint16_t frequency, uint16_t duration_ms); // Play a custom
 void audio_play_melody(const Note* notes, uint8_t note_count); // Play a melody (sequence of notes)
 void audio_update(void); // Update function to be called in main loop
 bool audio_is_playing(void); // Check if audio is currently playing
+void audio_play_sound_once(SoundEffect effect); // Plays the sound only once until the sound is restarted manually
 
 #endif /* INC_CONSOLE_PERIPHERALS_AUDIO_H_ */

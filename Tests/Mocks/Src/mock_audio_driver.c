@@ -56,6 +56,14 @@ void audio_driver_mute(bool mute) {
     }
 }
 
+void audio_driver_set_frequency(uint16_t frequency) {
+    // Add mock implementation
+}
+
+void audio_driver_stop(void) {
+    // Add mock implementation
+}
+
 void mock_audio_driver_reset(void) {
     mock_dac_value = 0;
     mock_volume = 100;
