@@ -49,10 +49,12 @@ typedef struct {
 	uint8_t is_new;
 } DPAD_STATUS;
 
-#define DPAD_DIR_UP 1
-#define DPAD_DIR_RIGHT 2
-#define DPAD_DIR_DOWN 3
-#define DPAD_DIR_LEFT 4
+// Distinct values from JS_DIR to simplify
+// main menu navigation handling logic
+#define DPAD_DIR_UP 9
+#define DPAD_DIR_RIGHT 10
+#define DPAD_DIR_DOWN 11
+#define DPAD_DIR_LEFT 12
 
 /* Audio types */
 // Melody note structure

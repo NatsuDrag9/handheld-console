@@ -14,6 +14,7 @@
 #include "Console_Peripherals/types.h"
 #include "Console_Peripherals/joystick.h"
 #include "Console_Peripherals/Drivers/display_driver.h"
+#include "Console_Peripherals/d_pad.h"
 #include "Game_Engine/game_menu.h"
 
 #ifdef UNITY_TEST
