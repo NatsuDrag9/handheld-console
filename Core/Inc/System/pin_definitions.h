@@ -11,7 +11,7 @@
 #define USER_Btn_Pin GPIO_PIN_13
 #define USER_Btn_GPIO_Port GPIOC
 
-/* MCO */
+ /* MCO */
 #define MCO_Pin GPIO_PIN_0
 #define MCO_GPIO_Port GPIOH
 
@@ -65,12 +65,12 @@
 #define D_PAD_Pin_Right GPIO_PIN_13
 #define D_PAD_Pin_Up GPIO_PIN_11
 #define D_PAD_Pin_Down GPIO_PIN_9
-#define OLED_CS_Port         GPIOD
-#define OLED_CS_Pin          GPIO_PIN_14
-#define OLED_DC_Port         GPIOD
-#define OLED_DC_Pin          GPIO_PIN_15
-#define OLED_Reset_Port      GPIOF
-#define OLED_Reset_Pin       GPIO_PIN_12
+#define DISPLAY_CS_Port         GPIOD
+#define DISPLAY_CS_Pin          GPIO_PIN_14
+#define DISPLAY_DC_Port         GPIOD
+#define DISPLAY_DC_Pin          GPIO_PIN_15
+#define DISPLAY_Reset_Port      GPIOF
+#define DISPLAY_Reset_Pin       GPIO_PIN_12
 
 
 #endif /* INC_SYSTEM_PIN_DEFINITIONS_H_ */
