@@ -98,7 +98,7 @@ static void init_dots(void) {
     pacman_data.num_dots_remaining = 0;
 
     // Place dots according to maze layout
-    for (uint8_t y = 0; y < MAZE_HEIGHT; y++) {
+    for (uint8_t y = 0; y < MAZE_HEIGHT_ACTUAL; y++) {
         for (uint8_t x = 0; x < MAZE_WIDTH; x++) {
             if (MAZE_LAYOUT[y][x] == MAZE_DOT || MAZE_LAYOUT[y][x] == MAZE_POWER) {
                 Position pos = {
@@ -120,8 +120,8 @@ static void init_ghosts(void) {
     const Position ghost_starts[NUM_GHOSTS] = {
            {maze_to_screen_x(1), maze_to_screen_y(1)},    // Blinky - top left
            {maze_to_screen_x(MAZE_WIDTH - 2), maze_to_screen_y(1)},   // Pinky - top right
-           {maze_to_screen_x(1), maze_to_screen_y(MAZE_HEIGHT - 2)},    // Inky - bottom left
-           {maze_to_screen_x(MAZE_WIDTH - 2), maze_to_screen_y(MAZE_HEIGHT - 2)}    // Clyde - bottom right
+           {maze_to_screen_x(1), maze_to_screen_y(MAZE_HEIGHT_ACTUAL - 2)},    // Inky - bottom left
+           {maze_to_screen_x(MAZE_WIDTH - 2), maze_to_screen_y(MAZE_HEIGHT_ACTUAL - 2)}    // Clyde - bottom right
     };
 
     for (uint8_t i = 0; i < NUM_GHOSTS; i++) {
@@ -159,7 +159,7 @@ static Position get_ghost_target(Ghost* ghost) {
     case MODE_FRIGHTENED:
         // Random target when frightened
         target.x = maze_to_screen_x(get_random() % MAZE_WIDTH);
-        target.y = maze_to_screen_y(get_random() % MAZE_HEIGHT);
+        target.y = maze_to_screen_y(get_random() % MAZE_HEIGHT_ACTUAL);
         break;
 
     case MODE_SCATTER:
@@ -175,11 +175,11 @@ static Position get_ghost_target(Ghost* ghost) {
             break;
         case GHOST_INKY:
             target.x = maze_to_screen_x(1);
-            target.y = maze_to_screen_y(MAZE_HEIGHT - 2);
+            target.y = maze_to_screen_y(MAZE_HEIGHT_ACTUAL - 2);
             break;
         case GHOST_CLYDE:
             target.x = maze_to_screen_x(MAZE_WIDTH - 2);
-            target.y = maze_to_screen_y(MAZE_HEIGHT - 2);
+            target.y = maze_to_screen_y(MAZE_HEIGHT_ACTUAL - 2);
             break;
         }
         break;
@@ -220,7 +220,7 @@ static Position get_ghost_target(Ghost* ghost) {
             }
             else {
                 target.x = maze_to_screen_x(get_random() % MAZE_WIDTH);
-                target.y = maze_to_screen_y(get_random() % MAZE_HEIGHT);
+                target.y = maze_to_screen_y(get_random() % MAZE_HEIGHT_ACTUAL);
             }
             break;
         }

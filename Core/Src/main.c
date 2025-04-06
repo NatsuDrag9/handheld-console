@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -45,6 +46,7 @@
 volatile float angle = 0.0f;      // Made volatile to prevent optimization
 volatile float result_sin = 0.0f;
 volatile float result_cos = 0.0f;
+static bool initial_sound_played = false;
 
 /* USER CODE END PV */
 
@@ -83,9 +85,17 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   console_peripherals_init();
-  oled_show_screen(SCREEN_WELCOME);
-  oled_show_screen(SCREEN_MENU);
-//  audio_play_sound(SOUND_POINT_SCORED);
+//  display_fill_white();
+//  display_write_string("Hello World", Font_7x10, DISPLAY_BLACK);
+
+//  oled_show_screen(SCREEN_WELCOME);
+//  oled_show_screen(SCREEN_MENU);
+
+  // Start with a simple tone test
+//  audio_play_tone(440, 1000);  // 440 Hz (A4) for 1 second
+//  audio_play_sound(SOUND_GAME_OVER);
+//  audio_update();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -167,43 +177,46 @@ int main(void)
 //      DEBUG_PRINTF(false, "Dpad direction: %d\n", d_pad_status.direction);
 //    }
 
+//	  	audio_update();
+//
 //	    DPAD_STATUS d_pad_status = d_pad_get_status();
 //	    if (d_pad_status.direction == DPAD_DIR_UP) {
 //	      audio_play_sound(SOUND_GAME_START);
+//
 //	      DEBUG_PRINTF(false, "Dpad direction: %d\n", d_pad_status.direction);
 //	    }
 //	    else if (d_pad_status.direction == DPAD_DIR_RIGHT) {
 //	    	audio_play_sound(SOUND_GAME_OVER);
+////	    	 audio_update();
 //	    	DEBUG_PRINTF(false, "Dpad direction: %d\n", d_pad_status.direction);
 //	    }
 //	    else if (d_pad_status.direction == DPAD_DIR_DOWN) {
 //	    	audio_play_sound(SOUND_POINT_SCORED);
+////	    	 audio_update();
 //	    	DEBUG_PRINTF(false, "Dpad direction: %d\n", d_pad_status.direction);
 //	    }
 //	    else if (d_pad_status.direction == DPAD_DIR_LEFT) {
 //	    	audio_play_sound(SOUND_COLLISION);
+////	    	 audio_update();
 //	    	DEBUG_PRINTF(false, "Dpad direction: %d\n", d_pad_status.direction);
 //	    }
 //	    if(pb1_get_state() == 1) {
 //	    	audio_play_sound(SOUND_MENU_SELECT);
+//	    	 audio_update();
 //	    	DEBUG_PRINTF(false, "PB1 is pressed\n");
 //	    }
 //	    if(pb2_get_state() == 1) {
 //	    	audio_play_sound(SOUND_POWER_UP);
+////	    	 audio_update();
 //	    	DEBUG_PRINTF(false, "PB2 is pressed\n");
 //	    }
-//
-//	    audio_update();
-//	    if (audio_is_playing()) {
-//	      DEBUG_PRINTF(false, "Audio is playing\n");
-//	    }
 
-	  audio_driver_write_dac(2048);
-	  add_delay(1);
-	  audio_driver_write_dac(4095);
-	  add_delay(1);
-	  audio_driver_write_dac(0);
-	  add_delay(1);
+//	  audio_update();
+//
+//	    if (!initial_sound_played) {
+//	        audio_play_sound_once(SOUND_MENU_SELECT);
+//	        initial_sound_played = true;
+//	    }
 
 
 
@@ -212,3 +225,5 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+
+

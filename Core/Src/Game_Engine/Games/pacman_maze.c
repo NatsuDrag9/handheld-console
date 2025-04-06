@@ -7,7 +7,7 @@
 
 #include "Game_Engine/Games/pacman_maze.h"
 
-inline int screen_to_maze_x(uint8_t x) {
+inline int screen_to_maze_x(coord_t x) {
     // Convert to first tile if before border
     if (x < BORDER_OFFSET) {
         return 0;
@@ -16,38 +16,37 @@ inline int screen_to_maze_x(uint8_t x) {
     return (maze_x >= MAZE_WIDTH) ? MAZE_WIDTH - 1 : maze_x;
 }
 
-inline int screen_to_maze_y(uint8_t y) {
+inline int screen_to_maze_y(coord_t y) {
     // Convert to first tile if before game area
     if (y < GAME_AREA_TOP) {
         return 0;
     }
     int maze_y = (int)(y - GAME_AREA_TOP) / TILE_SIZE;
-    return (maze_y >= MAZE_HEIGHT) ? MAZE_HEIGHT - 1 : maze_y;
+    return (maze_y >= MAZE_HEIGHT_ACTUAL) ? MAZE_HEIGHT_ACTUAL - 1 : maze_y;
 }
 
-inline uint8_t maze_to_screen_x(uint8_t x) {
+inline coord_t maze_to_screen_x(uint8_t x) {
     // Clamp x to valid range
     x = (x >= MAZE_WIDTH) ? MAZE_WIDTH : x;
     return x * TILE_SIZE + BORDER_OFFSET;
 }
 
-inline uint8_t maze_to_screen_y(uint8_t y) {
+inline coord_t maze_to_screen_y(uint8_t y) {
     // Clamp y to valid range
-    y = (y >= MAZE_HEIGHT) ? MAZE_HEIGHT : y;
+    y = (y >= MAZE_HEIGHT_ACTUAL) ? MAZE_HEIGHT_ACTUAL : y;
     return y * TILE_SIZE + GAME_AREA_TOP;
 }
 
-bool is_wall(uint8_t x, uint8_t y) {
-    uint8_t maze_x = screen_to_maze_x(x);
-    uint8_t maze_y = screen_to_maze_y(y);
+bool is_wall(coord_t x, coord_t y) {
+    int maze_x = screen_to_maze_x(x);
+    int maze_y = screen_to_maze_y(y);
 
-    if (maze_x >= MAZE_WIDTH || maze_y >= MAZE_HEIGHT) {
-        return true;
+    // Validate indices - this handles negative values too
+    if (maze_x < 0 || maze_y < 0 || maze_x >= MAZE_WIDTH || maze_y >= MAZE_HEIGHT_ACTUAL) {
+        return true;  // Out of bounds is considered a wall
     }
 
-    bool is_wall_collision = MAZE_LAYOUT[maze_y][maze_x] == MAZE_WALL;
-
-    return is_wall_collision;
+    return MAZE_LAYOUT[maze_y][maze_x] == MAZE_WALL;
 }
 
 void draw_maze(void) {
@@ -55,10 +54,10 @@ void draw_maze(void) {
     display_draw_border_at(BORDER_OFFSET, GAME_AREA_TOP, 2, 2);
 
     // Then draw internal walls and items
-    for (uint8_t y = 0; y < MAZE_HEIGHT; y++) {
+    for (uint8_t y = 0; y < MAZE_HEIGHT_ACTUAL; y++) {
         for (uint8_t x = 0; x < MAZE_WIDTH; x++) {
-            uint8_t screen_x = maze_to_screen_x(x);
-            uint8_t screen_y = maze_to_screen_y(y);
+            coord_t screen_x = maze_to_screen_x(x);
+            coord_t screen_y = maze_to_screen_y(y);
 
             switch (MAZE_LAYOUT[y][x]) {
             case MAZE_WALL:
@@ -68,7 +67,6 @@ void draw_maze(void) {
                     screen_y + TILE_SIZE - 1,
                     DISPLAY_WHITE);
                 break;
-
 
             case MAZE_DOT:
                 // Single pixel dot

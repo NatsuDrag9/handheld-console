@@ -15,17 +15,17 @@
 
  // Snake game specific data structure
 typedef struct {
-    uint8_t head_x;
-    uint8_t head_y;
+    coord_t head_x;
+    coord_t head_y;
     uint8_t direction;  // Will use DPAD_DIR  values
     uint8_t length;
     struct {
-        uint8_t x;
-        uint8_t y;
+        coord_t x;
+        coord_t y;
     } body[64];  // Maximum snake length
     struct {
-        uint8_t x;
-        uint8_t y;
+        coord_t x;
+        coord_t y;
     } food;
 } SnakeGameData;
 

@@ -13,7 +13,7 @@
 #include "Console_Peripherals/Drivers/display_driver.h"  // For DISPLAY_WIDTH and DISPLAY_HEIGHT
 #include "Game_Engine/game_engine_conf.h"  // For GAME_AREA_TOP, TILE_SIZE, BORDER_OFFSET
 
- // Maze elements
+// Maze elements
 typedef enum {
     MAZE_PATH = 0,  // Empty path
     MAZE_WALL = 1,  // Wall
@@ -21,33 +21,66 @@ typedef enum {
     MAZE_POWER = 3   // Power pellet
 } MazeElement;
 
-// Calculate maze dimensions based on screen size
-#define MAZE_WIDTH  ((DISPLAY_WIDTH - 2*BORDER_OFFSET) / TILE_SIZE)   // = 14 tiles
-#define MAZE_HEIGHT ((DISPLAY_HEIGHT - GAME_AREA_TOP - BORDER_OFFSET) / TILE_SIZE) + 1  // = 6 tiles
-
-// Function declarations
-
-// Convert screen coordinates to maze indices - cast to int first to prevent underflow
-int screen_to_maze_x(uint8_t x);
-int screen_to_maze_y(uint8_t y);
-
-// Convert maze indices to screen coordinates
-uint8_t maze_to_screen_x(uint8_t x);
-uint8_t maze_to_screen_y(uint8_t y);
-
-// Maze layout (14x5 tiles)
-// 0 = path, 1 = wall, 2 = dot, 3 = power pellet
-static const uint8_t MAZE_LAYOUT[MAZE_HEIGHT][MAZE_WIDTH] = {
-    {1,1,1,0,0,0,0,0,0,0,0,1,1,1},  // row 0 - Shorter top walls
-    {1,3,0,0,0,0,0,0,0,0,0,0,3,1},  // row 1 - Open row with power pellets
-    {1,0,1,1,0,1,1,1,1,0,1,1,0,1},  // row 2 - Some obstacles
-    {1,0,0,0,0,0,0,0,0,0,0,0,0,1},  // row 3 - Open row for movement
-    {1,0,1,1,0,1,1,1,1,0,1,1,0,1},  // row 4 - Mirror of row 2
-    {1,1,1,0,0,0,0,0,0,0,0,1,1,1}   // row 5 - Shorter bottom walls (mirror of row 0)
+// Layout for smaller OLED display (128x64)
+static const uint8_t MAZE_LAYOUT_OLED[6][16] = {
+    {1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1},  // row 0 - Shorter top walls
+    {1,3,0,0,0,0,0,0,0,0,0,0,3,1,1,1},  // row 1 - Open row with power pellets
+    {1,0,1,1,0,1,1,1,1,0,1,1,0,1,1,1},  // row 2 - Some obstacles
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},  // row 3 - Open row for movement
+    {1,0,1,1,0,1,1,1,1,0,1,1,0,1,1,1},  // row 4 - Mirror of row 2
+    {1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1}   // row 5 - Shorter bottom walls
 };
 
+// Layout for larger LCD display (240x320)
+static const uint8_t MAZE_LAYOUT_LCD[16][16] = {
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},  // row 0
+    {1,3,0,0,0,0,0,0,0,0,0,0,3,0,0,1},  // row 1
+    {1,0,1,1,0,1,1,1,1,0,1,1,0,1,0,1},  // row 2
+    {1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1},  // row 3
+    {1,0,1,0,1,1,0,1,1,0,1,1,0,1,0,1},  // row 4
+    {1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1},  // row 5
+    {1,0,1,0,1,0,1,1,1,1,0,1,0,1,0,1},  // row 6
+    {1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,1},  // row 7
+    {1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,1},  // row 8
+    {1,0,1,0,1,0,1,1,1,1,0,1,0,1,0,1},  // row 9
+    {1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1},  // row 10
+    {1,0,1,0,1,1,0,1,1,0,1,1,0,1,0,1},  // row 11
+    {1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1},  // row 12
+    {1,0,1,1,0,1,1,1,1,0,1,1,0,1,0,1},  // row 13
+    {1,3,0,0,0,0,0,0,0,0,0,0,3,0,0,1},  // row 14
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}   // row 15
+};
+
+// Calculate maze dimensions based on screen size
+#define MAZE_WIDTH  ((DISPLAY_WIDTH - 2*BORDER_OFFSET) / TILE_SIZE)   // Varies by display
+#define MAZE_HEIGHT ((DISPLAY_HEIGHT - GAME_AREA_TOP - BORDER_OFFSET) / TILE_SIZE) + 1  // Varies by display
+
+#ifdef DISPLAY_MODULE_OLED
+#define MAZE_LAYOUT MAZE_LAYOUT_OLED
+#define MAZE_HEIGHT_ACTUAL 6
+#elif DISPLAY_MODULE_LCD
+#define MAZE_LAYOUT MAZE_LAYOUT_LCD
+#define MAZE_HEIGHT_ACTUAL 16
+#endif
+
+// For unit tests, default to OLED layout
+#ifdef UNITY_TEST
+#define MAZE_LAYOUT MAZE_LAYOUT_OLED
+#define MAZE_HEIGHT_ACTUAL 6
+#endif
+
 // Function declarations
-bool is_wall(uint8_t x, uint8_t y);
+
+// Convert screen coordinates to maze indices - returns int to prevent underflow
+int screen_to_maze_x(coord_t x);
+int screen_to_maze_y(coord_t y);
+
+// Convert maze indices to screen coordinates
+coord_t maze_to_screen_x(uint8_t x);
+coord_t maze_to_screen_y(uint8_t y);
+
+// Check if a coordinate contains a wall
+bool is_wall(coord_t x, coord_t y);
 void draw_maze(void);
 
 #endif /* INC_GAME_ENGINE_GAMES_PACMAN_MAZE_H_ */
