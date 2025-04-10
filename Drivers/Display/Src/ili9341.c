@@ -8,6 +8,15 @@
 #include "stm32f4xx_hal.h"
 #include "../Inc/ili9341.h"
 
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+  /* Deselect when Tx Complete */
+  if(hspi->Instance == ILI9341_SPI_PORT.Instance)
+  {
+      HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_SET);
+  }
+}
+
 static void ILI9341_Select() {
     HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_RESET);
 }
@@ -24,20 +33,62 @@ static void ILI9341_Reset() {
 
 static void ILI9341_WriteCommand(uint8_t cmd) {
     HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&ILI9341_SPI_PORT, &cmd, sizeof(cmd), HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_RESET);
+
+    // For single-byte commands, we wait for completion to ensure proper sequencing
+    while(!__HAL_SPI_GET_FLAG(&ILI9341_SPI_PORT, SPI_FLAG_TXE));
+    HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, &cmd, sizeof(cmd));
+
+    // Wait for DMA to complete for commands (critical for proper sequencing)
+    while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+
+    // Don't deselect here - let it happen in the callback or next operation
 }
 
 static void ILI9341_WriteData(uint8_t* buff, size_t buff_size) {
     HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_RESET);
 
     // split data in small chunks because HAL can't send more then 64K at once
     while(buff_size > 0) {
         uint16_t chunk_size = buff_size > 32768 ? 32768 : buff_size;
-        HAL_SPI_Transmit(&ILI9341_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+
+        // Wait for SPI to be ready before sending
+        while(!__HAL_SPI_GET_FLAG(&ILI9341_SPI_PORT, SPI_FLAG_TXE));
+        HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, buff, chunk_size);
+
+        // For data, wait for completion before next chunk
+        while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+
         buff += chunk_size;
         buff_size -= chunk_size;
+
+        // If more data to send, re-select the device (since callback deselected)
+        if(buff_size > 0) {
+            HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
+        }
     }
+
+    // Don't deselect here - callback will do it
 }
+
+//static void ILI9341_WriteCommand(uint8_t cmd) {
+//    HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_RESET);
+//    HAL_SPI_Transmit(&ILI9341_SPI_PORT, &cmd, sizeof(cmd), HAL_MAX_DELAY);
+//}
+//
+//static void ILI9341_WriteData(uint8_t* buff, size_t buff_size) {
+//    HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
+//
+//    // split data in small chunks because HAL can't send more then 64K at once
+//    while(buff_size > 0) {
+//        uint16_t chunk_size = buff_size > 32768 ? 32768 : buff_size;
+//        HAL_SPI_Transmit(&ILI9341_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+//        buff += chunk_size;
+//        buff_size -= chunk_size;
+//    }
+//}
 
 static void ILI9341_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
     // column address set
@@ -277,19 +328,71 @@ void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
     if((x + w - 1) >= ILI9341_WIDTH) w = ILI9341_WIDTH - x;
     if((y + h - 1) >= ILI9341_HEIGHT) h = ILI9341_HEIGHT - y;
 
-    ILI9341_Select();
+    // Set address window
     ILI9341_SetAddressWindow(x, y, x+w-1, y+h-1);
 
-    uint8_t data[] = { color >> 8, color & 0xFF };
+    // Prepare for data write
     HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
-    for(y = h; y > 0; y--) {
-        for(x = w; x > 0; x--) {
-            HAL_SPI_Transmit(&ILI9341_SPI_PORT, data, sizeof(data), HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_RESET);
+
+    // Calculate total number of pixels
+    uint32_t total_pixels = w * h;
+
+    // Create a buffer with the color pattern
+    #define FILL_BUFFER_SIZE 256  // Buffer size in pixels (adjust based on available memory)
+    static uint8_t fill_buffer[FILL_BUFFER_SIZE * 2];  // Each pixel is 2 bytes
+
+    // Fill buffer with color pattern
+    for(uint16_t i = 0; i < FILL_BUFFER_SIZE; i++) {
+        fill_buffer[i*2] = color >> 8;
+        fill_buffer[i*2+1] = color & 0xFF;
+    }
+
+    // Send the data in chunks
+    uint32_t pixels_remaining = total_pixels;
+    while(pixels_remaining > 0) {
+        uint32_t pixels_to_send = (pixels_remaining > FILL_BUFFER_SIZE) ?
+                                   FILL_BUFFER_SIZE : pixels_remaining;
+        uint32_t bytes_to_send = pixels_to_send * 2;
+
+        // Wait for SPI to be ready
+        while(!__HAL_SPI_GET_FLAG(&ILI9341_SPI_PORT, SPI_FLAG_TXE));
+        HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, fill_buffer, bytes_to_send);
+
+        // Wait for completion before sending next chunk
+        while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+
+        pixels_remaining -= pixels_to_send;
+
+        // If more data to send, re-select the device (since callback deselected)
+        if(pixels_remaining > 0) {
+            HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
         }
     }
 
-    ILI9341_Unselect();
+    // Don't need to deselect - callback will do it
 }
+
+//void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
+//    // clipping
+//    if((x >= ILI9341_WIDTH) || (y >= ILI9341_HEIGHT)) return;
+//    if((x + w - 1) >= ILI9341_WIDTH) w = ILI9341_WIDTH - x;
+//    if((y + h - 1) >= ILI9341_HEIGHT) h = ILI9341_HEIGHT - y;
+//
+//    ILI9341_Select();
+//    ILI9341_SetAddressWindow(x, y, x+w-1, y+h-1);
+//
+//    uint8_t data[] = { color >> 8, color & 0xFF };
+//    HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
+//    for(y = h; y > 0; y--) {
+//        for(x = w; x > 0; x--) {
+//            HAL_SPI_Transmit(&ILI9341_SPI_PORT, data, sizeof(data), HAL_MAX_DELAY);
+//        }
+//    }
+//
+//    ILI9341_Unselect();
+//}
 
 void ILI9341_FillScreen(uint16_t color) {
     ILI9341_FillRectangle(0, 0, ILI9341_WIDTH, ILI9341_HEIGHT, color);

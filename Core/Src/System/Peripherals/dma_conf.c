@@ -10,6 +10,7 @@
 
 DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_dac1;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 void MX_DMA_Init(void)
 {
@@ -22,4 +23,7 @@ void MX_DMA_Init(void)
 
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);  // For ADC
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);          // For ADC
+
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0); // For SPI
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 }
