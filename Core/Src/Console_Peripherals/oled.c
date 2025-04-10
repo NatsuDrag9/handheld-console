@@ -478,7 +478,7 @@ static bool handle_game_over(GameEngine* engine);
 /* Displays a string on the screen */
 static void oled_display_string(char* str, FontDef Font, DisplayColor color) {
     display_clear();
-    display_write_string_centered(str, Font_7x10, 25, DISPLAY_WHITE);
+    display_write_string_centered(str, DISPLAY_FONT, 25, DISPLAY_WHITE);
     display_update();
     add_delay(100);
 }
@@ -487,9 +487,14 @@ static void oled_show_welcome(char* str1, char* str2) {
     display_clear();
     display_draw_border();
 
-    // Welcome message
-    display_write_string_centered(str1, Font_7x10, 20, DISPLAY_WHITE);
-    display_write_string_centered(str2, Font_7x10, 35, DISPLAY_WHITE);
+    // Welcome message for OLED
+#if defined(DISPLAY_MODULE_OLED)
+    display_write_string_centered(str1, DISPLAY_FONT, 20, DISPLAY_WHITE);
+    display_write_string_centered(str2, DISPLAY_FONT, 35, DISPLAY_WHITE);
+#elif defined(DISPLAY_MODULE_LCD)
+    display_write_string_centered(str1, DISPLAY_TITLE_FONT, 20, DISPLAY_WHITE);
+    display_write_string_centered(str2, DISPLAY_TITLE_FONT, 50, DISPLAY_WHITE);
+#endif
 
     display_update();
     add_delay(3000);  // Show welcome screen for 3 seconds
@@ -573,7 +578,7 @@ void oled_init(MenuItem* menu, uint8_t menu_size) {
     display_clear();
 
     if (menu == NULL || menu_size == 0) {
-        oled_display_string("Menu Init Error", Font_7x10, DISPLAY_WHITE);
+        oled_display_string("Menu Init Error", DISPLAY_FONT, DISPLAY_WHITE);
         return;
     }
 
@@ -598,7 +603,7 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
     display_draw_border();
 
     // Menu title
-    display_write_string_centered("Select Game", Font_7x10, 10, DISPLAY_WHITE);
+    display_write_string_centered("Select Game", DISPLAY_TITLE_FONT, 10, DISPLAY_WHITE);
 
     // Draw visible menu items
     uint8_t display_count = (num_items < VISIBLE_ITEMS) ? num_items : VISIBLE_ITEMS;
@@ -611,12 +616,12 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
 
         // Show selection cursor only for selected item
         if (menu_index == current_cursor_item) {
-            display_write_string("> ", Font_7x10, DISPLAY_WHITE);
+            display_write_string("> ", DISPLAY_MENU_CURSOR_FONT, DISPLAY_WHITE);
         }
         else {
-            display_write_string("  ", Font_7x10, DISPLAY_WHITE);
+            display_write_string("  ", DISPLAY_MENU_CURSOR_FONT, DISPLAY_WHITE);
         }
-        display_write_string(items[menu_index].title, Font_7x10, DISPLAY_WHITE);
+        display_write_string(items[menu_index].title, DISPLAY_TITLE_FONT, DISPLAY_WHITE);
     }
 
     // Draw scrollbar if needed
@@ -778,7 +783,7 @@ void oled_show_screen(ScreenType screen) {
 
     case SCREEN_MENU:
         if (current_menu_size == 0) {
-            oled_display_string("Menu Unavailable", Font_7x10, DISPLAY_WHITE);
+            oled_display_string("Menu Unavailable", DISPLAY_FONT, DISPLAY_WHITE);
             break;
         }
         oled_show_menu(current_menu, current_menu_size);

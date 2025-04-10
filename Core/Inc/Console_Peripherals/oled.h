@@ -23,9 +23,32 @@
 
 #define SCREEN_WIDTH    DISPLAY_WIDTH
 #define SCREEN_HEIGHT   DISPLAY_HEIGHT
-#define MENU_START_Y     25    // Y position where menu items start
-#define MENU_ITEM_HEIGHT 12    // Height of each menu item
-#define VISIBLE_ITEMS    3     // Number of items visible at once
+
+/* Define the macros for display module */
+#if defined(DISPLAY_MODULE_OLED)
+	#define MENU_START_Y     25    // Y position where menu items start
+	#define MENU_ITEM_HEIGHT 12    // Height of each menu item
+	#define VISIBLE_ITEMS    3     // Number of items visible at once
+	#define DISPLAY_FONT Font_7x10
+	#define DISPLAY_MENU_CURSOR_FONT Font_7x10
+	#define DISPLAY_TITLE_FONT Font_7x10
+	#define MENU_TITLE_Y 10
+#elif defined(DISPLAY_MODULE_LCD)
+	#define MENU_START_Y     45
+	#define MENU_ITEM_HEIGHT 35
+	#define VISIBLE_ITEMS    5
+	#define DISPLAY_FONT Font_7x10
+	#define DISPLAY_MENU_CURSOR_FONT Font_11x18
+	#define DISPLAY_TITLE_FONT Font_16x26
+	#define MENU_TITLE_Y 20
+#else
+	// Default to OLED screen
+	#define MENU_START_Y     25    // Y position where menu items start
+	#define MENU_ITEM_HEIGHT 12    // Height of each menu item
+	#define VISIBLE_ITEMS    3     // Number of items visible at once
+    #define DISPLAY_FONT Font_7x10
+	#define MENU_TITLE_Y 10
+#endif
 
  // Core OLED functions
 void oled_init(MenuItem* menu, uint8_t menu_size);
