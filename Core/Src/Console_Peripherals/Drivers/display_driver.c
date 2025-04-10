@@ -90,11 +90,16 @@ static SSD1306_COLOR translate_color(DisplayColor color) {
 }
 #endif
 
+#ifdef DISPLAY_MODULE_LCD
+static uint16_t lcd_cursor_x = 0;
+static uint16_t lcd_cursor_y = 0;
+#endif
+
 void display_init(void) {
 #ifdef DISPLAY_MODULE_OLED
     ssd1306_Init();
 #elif DISPLAY_MODULE_LCD
-    DEBUG_PRINTF(false, "Initializing LCD module\n");
+//    DEBUG_PRINTF(false, "Initializing LCD module\n");
     ILI9341_Init();
 #endif
 }
@@ -138,6 +143,8 @@ void display_set_cursor(coord_t x, coord_t y) {
 #elif DISPLAY_MODULE_LCD
     // ILI9341 doesn't have a persistent cursor concept
     // Position is set during write operations
+    lcd_cursor_x = (uint16_t)x;
+    lcd_cursor_y = (uint16_t)y;
 #endif
 }
 
@@ -148,9 +155,19 @@ void display_write_string(char* str, FontDef font, DisplayColor color) {
     DEBUG_PRINTF(false, "String: %s\n", str);
     uint16_t ili_color = (color == DISPLAY_BLACK) ? ILI9341_BLACK : ILI9341_WHITE;
     uint16_t bg_color = (color == DISPLAY_BLACK) ? ILI9341_WHITE : ILI9341_BLACK;
+    ILI9341_WriteString(lcd_cursor_x, lcd_cursor_y, str, font, ili_color, bg_color);
+
+    // Update cursor position after writing
+    lcd_cursor_x += strlen(str) * font.width;
+    // Check if we need to wrap to next line
+    if (lcd_cursor_x >= DISPLAY_WIDTH) {
+    	lcd_cursor_x = 0;
+    	lcd_cursor_y += font.height;
+    }
+
     // We need current cursor position, but ILI9341 doesn't track it
     // Use a default position if cursor position is not available
-    ILI9341_WriteString(0, 0, str, font, ili_color, bg_color);
+    //    ILI9341_WriteString(0, 0, str, font, ili_color, bg_color);
 #endif
 }
 
