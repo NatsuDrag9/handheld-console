@@ -8,11 +8,15 @@
 #include "stm32f4xx_hal.h"
 #include "../Inc/ili9341.h"
 
+static volatile bool ili9341_dma_done = false;
+
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
   /* Deselect when Tx Complete */
   if(hspi->Instance == ILI9341_SPI_PORT.Instance)
   {
+	  ili9341_dma_done = true;
       HAL_GPIO_WritePin(ILI9341_CS_GPIO_Port, ILI9341_CS_Pin, GPIO_PIN_SET);
   }
 }
@@ -37,10 +41,15 @@ static void ILI9341_WriteCommand(uint8_t cmd) {
 
     // For single-byte commands, we wait for completion to ensure proper sequencing
     while(!__HAL_SPI_GET_FLAG(&ILI9341_SPI_PORT, SPI_FLAG_TXE));
+
+    ili9341_dma_done = false;
     HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, &cmd, sizeof(cmd));
 
+//    // Wait for DMA to complete for commands (critical for proper sequencing)
+//    while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+
     // Wait for DMA to complete for commands (critical for proper sequencing)
-    while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+      while(!ili9341_dma_done);
 
     // Don't deselect here - let it happen in the callback or next operation
 }
@@ -55,10 +64,13 @@ static void ILI9341_WriteData(uint8_t* buff, size_t buff_size) {
 
         // Wait for SPI to be ready before sending
         while(!__HAL_SPI_GET_FLAG(&ILI9341_SPI_PORT, SPI_FLAG_TXE));
+
+        ili9341_dma_done = false;
         HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, buff, chunk_size);
 
-        // For data, wait for completion before next chunk
-        while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+//        // For data, wait for completion before next chunk
+//        while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+        while(!ili9341_dma_done);
 
         buff += chunk_size;
         buff_size -= chunk_size;
@@ -357,10 +369,12 @@ void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
 
         // Wait for SPI to be ready
         while(!__HAL_SPI_GET_FLAG(&ILI9341_SPI_PORT, SPI_FLAG_TXE));
+        ili9341_dma_done = false;
         HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, fill_buffer, bytes_to_send);
 
-        // Wait for completion before sending next chunk
-        while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+//        // Wait for completion before sending next chunk
+//        while(HAL_SPI_GetState(&ILI9341_SPI_PORT) != HAL_SPI_STATE_READY) {}
+        while(!ili9341_dma_done);
 
         pixels_remaining -= pixels_to_send;
 

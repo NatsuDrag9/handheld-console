@@ -84,8 +84,8 @@
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1821148665.1866240811" name="ssd1306_conf_template.h" rcbsApplicability="disable" resourcePath="Drivers/Display/Inc/ssd1306_conf_template.h" toolsToInvoke=""/>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1821148665.1861059301" name="main_temp.h" rcbsApplicability="disable" resourcePath="Core/Inc/main_temp.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Inc/main_temp.h|Src/main_temp.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
-						<entry excluding="Display/Src/ssd1306.c|Display/Src/ssd1306_fonts.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry excluding="Src/Game_Engine/Games/snake_game_old.c|Src/Console_Peripherals/Drivers/display_driver_old.c|Src/Console_Peripherals/oled_old.c|Inc/main_temp.h|Src/main_temp.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Display/Src/ili9341_two.c|Display/Src/ili9341_one.c|Display/Src/ssd1306.c|Display/Src/ssd1306_fonts.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -244,9 +244,9 @@
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1821148665.1134854799.1844158857" name="test.sh" rcbsApplicability="disable" resourcePath="Tests/test.sh" toolsToInvoke=""/>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1821148665.1134854799.Core/Inc/main_temp.h" name="main_temp.h" rcbsApplicability="disable" resourcePath="Core/Inc/main_temp.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="test.sh|Makefile" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Tests"/>
 						<entry excluding="Inc/main_temp.h|Src/main_temp.c|Src/main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry excluding="test.sh|Makefile" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Tests"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
