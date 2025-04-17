@@ -33,6 +33,7 @@
 	#define DISPLAY_MENU_CURSOR_FONT Font_7x10
 	#define DISPLAY_TITLE_FONT Font_7x10
 	#define MENU_TITLE_Y 10
+	#define MENU_REFRESH_THROTTLE 100  // 100ms throttle (100Hz refresh rate)
 #elif defined(DISPLAY_MODULE_LCD)
 	#define MENU_START_Y     45
 	#define MENU_ITEM_HEIGHT 35
@@ -41,6 +42,7 @@
 	#define DISPLAY_MENU_CURSOR_FONT Font_11x18
 	#define DISPLAY_TITLE_FONT Font_16x26
 	#define MENU_TITLE_Y 20
+	#define MENU_REFRESH_THROTTLE 50  // 50ms throttle (20Hz refresh rate) -
 #else
 	// Default to OLED screen
 	#define MENU_START_Y     25    // Y position where menu items start

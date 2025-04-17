@@ -10,6 +10,12 @@
 
 #include "Console_Peripherals/Drivers/display_driver.h"
 
+#ifdef DISPLAY_MODULE_LCD
+#define STATUS_START_Y 19 // Font_11X18's height + 1
+#else
+#define STATUS_START_Y 11 // Font_7X10's height + 1
+#endif
+
 typedef struct {
     const uint8_t* bitmap;    // Bitmap data
     uint8_t width;           // Sprite width
@@ -27,7 +33,7 @@ typedef struct {
 // Macros
 #define SPRITE_SIZE  8    // Size of sprites in pixels
 #define BORDER_OFFSET     8    // Offset from screen border
-#define GAME_AREA_TOP 12       // Offset from top to draw border as score and lives are displayed
+#define GAME_AREA_TOP (STATUS_START_Y+1)       // Offset from top to draw border as score and lives are displayed
 #define TILE_SIZE 8
 
 // Sprite operations

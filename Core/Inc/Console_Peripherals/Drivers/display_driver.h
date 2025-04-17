@@ -69,6 +69,7 @@ typedef struct {
 // Display driver interface
 void display_init(void);
 void display_clear(void);
+void display_clear_region(coord_t x, coord_t y, coord_t width, coord_t height);
 void display_update(void);
 void display_fill_white(void);
 void display_set_cursor(coord_t x, coord_t y);

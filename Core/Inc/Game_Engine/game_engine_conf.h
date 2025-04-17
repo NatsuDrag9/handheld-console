@@ -8,10 +8,24 @@
 #ifndef INC_GAME_ENGINE_GAME_ENGINE_CONF_H_
 #define INC_GAME_ENGINE_GAME_ENGINE_CONF_H_
 
-// Frame rate
-#define FRAME_RATE_30FPS   33  // ~30 FPS
-#define FRAME_RATE_60FPS   16  // ~60 FPS
-#define FRAME_RATE         FRAME_RATE_60FPS  // Current frame time setting
+// Frame rate options
+#define FRAME_RATE_120FPS  8   // ~120 FPS (8.33ms between frames)
+#define FRAME_RATE_100FPS  10  // ~100 FPS (10ms between frames)
+#define FRAME_RATE_80FPS   12  // ~80 FPS (12.5ms between frames)
+#define FRAME_RATE_60FPS   16  // ~60 FPS (16.67ms between frames)
+#define FRAME_RATE_30FPS   33  // ~30 FPS (33.33ms between frames)
+#define FRAME_RATE_20FPS   50  // ~20 FPS (50ms between frames)
+#define FRAME_RATE_15FPS   66  // ~15 FPS (66.67ms between frames)
+#define FRAME_RATE_10FPS   100 // ~10 FPS (100ms between frames)
+#define FRAME_RATE_5FPS    200 // ~5 FPS (200ms between frames)
+
+
+#if defined(DISPLAY_MODULE_LCD)
+	#define FRAME_RATE         FRAME_RATE_60FPS  // Slower for LCD
+#else
+	#define FRAME_RATE         FRAME_RATE_60FPS  // Current frame time setting
+#endif
+
 #define GAME_OVER_MESSAGE_TIME 10000 // 10 sec
 #define RETURN_MESSAGE_START_TIME 5000   // 5 sec - when to start countdown
 
