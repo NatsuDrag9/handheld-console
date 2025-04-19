@@ -16,7 +16,7 @@ static uint8_t current_menu_size = 0;
 static uint8_t menu_scroll_position = 0;  // Top visible item index
 static uint8_t current_cursor_item = 0;   // Currently selected item index
 static bool is_in_game = false;
-static uint8_t previous_cursor_item = 0;   // Previously selected item
+//static uint8_t previous_cursor_item = 0;   // Previously selected item
 static uint32_t last_menu_refresh_time = 0; // For throttling menu refreshes
 
 /* Private functions */
@@ -417,12 +417,12 @@ void oled_show_screen(ScreenType screen) {
         break;
 
     case SCREEN_MENU:
-        if (current_menu_size == 0) {
-            oled_display_string("Menu Unavailable", DISPLAY_FONT, DISPLAY_WHITE);
+            if (current_menu_size == 0) {
+                oled_display_string("Menu Unavailable", DISPLAY_FONT, DISPLAY_WHITE);
+                break;
+            }
+            oled_show_menu(current_menu, current_menu_size);
             break;
-        }
-        oled_show_menu(current_menu, current_menu_size);
-        break;
 
     case SCREEN_GAME_SNAKE:
         // Initialize snake game screen
@@ -434,6 +434,21 @@ void oled_show_screen(ScreenType screen) {
         break;
 
     default:
+        // Default to menu screen in all other cases
+        if (current_menu_size == 0) {
+            oled_display_string("Menu Unavailable", DISPLAY_FONT, DISPLAY_WHITE);
+            break;
+        }
+
+        // Make sure the game mode is disabled when returning to menu
+        oled_set_is_game_active(false);
+
+        // Reset menu navigation state if needed
+        current_cursor_item = 0;
+        menu_scroll_position = 0;
+
+        // Display the menu
+        oled_show_menu(current_menu, current_menu_size);
         break;
     }
 }
