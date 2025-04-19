@@ -12,8 +12,12 @@
 
 #ifdef DISPLAY_MODULE_LCD
 #define STATUS_START_Y 19 // Font_11X18's height + 1
+#define SPRITE_SIZE  16    // Size of sprites in pixels
+#define TILE_SIZE 16
 #else
 #define STATUS_START_Y 11 // Font_7X10's height + 1
+#define SPRITE_SIZE  8    // Size of sprites in pixels
+#define TILE_SIZE 8
 #endif
 
 typedef struct {
@@ -31,10 +35,10 @@ typedef struct {
 } AnimatedSprite;
 
 // Macros
-#define SPRITE_SIZE  8    // Size of sprites in pixels
+//#define SPRITE_SIZE  8    // Size of sprites in pixels
 #define BORDER_OFFSET     8    // Offset from screen border
 #define GAME_AREA_TOP (STATUS_START_Y+1)       // Offset from top to draw border as score and lives are displayed
-#define TILE_SIZE 8
+//#define TILE_SIZE 8
 
 // Sprite operations
 void sprite_draw(const Sprite* sprite, uint16_t x, uint16_t y, DisplayColor color);

@@ -50,8 +50,28 @@ bool is_wall(coord_t x, coord_t y) {
 }
 
 void draw_maze(void) {
+    static bool already_drawing = false;
+
+    // Prevent recursive or multiple calls
+    if (already_drawing) {
+        return;
+    }
+
+    already_drawing = true;
+
     // Draw the outer border first
     display_draw_border_at(BORDER_OFFSET, GAME_AREA_TOP, 2, 2);
+
+    // Clear any previous maze content on LCD to avoid overlapping
+#ifdef DISPLAY_MODULE_LCD
+    display_fill_rectangle(
+        BORDER_OFFSET + 1,
+        GAME_AREA_TOP + 1,
+        DISPLAY_WIDTH - BORDER_OFFSET - 2,
+        DISPLAY_HEIGHT - BORDER_OFFSET - 2,
+        DISPLAY_BLACK
+    );
+#endif
 
     // Then draw internal walls and items
     for (uint8_t y = 0; y < MAZE_HEIGHT_ACTUAL; y++) {
@@ -62,10 +82,17 @@ void draw_maze(void) {
             switch (MAZE_LAYOUT[y][x]) {
             case MAZE_WALL:
                 // Draw ALL walls
-                display_fill_rectangle(screen_x, screen_y,
-                    screen_x + TILE_SIZE - 1,
-                    screen_y + TILE_SIZE - 1,
-                    DISPLAY_WHITE);
+#ifdef DISPLAY_MODULE_LCD
+            	display_fill_rectangle(screen_x, screen_y,
+            			screen_x + TILE_SIZE - 1,
+						screen_y + TILE_SIZE - 1,
+						DISPLAY_WHITE);
+#else
+            	display_fill_rectangle(screen_x, screen_y,
+            			screen_x + TILE_SIZE - 1,
+						screen_y + TILE_SIZE - 1,
+						DISPLAY_WHITE);
+#endif
                 break;
 
             case MAZE_DOT:
@@ -86,4 +113,6 @@ void draw_maze(void) {
             }
         }
     }
+
+    already_drawing = false;
 }
