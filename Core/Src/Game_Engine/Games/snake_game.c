@@ -442,7 +442,11 @@ static void snake_render(void) {
 
     // Game over message
     if (snake_game_engine.base_state.game_over) {
-        display_write_string_centered("GAME OVER", Font_7x10, 30, DISPLAY_WHITE);
+#ifdef DISPLAY_MODULE_LCD
+        display_write_string_centered(message, Font_11x18, 30, DISPLAY_WHITE);
+#else
+        display_write_string_centered(message, Font_7x10, 30, DISPLAY_WHITE);
+#endif
     }
 
     // Update tracking for next frame
