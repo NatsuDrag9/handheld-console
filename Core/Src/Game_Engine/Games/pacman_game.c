@@ -15,8 +15,8 @@
 static uint32_t last_move_time = 0;
 
 // For dirty rectangle optimization
-static Position previous_pacman_pos = {0, 0};
-static Position previous_ghost_pos[NUM_GHOSTS] = {{{0}}};
+static Position previous_pacman_pos = { 0, 0 };
+static Position previous_ghost_pos[NUM_GHOSTS] = { {{0}} };
 static bool maze_drawn = false;
 static uint32_t previous_score = 0;
 static uint8_t previous_lives = 0;
@@ -210,7 +210,7 @@ static Position get_ghost_target(Ghost* ghost) {
         break;
 
     case MODE_CHASE:
-        switch (ghost->type) {conditionally
+        switch (ghost->type) {
         case GHOST_BLINKY:
             // Directly target Pacman
             target = pacman_data.pacman_pos;
@@ -471,9 +471,9 @@ static void render_status_area(bool force_redraw) {
 static void clear_and_redraw_border_if_needed(coord_t x, coord_t y) {
     // Check if position is near any border
     bool near_border = (x <= BORDER_OFFSET + TILE_SIZE ||
-                        x >= DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE - 1 ||
-                        y <= GAME_AREA_TOP + TILE_SIZE ||
-                        y >= DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE - 1);
+        x >= DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE - 1 ||
+        y <= GAME_AREA_TOP + TILE_SIZE ||
+        y >= DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE - 1);
 
     // Clear the region
     display_clear_region(x, y, TILE_SIZE, TILE_SIZE);
@@ -586,17 +586,17 @@ static void draw_game_elements(void) {
 
 static void pacman_render(void) {
     // Initialize display on first render
-	if (first_render) {
-	    // Only set the flag, the maze will be drawn in redraw_full_maze_if_needed
-		draw_maze();
-	    maze_drawn = true;
-	    render_status_area(true);
-	    first_render = false;
-	}
+    if (first_render) {
+        // Only set the flag, the maze will be drawn in redraw_full_maze_if_needed
+        draw_maze();
+        maze_drawn = true;
+        render_status_area(true);
+        first_render = false;
+    }
 
     // Update status area if score or lives changed
     bool status_changed = (previous_score != pacman_game_engine.base_state.score) ||
-                         (previous_lives != pacman_game_engine.base_state.lives);
+        (previous_lives != pacman_game_engine.base_state.lives);
     if (status_changed) {
         render_status_area(true);
     }
