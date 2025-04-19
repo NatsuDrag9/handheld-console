@@ -3,6 +3,8 @@
  *
  *  Created on: Feb 14, 2025
  *      Author: rohitimandi
+ *  Modified on: Apr 17, 2025
+ *      Added dirty rectangle optimization
  */
 
 #include "Game_Engine/Games/pacman_game.h"
@@ -11,6 +13,15 @@
 #include <limits.h>
 
 static uint32_t last_move_time = 0;
+
+// For dirty rectangle optimization
+static Position previous_pacman_pos = {0, 0};
+static Position previous_ghost_pos[NUM_GHOSTS] = {{{0}}};
+static bool maze_drawn = false;
+static uint32_t previous_score = 0;
+static uint8_t previous_lives = 0;
+static bool first_render = true;
+static uint32_t last_border_redraw_time = 0;
 
 // Initial game data
 static PacmanGameData pacman_data = {
@@ -27,8 +38,6 @@ static PacmanGameData pacman_data = {
 
 // Forward declarations
 static void pacman_init(void);
-//static void pacman_update(JoystickStatus js_status);
-
 static void pacman_update_dpad(DPAD_STATUS dpad_status);
 static void pacman_render(void);
 static void pacman_cleanup(void);
@@ -42,11 +51,19 @@ static void move_pacman(void);
 static Position get_ghost_target(Ghost* ghost);
 static Direction get_next_direction(Ghost* ghost);
 
+// New functions for dirty rectangle optimization
+static void render_status_area(bool force_redraw);
+static void clear_and_redraw_border_if_needed(coord_t x, coord_t y);
+static void clear_previous_positions(void);
+static void draw_game_elements(void);
+static void draw_dots_and_pellets(void);
+static void redraw_full_maze_if_needed(void);
+
 // Game engine instance
 GameEngine pacman_game_engine = {
     .init = pacman_init,
-	.update_func = {
-			.update_dpad = pacman_update_dpad
+    .update_func = {
+        .update_dpad = pacman_update_dpad
     },
     .render = pacman_render,
     .cleanup = pacman_cleanup,
@@ -76,22 +93,22 @@ static Position get_next_position(Position current, Direction dir) {
     }
 
     // Add border constraints
-        // Keep within horizontal bounds
-        if (next.x < BORDER_OFFSET) {
-            next.x = BORDER_OFFSET;
-        }
-        else if (next.x > DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE) {
-            next.x = DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE;
-        }
+    // Keep within horizontal bounds
+    if (next.x < BORDER_OFFSET) {
+        next.x = BORDER_OFFSET;
+    }
+    else if (next.x > DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE) {
+        next.x = DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE;
+    }
 
-        // Keep within vertical bounds
-        if (next.y < GAME_AREA_TOP) {
-            next.y = GAME_AREA_TOP;
-        }
-        else if (next.y > DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE) {
-            next.y = DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE;
-        }
-        return next;
+    // Keep within vertical bounds
+    if (next.y < GAME_AREA_TOP) {
+        next.y = GAME_AREA_TOP;
+    }
+    else if (next.y > DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE) {
+        next.y = DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE;
+    }
+    return next;
 }
 
 static void init_dots(void) {
@@ -126,6 +143,7 @@ static void init_ghosts(void) {
 
     for (uint8_t i = 0; i < NUM_GHOSTS; i++) {
         pacman_data.ghosts[i].pos = ghost_starts[i];
+        previous_ghost_pos[i] = ghost_starts[i];
         pacman_data.ghosts[i].dir = DIR_RIGHT;
         pacman_data.ghosts[i].type = (GhostType)i;
         pacman_data.ghosts[i].mode = MODE_CHASE;
@@ -138,6 +156,7 @@ static void pacman_init(void) {
     // Start Pacman at index 8 (an open path '0') in row 1
     pacman_data.pacman_pos.x = maze_to_screen_x(6);
     pacman_data.pacman_pos.y = maze_to_screen_y(1); // Second row
+    previous_pacman_pos = pacman_data.pacman_pos;
 
     pacman_data.curr_dir = DIR_RIGHT;
     pacman_data.next_dir = DIR_RIGHT;
@@ -149,8 +168,14 @@ static void pacman_init(void) {
     pacman_data.ghost_mode_timer = last_move_time;
     pacman_data.ghost_mode_duration = GHOST_SCATTER_TIME;
     pacman_data.power_pellet_active = false;
-}
 
+    // Reset dirty rectangle tracking
+    first_render = true;
+    maze_drawn = false;
+    previous_score = 0;
+    previous_lives = 3;
+    last_border_redraw_time = 0;
+}
 
 static Position get_ghost_target(Ghost* ghost) {
     Position target = pacman_data.pacman_pos; // Default target
@@ -185,7 +210,7 @@ static Position get_ghost_target(Ghost* ghost) {
         break;
 
     case MODE_CHASE:
-        switch (ghost->type) {
+        switch (ghost->type) {conditionally
         case GHOST_BLINKY:
             // Directly target Pacman
             target = pacman_data.pacman_pos;
@@ -257,6 +282,8 @@ static Direction get_next_direction(Ghost* ghost) {
 }
 
 static void move_pacman(void) {
+    // Store previous position for dirty rectangle optimization
+    previous_pacman_pos = pacman_data.pacman_pos;
 
     Position next_pos = get_next_position(pacman_data.pacman_pos, pacman_data.next_dir);
 
@@ -289,6 +316,9 @@ static void update_ghosts(void) {
     for (uint8_t i = 0; i < NUM_GHOSTS; i++) {
         Ghost* ghost = &pacman_data.ghosts[i];
         if (!ghost->active) continue;
+
+        // Store previous position for dirty rectangle optimization
+        previous_ghost_pos[i] = ghost->pos;
 
         // Update target
         ghost->target = get_ghost_target(ghost);
@@ -353,6 +383,15 @@ static void handle_ghost_collision(void) {
                         pacman_game_engine.base_state.game_over = true;
                     }
                     else {
+                        // Clear the game area before reinitializing
+                        display_fill_rectangle(
+                            BORDER_OFFSET,
+                            GAME_AREA_TOP,
+                            DISPLAY_WIDTH - BORDER_OFFSET,
+                            DISPLAY_HEIGHT - BORDER_OFFSET,
+                            DISPLAY_BLACK
+                        );
+                        maze_drawn = false; // Force maze redraw
                         pacman_init();
                     }
                 }
@@ -360,40 +399,6 @@ static void handle_ghost_collision(void) {
         }
     }
 }
-
-//static void pacman_update(JoystickStatus js_status) {
-//    uint32_t current_time = get_current_ms();
-//
-//    // Handle direction change from joystick
-//    if (js_status.is_new) {
-//
-//        switch (js_status.direction) {
-//        case JS_DIR_UP:         pacman_data.next_dir = DIR_UP;    break;
-//        case JS_DIR_RIGHT:      pacman_data.next_dir = DIR_RIGHT; break;
-//        case JS_DIR_DOWN:       pacman_data.next_dir = DIR_DOWN;  break;
-//        case JS_DIR_LEFT:       pacman_data.next_dir = DIR_LEFT;  break;
-//        case JS_DIR_LEFT_UP:    pacman_data.next_dir = DIR_UP;    break;
-//        case JS_DIR_LEFT_DOWN:  pacman_data.next_dir = DIR_DOWN;  break;
-//        case JS_DIR_RIGHT_UP:   pacman_data.next_dir = DIR_UP;    break;
-//        case JS_DIR_RIGHT_DOWN: pacman_data.next_dir = DIR_DOWN;  break;
-//        case JS_DIR_CENTERED:   break;  // 0 - Keep current direction
-//        default: break;
-//        }
-//    }
-//
-//    if (current_time - last_move_time >= PACMAN_SPEED) {
-//
-//        move_pacman();
-//        update_ghosts();
-//        handle_dot_collision();
-//        handle_ghost_collision();
-//
-//        last_move_time = current_time;
-//    }
-//
-//    // Update animations
-//    animated_sprite_update(&pacman_animated);
-//}
 
 static void pacman_update_dpad(DPAD_STATUS dpad_status) {
     uint32_t current_time = get_current_ms();
@@ -420,11 +425,30 @@ static void pacman_update_dpad(DPAD_STATUS dpad_status) {
 
     // Update animations
     animated_sprite_update(&pacman_animated);
+
+    // Also update scared ghost animation if active
+    if (pacman_data.power_pellet_active) {
+        animated_sprite_update(&scared_ghost_animated);
+    }
+
+    // Update regular ghost animations
+    animated_sprite_update(&blinky_animated);
+    animated_sprite_update(&pinky_animated);
+    animated_sprite_update(&inky_animated);
+    animated_sprite_update(&clyde_animated);
 }
 
-static void pacman_render(void) {
-    // Draw maze
-    draw_maze();
+// Function to render the score and lives in the status area
+static void render_status_area(bool force_redraw) {
+    // Check if there's a reason to redraw
+    if (!force_redraw &&
+        previous_score == pacman_game_engine.base_state.score &&
+        previous_lives == pacman_game_engine.base_state.lives) {
+        return;
+    }
+
+    // Clear the status area at the top without affecting the border
+    display_fill_rectangle(2, 2, DISPLAY_WIDTH - 2, STATUS_START_Y - 1, DISPLAY_BLACK);
 
     // Draw score and lives
     char status_text[32];
@@ -432,26 +456,57 @@ static void pacman_render(void) {
         pacman_game_engine.base_state.score,
         pacman_game_engine.base_state.lives);
     display_set_cursor(2, 2);
+#ifdef DISPLAY_MODULE_LCD
+    display_write_string(status_text, Font_11x18, DISPLAY_WHITE);
+#else
     display_write_string(status_text, Font_7x10, DISPLAY_WHITE);
+#endif
 
-    // Draw Pacman with rotation
-    uint16_t rotation = 0;
-    switch (pacman_data.curr_dir) {
-    case DIR_RIGHT: rotation = 0;   break;
-    case DIR_DOWN:  rotation = 90;  break;
-    case DIR_LEFT:  rotation = 180; break;
-    case DIR_UP:    rotation = 270; break;
-    case DIR_NONE:  break;
+    // Update previous values
+    previous_score = pacman_game_engine.base_state.score;
+    previous_lives = pacman_game_engine.base_state.lives;
+}
+
+// Function to clear a region and redraw border if needed
+static void clear_and_redraw_border_if_needed(coord_t x, coord_t y) {
+    // Check if position is near any border
+    bool near_border = (x <= BORDER_OFFSET + TILE_SIZE ||
+                        x >= DISPLAY_WIDTH - BORDER_OFFSET - TILE_SIZE - 1 ||
+                        y <= GAME_AREA_TOP + TILE_SIZE ||
+                        y >= DISPLAY_HEIGHT - BORDER_OFFSET - TILE_SIZE - 1);
+
+    // Clear the region
+    display_clear_region(x, y, TILE_SIZE, TILE_SIZE);
+
+    // Redraw border if needed
+    if (near_border) {
+        display_draw_border_at(BORDER_OFFSET, GAME_AREA_TOP, 2, 2);
+        last_border_redraw_time = get_current_ms();
     }
-    sprite_draw_rotated(
-        &pacman_animated.frames[pacman_animated.current_frame],
-        pacman_data.pacman_pos.x,
-        pacman_data.pacman_pos.y,
-        rotation,
-        DISPLAY_WHITE
-    );
+}
 
-    // Draw active dots and power pellets
+// Function to clear previous positions of game elements
+static void clear_previous_positions(void) {
+    // Clear previous Pacman position if it moved
+    if (previous_pacman_pos.x != pacman_data.pacman_pos.x ||
+        previous_pacman_pos.y != pacman_data.pacman_pos.y) {
+        clear_and_redraw_border_if_needed(previous_pacman_pos.x, previous_pacman_pos.y);
+    }
+
+    // Clear previous ghost positions
+    for (uint8_t i = 0; i < NUM_GHOSTS; i++) {
+        Ghost* ghost = &pacman_data.ghosts[i];
+        if (!ghost->active) continue;
+
+        if (previous_ghost_pos[i].x != ghost->pos.x ||
+            previous_ghost_pos[i].y != ghost->pos.y) {
+            clear_and_redraw_border_if_needed(previous_ghost_pos[i].x, previous_ghost_pos[i].y);
+        }
+    }
+}
+
+// Function to draw dots and power pellets
+static void draw_dots_and_pellets(void) {
     for (uint8_t i = 0; i < MAX_DOTS; i++) {
         if (!pacman_data.dots[i].active) continue;
 
@@ -468,6 +523,39 @@ static void pacman_render(void) {
                 DISPLAY_WHITE);
         }
     }
+}
+
+// Function to redraw the maze if needed
+static void redraw_full_maze_if_needed(void) {
+    uint32_t current_time = get_current_ms();
+
+    // Redraw the maze if it hasn't been drawn yet or if enough time has passed
+    if (!maze_drawn || (current_time - last_border_redraw_time) > 5000) {
+        draw_maze();
+        maze_drawn = true;
+        last_border_redraw_time = current_time;
+    }
+}
+
+// Function to draw all game elements (Pacman and ghosts)
+static void draw_game_elements(void) {
+    // Draw Pacman with rotation
+    uint16_t rotation = 0;
+    switch (pacman_data.curr_dir) {
+    case DIR_RIGHT: rotation = 0;   break;
+    case DIR_DOWN:  rotation = 90;  break;
+    case DIR_LEFT:  rotation = 180; break;
+    case DIR_UP:    rotation = 270; break;
+    case DIR_NONE:  break;
+    }
+
+    sprite_draw_rotated(
+        &pacman_animated.frames[pacman_animated.current_frame],
+        pacman_data.pacman_pos.x,
+        pacman_data.pacman_pos.y,
+        rotation,
+        DISPLAY_WHITE
+    );
 
     // Draw ghosts
     for (uint8_t i = 0; i < NUM_GHOSTS; i++) {
@@ -494,31 +582,53 @@ static void pacman_render(void) {
                 DISPLAY_WHITE);
         }
     }
+}
+
+static void pacman_render(void) {
+    // Initialize display on first render
+	if (first_render) {
+	    // Only set the flag, the maze will be drawn in redraw_full_maze_if_needed
+		draw_maze();
+	    maze_drawn = true;
+	    render_status_area(true);
+	    first_render = false;
+	}
+
+    // Update status area if score or lives changed
+    bool status_changed = (previous_score != pacman_game_engine.base_state.score) ||
+                         (previous_lives != pacman_game_engine.base_state.lives);
+    if (status_changed) {
+        render_status_area(true);
+    }
+
+    // Make sure maze is drawn
+    redraw_full_maze_if_needed();
+
+    // Clear previous positions
+    clear_previous_positions();
+
+    // Draw dots and pellets (they may be eaten, so redraw them)
+    draw_dots_and_pellets();
+
+    // Draw game elements (Pacman and ghosts)
+    draw_game_elements();
 
     // Draw game over or win text
     if (pacman_game_engine.base_state.game_over) {
-        const char* message = (pacman_data.num_dots_remaining == 0) ?
+        char* message = (pacman_data.num_dots_remaining == 0) ?
             "YOU WIN!" : "GAME OVER";
-        char temp_message[32];
-        strcpy(temp_message, message);
-        // Clear the screen before displaying the message
-//        display_clear();
-        display_write_string_centered(temp_message, Font_7x10, 30, DISPLAY_WHITE);
+#ifdef DISPLAY_MODULE_LCD
+        display_write_string_centered(message, Font_11x18, 30, DISPLAY_WHITE);
+#else
+        display_write_string_centered(message, Font_7x10, 30, DISPLAY_WHITE);
+#endif
     }
 
-//    if (pacman_game_engine.base_state.game_over) {
-//        const char* message = (pacman_data.num_dots_remaining == 0) ?
-//            "YOU WIN!" : "GAME OVER";
-//        char temp_message[32];
-//        strcpy(temp_message, message);
-//        // Clear the screen before displaying the message
-//        display_clear();
-//        display_write_string_centered(temp_message, Font_7x10, 30, DISPLAY_WHITE);
-//
-//        // Add the countdown message
-//        game_engine_render_countdown(&pacman_game_engine);
-//    }
-
+    // Periodically redraw border to ensure it's intact
+    if (get_current_ms() % 500 == 0) {
+        display_draw_border_at(BORDER_OFFSET, GAME_AREA_TOP, 2, 2);
+        last_border_redraw_time = get_current_ms();
+    }
 }
 
 static void pacman_cleanup(void) {
@@ -533,6 +643,8 @@ static void pacman_cleanup(void) {
         Ghost* ghost = &pacman_data.ghosts[i];
         ghost->pos.x = 0;
         ghost->pos.y = 0;
+        previous_ghost_pos[i].x = 0;
+        previous_ghost_pos[i].y = 0;
         ghost->dir = DIR_RIGHT;
         ghost->mode = MODE_CHASE;
         ghost->active = false;
@@ -556,6 +668,15 @@ static void pacman_cleanup(void) {
 
     // Reset timing
     last_move_time = 0;
+
+    // Reset dirty rectangle tracking
+    previous_pacman_pos.x = 0;
+    previous_pacman_pos.y = 0;
+    maze_drawn = false;
+    previous_score = 0;
+    previous_lives = 0;
+    first_render = true;
+    last_border_redraw_time = 0;
 
     // Reset game engine state
     pacman_game_engine.base_state.score = 0;
