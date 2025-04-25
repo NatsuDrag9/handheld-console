@@ -9,6 +9,7 @@
 #define SRC_SYSTEM_PERIPHERALS_DAC_CONF_C_
 
 #include "System/Peripherals/dac_conf.h"
+#include "System/system_conf.h"
 
 DAC_HandleTypeDef hdac;
 

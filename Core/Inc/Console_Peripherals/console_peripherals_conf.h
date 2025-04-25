@@ -14,6 +14,7 @@
 #include "Game_Engine/game_menu.h"
 #include "oled.h"
 #include "audio.h"
+#include "serial_comm.h"
 
 void console_peripherals_init(void);
 

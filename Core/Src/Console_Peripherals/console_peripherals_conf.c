@@ -21,5 +21,10 @@ void console_peripherals_init(void) {
 	get_game_menu(&game_menu, &game_menu_size);
 	oled_init(game_menu, game_menu_size);
 	audio_init();
+	UART_Status uart_status = serial_comm_init();
+	if(uart_status) {
+//		Replace this with an alert screen on LCD
+		DEBUG_PRINTF(false, "UART status after initialization: %d\n", uart_status);
+	}
 
 }
