@@ -46,6 +46,7 @@ volatile float angle = 0.0f;      // Made volatile to prevent optimization
 volatile float result_sin = 0.0f;
 volatile float result_cos = 0.0f;
 static bool initial_sound_played = false;
+static uint32_t last_wifi_scan_time = 0;
 
 /* USER CODE END PV */
 
@@ -222,6 +223,26 @@ int main(void)
 
     //	  	 game_engine_update(&snake_game_engine, js_status);
     //	  	    game_engine_render(&snake_game_engine);
+
+	 /*UART and AT commands test*/
+	if (serial_comm_is_message_ready()) {
+		serial_comm_process_messages();
+	}
+
+	/* Current time */
+	uint32_t current_time = get_current_ms();
+
+	/* Periodic WiFi scan when connected (check AT state is idle) */
+	if (serial_comm_is_serial_connected() &&
+			serial_comm_get_at_state() == AT_STATE_IDLE
+			&& !serial_comm_is_wifi_connected() &&
+			current_time - last_wifi_scan_time > 60000) {
+
+		/* Start WiFi scan sequence */
+		serial_comm_send_at_command("AT+CWLAP", 100);
+		serial_comm_set_at_state(AT_STATE_WAITING_CWLAP);
+		last_wifi_scan_time = current_time;
+	}
   }
   /* USER CODE END 3 */
 }
