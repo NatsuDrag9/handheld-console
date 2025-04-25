@@ -41,6 +41,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+
+
 /* USER CODE BEGIN PV */
 volatile float angle = 0.0f;      // Made volatile to prevent optimization
 volatile float result_sin = 0.0f;
@@ -50,6 +52,7 @@ static bool initial_sound_played = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -78,12 +81,16 @@ int main(void)
 
   /* USER CODE END Init */
 
+  /* Configure the system clock */
+
   /* USER CODE BEGIN SysInit */
   System_Init();
   /* USER CODE END SysInit */
 
+  /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
   console_peripherals_init();
+
 //  display_fill_white();
 //  display_set_cursor(10, 10);
 //  display_write_string("Hello World", Font_7x10, DISPLAY_BLACK);
@@ -105,7 +112,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    // Compute sine and cosine using FPU
+	  /*Compute sine and cosine using FPU*/
 //	  float rad = angle * 3.14159f / 180.0f;
 //	      result_sin = sinf(rad);
 //	      result_cos = cosf(rad);
@@ -132,15 +139,17 @@ int main(void)
 //	  	oled_menu_handle_input(js_status);
 //	  	DEBUG_PRINTF(0, "Selected menu item: %s\n", oled_get_selected_menu_item().title);
 
-	  	if (oled_is_game_active()) {
-	  	        oled_run_game();
+	  /*Gameplay hello world*/
+//	  	if (oled_is_game_active()) {
+//	  	        oled_run_game();
+//
+//	  	        add_delay(1);  // Control game speed
+//	  	    } else {
+//	  	        JoystickStatus js_status = joystick_get_status();
+//	  	        oled_menu_handle_input(js_status);
+//	  	    }
 
-	  	        add_delay(1);  // Control game speed
-	  	    } else {
-	  	        JoystickStatus js_status = joystick_get_status();
-	  	        oled_menu_handle_input(js_status);
-	  	    }
-
+	  /*Push buttons and D-oad hello world*/
 //	  	 if(pb1_get_state() == 1) {
 //	  		 DEBUG_PRINTF(false, "PB1 is pressed\n");
 //	  		 blink_led1();
@@ -171,6 +180,7 @@ int main(void)
 //		  	  		 blink_led2();
 //		  	  	 }
 
+/*	  Audio module hello world	*/
 
 //    DPAD_STATUS d_pad_status = d_pad_get_status();
 //    if (d_pad_status.is_new) {
@@ -219,12 +229,32 @@ int main(void)
 //	    }
 
 
-
     //	  	 game_engine_update(&snake_game_engine, js_status);
     //	  	    game_engine_render(&snake_game_engine);
+
+ /*Serial Communictation with ESP32*/
+//	  if(serial_comm_is_message_ready()) {
+//		  serial_comm_process_messages();
+//	  }
+
+	  // Check connection every 10 seconds and send a ping if connected
+	  static uint32_t last_connection_check_time = 0;
+	  uint32_t current_time = get_current_ms();
+	  if (current_time - last_connection_check_time > 10000) {
+		  if (serial_comm_is_connected()) {
+//			  // Connection established - send a ping to verify it's still active
+//			  serial_comm_ping();
+//
+//			  // Optionally, send a status command to get ESP32 information
+//			  serial_comm_send_command("STATUS", 100);
+
+			  serial_comm_send_message("AT\r\n", 100); // Basic AT test command
+			  serial_comm_send_message("AT+CWMODE=1\r\n", 100); // Set Wifi mode to station
+			  serial_comm_send_message("AT+CWLAP\r\n", 100); // Scan for WiFi networks
+		  }
+		  last_connection_check_time = current_time;
+	  }
   }
   /* USER CODE END 3 */
 }
-
-
 
