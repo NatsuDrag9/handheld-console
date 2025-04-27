@@ -233,8 +233,8 @@ int main(void)
 	uint32_t current_time = get_current_ms();
 
 	/* Periodic WiFi scan when connected (check AT state is idle) */
-	if (serial_comm_is_serial_connected() &&
-			serial_comm_get_at_state() == AT_STATE_IDLE
+	if (serial_comm_on()
+//			serial_comm_get_at_state() == AT_STATE_IDLE
 			&& !serial_comm_is_wifi_connected() &&
 			current_time - last_wifi_scan_time > 60000) {
 

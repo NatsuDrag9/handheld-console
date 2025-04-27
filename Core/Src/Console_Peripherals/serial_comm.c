@@ -174,9 +174,9 @@ void serial_comm_send_debug(const char *message, uint32_t timeout)
     DEBUG_PRINTF(false, message);
 }
 
-bool serial_comm_is_serial_connected(void)
+bool serial_comm_on(void)
 {
-    return is_serial_connected;
+    return is_serial_connected ;
 }
 
 bool serial_comm_is_wifi_connected(void)
@@ -369,6 +369,24 @@ UART_Status serial_comm_reset(void)
     last_activity_time = get_current_ms();
 
     return UART_OK;
+}
+
+
+void serial_comm_off(void)
+{
+    // Reset communication states
+    current_state = PROTO_STATE_INIT;
+    at_state = AT_STATE_IDLE;
+    is_serial_connected = false;
+    is_wifi_connected = false;
+
+    // Reset buffers
+    rx_index = 0;
+    message_complete = false;
+    at_response_complete = false;
+
+    // Log the event
+    serial_comm_send_debug("ESP32 powered off\r\n", 100);
 }
 
 static void UART_RxCallback(uint8_t data)

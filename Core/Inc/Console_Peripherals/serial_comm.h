@@ -10,6 +10,7 @@
 
 #include "Console_Peripherals/Drivers/uart_driver.h"
 #include "System/system_conf.h"
+#include "Utils/comm_utils.h"
 #include <string.h>
 
 /* Communication Settings */
@@ -46,7 +47,8 @@ UART_Status serial_comm_send_message(const char *message, uint32_t timeout);
 bool serial_comm_is_message_ready(void);
 void serial_comm_send_debug(const char *message, uint32_t timeout);
 void serial_comm_process_messages(void);
-bool serial_comm_is_serial_connected(void);
+bool serial_comm_on(void);
+void serial_comm_off(void);
 
 // AT command and wifi specific functions
 UART_Status serial_comm_send_at_command(const char *command, uint32_t timeout);
