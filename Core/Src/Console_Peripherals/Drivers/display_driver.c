@@ -367,6 +367,23 @@ void display_write_string_centered(char* str, FontDef font, coord_t y, DisplayCo
 #endif
 }
 
+void display_draw_horizontal_line(coord_t x, coord_t y, coord_t length, DisplayColor color) {
+#ifdef DISPLAY_MODULE_OLED
+    for (coord_t i = 0; i < length; i++) {
+        ssd1306_DrawPixel((uint8_t)(x + i), (uint8_t)y, translate_color(color));
+    }
+#elif DISPLAY_MODULE_LCD
+    uint16_t ili_color = (color == DISPLAY_BLACK) ? ILI9341_BLACK : ILI9341_WHITE;
+
+    // Update dirty region
+    update_dirty_region(x, y, x + length - 1, y);
+
+    // Draw a 1-pixel high rectangle as a horizontal line
+    ILI9341_FillRectangle(x, y, length, 1, ili_color);
+#endif
+}
+
+
 void display_draw_rectangle(coord_t x1, coord_t y1, coord_t x2, coord_t y2, DisplayColor color) {
 #ifdef DISPLAY_MODULE_OLED
     ssd1306_DrawRectangle((uint8_t)x1, (uint8_t)y1, (uint8_t)x2, (uint8_t)y2, translate_color(color));

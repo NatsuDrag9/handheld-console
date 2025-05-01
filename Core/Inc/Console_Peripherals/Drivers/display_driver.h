@@ -75,6 +75,7 @@ void display_fill_white(void);
 void display_set_cursor(coord_t x, coord_t y);
 void display_write_string(char* str, FontDef font, DisplayColor color);
 void display_write_string_centered(char* str, FontDef font, coord_t y, DisplayColor color);
+void display_draw_horizontal_line(coord_t x, coord_t y, coord_t length, DisplayColor color);
 void display_draw_rectangle(coord_t x1, coord_t y1, coord_t x2, coord_t y2, DisplayColor color);
 void display_fill_rectangle(coord_t x1, coord_t y1, coord_t x2, coord_t y2, DisplayColor color);
 void display_draw_border(void);

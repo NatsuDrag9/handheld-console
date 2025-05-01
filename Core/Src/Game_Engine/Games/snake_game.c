@@ -421,7 +421,7 @@ static void snake_render(void) {
     if (first_render) {
         // Draw border
         display_draw_border_at(1, STATUS_START_Y, 3, 3);
-        render_status_area(true);
+//        render_status_area(true);
         first_render = false;
     }
 
@@ -429,7 +429,7 @@ static void snake_render(void) {
     bool status_changed = (previous_score != snake_game_engine.base_state.score) ||
                          (previous_lives != snake_game_engine.base_state.lives);
     if (status_changed) {
-        render_status_area(true);
+//        render_status_area(true);
     }
 
     // Clear previous positions if needed
