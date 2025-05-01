@@ -14,7 +14,6 @@ static uint8_t current_menu_size = 0;
 static uint8_t menu_scroll_position = 0;  // Top visible item index
 static uint8_t current_cursor_item = 0;   // Currently selected item index
 static bool is_in_game = false;
-//static uint8_t previous_cursor_item = 0;   // Previously selected item
 static uint32_t last_menu_refresh_time = 0; // For throttling menu refreshes
 
 /* Private functions */
