@@ -6,9 +6,6 @@
  */
 
 #include "Console_Peripherals/oled.h"
-#include "Game_Engine/game_engine.h"
-#include "Game_Engine/Games/snake_game.h"
-#include "Game_Engine/Games/pacman_game.h"
 #include "Utils/debug_conf.h"
 
 static MenuItem current_menu[MAX_MENU_ITEMS] = { 0 };
@@ -77,6 +74,8 @@ static void oled_draw_scrollbar(uint8_t num_items) {
 
 static bool handle_menu_navigation(uint8_t direction) {
     uint8_t old_cursor_item = current_cursor_item;
+    uint8_t old_scroll_position = menu_scroll_position;
+    bool needs_full_refresh = false;
 
     switch (direction) {
     case JS_DIR_UP:
@@ -85,9 +84,10 @@ static bool handle_menu_navigation(uint8_t direction) {
             current_cursor_item--;
             if (current_cursor_item < menu_scroll_position) {
                 menu_scroll_position = current_cursor_item;
-                return true; // Need full refresh when scrolling
+                needs_full_refresh = true; // Need full refresh when scrolling
             }
         } else {
+            // Already at the top, do nothing
             return false; // No change
         }
         break;
@@ -98,9 +98,10 @@ static bool handle_menu_navigation(uint8_t direction) {
             current_cursor_item++;
             if (current_cursor_item >= menu_scroll_position + VISIBLE_ITEMS) {
                 menu_scroll_position = current_cursor_item - VISIBLE_ITEMS + 1;
-                return true; // Need full refresh when scrolling
+                needs_full_refresh = true; // Need full refresh when scrolling
             }
         } else {
+            // Already at the bottom, do nothing
             return false; // No change
         }
         break;
@@ -109,15 +110,21 @@ static bool handle_menu_navigation(uint8_t direction) {
         return false; // No valid direction
     }
 
+    // If we scrolled, always do a full refresh to avoid the double cursor issue
+    if (old_scroll_position != menu_scroll_position) {
+        return true;
+    }
+
     // Redraw only the changed menu items if we didn't scroll
-    if (old_cursor_item != current_cursor_item) {
+    if (old_cursor_item != current_cursor_item && !needs_full_refresh) {
         // Only update the changed items rather than the whole menu
         update_menu_selection(old_cursor_item, current_cursor_item);
         return false; // Return false to indicate no full refresh needed
     }
 
-    return false;
+    return needs_full_refresh;
 }
+
 
 static void handle_menu_selection(void) {
     // Clear previous selections
@@ -176,7 +183,7 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
     display_draw_border();
 
     // Menu title
-    display_write_string_centered("Select Game", DISPLAY_TITLE_FONT, 10, DISPLAY_WHITE);
+    display_write_string_centered("Select Game", DISPLAY_TITLE_FONT, MENU_TITLE_Y, DISPLAY_WHITE);
 
     // Draw visible menu items
     uint8_t display_count = (num_items < VISIBLE_ITEMS) ? num_items : VISIBLE_ITEMS;
@@ -185,7 +192,7 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
         uint8_t menu_index = menu_scroll_position + i;
         if (menu_index >= num_items) break;
 
-        display_set_cursor(20, MENU_START_Y + (i * MENU_ITEM_HEIGHT));
+        display_set_cursor(20, MENU_START_Y + ((i+1) * MENU_ITEM_HEIGHT));
 
         // Show selection cursor only for selected item
         if (menu_index == current_cursor_item) {
@@ -203,6 +210,7 @@ void oled_show_menu(MenuItem* items, uint8_t num_items) {
     display_update();
 }
 
+
 static void update_menu_selection(uint8_t old_item, uint8_t new_item) {
     // Only update if the items are visible
     bool old_visible = (old_item >= menu_scroll_position &&
@@ -212,7 +220,7 @@ static void update_menu_selection(uint8_t old_item, uint8_t new_item) {
 
     if (old_visible) {
         // Clear old selection cursor
-        uint8_t y_pos = MENU_START_Y + ((old_item - menu_scroll_position) * MENU_ITEM_HEIGHT);
+        uint8_t y_pos = MENU_START_Y + ((old_item - menu_scroll_position + 1) * MENU_ITEM_HEIGHT);
         display_fill_rectangle(20, y_pos, 30, y_pos + MENU_ITEM_HEIGHT - 1, DISPLAY_BLACK);
         display_set_cursor(20, y_pos);
         display_write_string("  ", DISPLAY_MENU_CURSOR_FONT, DISPLAY_WHITE);
@@ -220,43 +228,29 @@ static void update_menu_selection(uint8_t old_item, uint8_t new_item) {
 
     if (new_visible) {
         // Draw new selection cursor
-        uint8_t y_pos = MENU_START_Y + ((new_item - menu_scroll_position) * MENU_ITEM_HEIGHT);
+        uint8_t y_pos = MENU_START_Y + ((new_item - menu_scroll_position + 1) * MENU_ITEM_HEIGHT);
         display_fill_rectangle(20, y_pos, 30, y_pos + MENU_ITEM_HEIGHT - 1, DISPLAY_BLACK);
         display_set_cursor(20, y_pos);
         display_write_string("> ", DISPLAY_MENU_CURSOR_FONT, DISPLAY_WHITE);
     }
 
     // Draw scrollbar thumb if needed
-    if (current_menu_size > VISIBLE_ITEMS) {
-        // Recalculate scrollbar thumb position
-        coord_t scrollbar_height = SCREEN_HEIGHT - MENU_START_Y - 4;
-        coord_t thumb_height = (scrollbar_height * VISIBLE_ITEMS) / current_menu_size;
-        coord_t thumb_position = MENU_START_Y +
-            (scrollbar_height - thumb_height) * menu_scroll_position / (current_menu_size - VISIBLE_ITEMS);
-
-        // Clear previous scrollbar thumb
-        display_fill_rectangle(SCREEN_WIDTH - 5, MENU_START_Y,
-            SCREEN_WIDTH - 3, SCREEN_HEIGHT - 4, DISPLAY_BLACK);
-
-        // Draw scrollbar background
-        display_draw_rectangle(SCREEN_WIDTH - 5, MENU_START_Y,
-            SCREEN_WIDTH - 3, SCREEN_HEIGHT - 4, DISPLAY_WHITE);
-
-        // Draw scrollbar thumb
-        display_fill_rectangle(SCREEN_WIDTH - 4, thumb_position,
-            SCREEN_WIDTH - 4, thumb_position + thumb_height, DISPLAY_WHITE);
-    }
+    oled_draw_scrollbar(current_menu_size);
 
     // Update the display
     display_update();
 }
-
 
 void oled_menu_handle_input(JoystickStatus js_status) {
     // Get D-pad status
     DPAD_STATUS dpad_status = d_pad_get_status();
     uint8_t dpad_changed = d_pad_direction_changed();
     uint32_t current_time = get_current_ms();
+
+    // Ensure cursor is within valid bounds (protection against potential corruption)
+    if (current_cursor_item >= current_menu_size) {
+    	current_cursor_item = current_menu_size > 0 ? current_menu_size - 1 : 0;
+    }
 
     // Throttle menu updates to avoid too frequent refreshes
     // Only process input if enough time has passed since last refresh
@@ -299,6 +293,7 @@ void oled_menu_handle_input(JoystickStatus js_status) {
         return;
     }
 }
+
 
 // Gets the current game engine based on the selected menu item
 static GameEngine* get_current_game_engine(void) {

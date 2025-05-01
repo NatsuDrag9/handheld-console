@@ -16,6 +16,9 @@
 #include "Console_Peripherals/Drivers/display_driver.h"
 #include "Console_Peripherals/d_pad.h"
 #include "Game_Engine/game_menu.h"
+#include "Game_Engine/game_engine.h"
+#include "Game_Engine/Games/snake_game.h"
+#include "Game_Engine/Games/pacman_game.h"
 
 #ifdef UNITY_TEST
 #define add_delay(x)
