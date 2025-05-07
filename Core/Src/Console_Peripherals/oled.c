@@ -9,12 +9,15 @@
 #include "Sprites/status_bar_sprite.h" // Didn't include in header as this is local to the implementation file
 #include "Utils/debug_conf.h"
 
+#define STATUS_BAR_UPDATE_INTERVAL 1000 // Updates WiFi status every 1 sec
+
 static MenuItem current_menu[MAX_MENU_ITEMS] = { 0 };
 static uint8_t current_menu_size = 0;
 static uint8_t menu_scroll_position = 0;  // Top visible item index
 static uint8_t current_cursor_item = 0;   // Currently selected item index
 static bool is_in_game = false;
 static uint32_t last_menu_refresh_time = 0; // For throttling menu refreshes
+static uint32_t last_status_update_time = 0;
 
 /* Private functions */
 static void oled_show_welcome(char* str1, char* str2);
@@ -41,9 +44,6 @@ static void oled_show_welcome(char* str1, char* str2) {
     display_clear();
     display_draw_border();
 
-    // Draw status bar with WiFi status and other indicators
-    draw_status_bar();
-
     // Welcome message for OLED
 #if defined(DISPLAY_MODULE_OLED)
     display_write_string_centered(str1, DISPLAY_FONT, SEPARATOR_LINE_Y + 10, DISPLAY_WHITE);
@@ -61,15 +61,18 @@ static void draw_status_bar(void) {
     // Draw horizontal separator line
     display_draw_horizontal_line(0, SEPARATOR_LINE_Y, SCREEN_WIDTH, DISPLAY_WHITE);
 
-    // Draw WiFi icon based on connection status
-    if (serial_comm_is_wifi_connected()) {
-        // Draw connected WiFi icon
+    bool wifi_connected = serial_comm_is_wifi_connected();
+    DEBUG_PRINTF(false, "Status bar wifi icon: %d\n", wifi_connected);
+
+    // Add branch-specific debug to verify which code path is taken
+    if (wifi_connected) {
+    	// Draw connected WiFi icon
     	display_draw_bitmap(SCREEN_WIDTH - 15, 3, wifi_connected_icon,
-    	                           STATUS_ICON_WIDTH, STATUS_ICON_HEIGHT, DISPLAY_WHITE);
+    			STATUS_ICON_WIDTH, STATUS_ICON_HEIGHT, DISPLAY_WHITE);
     } else {
-        // Draw disconnected WiFi icon
+    	// Draw disconnected WiFi icon
     	display_draw_bitmap(SCREEN_WIDTH - 15, 3, wifi_disconnected_icon,
-    	                           STATUS_ICON_WIDTH, STATUS_ICON_HEIGHT, DISPLAY_WHITE);
+    			STATUS_ICON_WIDTH, STATUS_ICON_HEIGHT, DISPLAY_WHITE);
     }
 
     // Draw score if in game
@@ -282,6 +285,12 @@ void oled_menu_handle_input(JoystickStatus js_status) {
     DPAD_STATUS dpad_status = d_pad_get_status();
     uint8_t dpad_changed = d_pad_direction_changed();
     uint32_t current_time = get_current_ms();
+
+    // Update status bar periodically (not affected by throttling)
+    if (current_time - last_status_update_time > STATUS_BAR_UPDATE_INTERVAL) {
+    	draw_status_bar();
+    	last_status_update_time = current_time;
+    }
 
     // Ensure cursor is within valid bounds (protection against potential corruption)
     if (current_cursor_item >= current_menu_size) {
