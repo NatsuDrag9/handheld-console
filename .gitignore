@@ -48,3 +48,7 @@ ili9341_two.c
 # display_driver_old.c
 # snake_game_old.c
 # oled_old.c
+
+# Ignore esp-idf build files
+esp32/build/
+esp32/sdkconfig
