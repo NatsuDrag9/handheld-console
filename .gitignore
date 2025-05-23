@@ -52,3 +52,4 @@ ili9341_two.c
 # Ignore esp-idf build files
 esp32/build/
 esp32/sdkconfig
+esp32/managed_components
