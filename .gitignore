@@ -45,6 +45,7 @@ run_tests
 # Ignore custom files
 ili9341_two.c
 *_old.c
+*_old.h
 # display_driver_old.c
 # snake_game_old.c
 # oled_old.c

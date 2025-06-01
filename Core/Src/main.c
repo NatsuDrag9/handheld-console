@@ -48,6 +48,11 @@ volatile float result_cos = 0.0f;
 static bool initial_sound_played = false;
 static uint32_t last_wifi_scan_time = 0;
 
+static uint32_t last_uart_test_time = 0;
+static uint32_t uart_test_counter = 0;
+static volatile uint8_t last_received_byte = 0;
+static volatile uint8_t new_data_received = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,6 +62,59 @@ static uint32_t last_wifi_scan_time = 0;
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void uart_test_loop(void) {
+    uint32_t current_time = get_current_ms();
+
+    // Process any incoming messages from ESP32
+    if (serial_comm_is_message_ready()) {
+//        serial_comm_send_debug("Processing message from ESP32\r\n", 100);
+        serial_comm_process_messages();
+    }
+
+    // Send test messages to ESP32 every 5 seconds
+    if (current_time - last_uart_test_time > 5000) {
+        uart_test_counter++;
+
+        char debug_msg[128];
+        snprintf(debug_msg, sizeof(debug_msg), "Sending test message #%lu to ESP32\r\n", uart_test_counter);
+        serial_comm_send_debug(debug_msg, 100);
+
+        // Send different types of test messages
+        switch (uart_test_counter % 5) {
+            case 0:
+                serial_comm_send_debug("   -> Sending game data\r\n", 100);
+                serial_comm_send_game_data("stm32_test", "Hello from STM32!", "test_meta_data");
+                break;
+
+            case 1:
+                serial_comm_send_debug("   -> Sending ping command\r\n", 100);
+                serial_comm_send_command("ping", "stm32_ping_parameter");
+                break;
+
+            case 2:
+                serial_comm_send_debug("   -> Sending status\r\n", 100);
+                serial_comm_send_status(uart_test_counter, 0, "STM32 structured status");
+                break;
+
+            case 3:
+                serial_comm_send_debug("   -> Sending heartbeat\r\n", 100);
+                serial_comm_send_heartbeat();
+                break;
+
+            case 4:
+            	serial_comm_send_debug("   -> Sending chat message\r\n", 100);
+            	serial_comm_send_chat_message("My name is stm32", "STM32", "general");
+        }
+
+        // Print statistics every 810messages
+        if (uart_test_counter % 10 == 0) {
+            serial_comm_send_debug("Printing UART statistics:\r\n", 100);
+            serial_comm_print_stats();
+        }
+
+        last_uart_test_time = current_time;
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -96,6 +154,11 @@ int main(void)
 //  audio_play_tone(440, 1000);  // 440 Hz (A4) for 1 second
 //  audio_play_sound(SOUND_GAME_OVER);
 //  audio_update();
+
+//  UART test initial message
+  serial_comm_send_debug("STM32 UART Test Started\r\n", 100);
+  serial_comm_send_status(1, 0, "STM32 Ready for UART Test");
+
 
   /* USER CODE END 2 */
 
@@ -220,29 +283,14 @@ int main(void)
 //	    }
 
 
-
     //	  	 game_engine_update(&snake_game_engine, js_status);
     //	  	    game_engine_render(&snake_game_engine);
 
 	 /*UART and AT commands test*/
-	if (serial_comm_is_message_ready()) {
-		serial_comm_process_messages();
-	}
-
-	/* Current time */
-	uint32_t current_time = get_current_ms();
-
-	/* Periodic WiFi scan when connected (check AT state is idle) */
-	if (serial_comm_on()
-//			serial_comm_get_at_state() == AT_STATE_IDLE
-			&& !serial_comm_is_wifi_connected() &&
-			current_time - last_wifi_scan_time > 60000) {
-
-		/* Start WiFi scan sequence */
-		serial_comm_send_at_command("AT+CWLAP", 100);
-		serial_comm_set_at_state(AT_STATE_WAITING_CWLAP);
-		last_wifi_scan_time = current_time;
-	}
+//	if (serial_comm_is_message_ready()) {
+//		serial_comm_process_messages();
+//	}
+	  	uart_test_loop();
   }
   /* USER CODE END 3 */
 }

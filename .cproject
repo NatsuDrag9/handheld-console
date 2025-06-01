@@ -85,7 +85,7 @@
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1821148665.1808537879" name="oled_new.h" rcbsApplicability="disable" resourcePath="Core/Inc/Console_Peripherals/oled_new.h" toolsToInvoke=""/>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1821148665.1861059301" name="main_temp.h" rcbsApplicability="disable" resourcePath="Core/Inc/main_temp.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Src/Console_Peripherals/oled_new.c|Inc/Console_Peripherals/oled_new.h|Src/Game_Engine/Games/pacman_game_old.c|Src/Game_Engine/game_engine_old.c|Src/Game_Engine/Games/snake_game_old.c|Src/Console_Peripherals/Drivers/display_driver_old.c|Src/Console_Peripherals/oled_old.c|Inc/main_temp.h|Src/main_temp.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/Console_Peripherals/serial_comm_old.c|Src/Console_Peripherals/oled_new.c|Inc/Console_Peripherals/oled_new.h|Src/Game_Engine/Games/pacman_game_old.c|Src/Game_Engine/game_engine_old.c|Src/Game_Engine/Games/snake_game_old.c|Src/Console_Peripherals/Drivers/display_driver_old.c|Src/Console_Peripherals/oled_old.c|Inc/main_temp.h|Src/main_temp.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry excluding="Display/Src/ili9341_two.c|Display/Src/ili9341_one.c|Display/Src/ssd1306.c|Display/Src/ssd1306_fonts.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
 				</configuration>

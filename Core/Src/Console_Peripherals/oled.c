@@ -62,7 +62,7 @@ static void draw_status_bar(void) {
     display_draw_horizontal_line(0, SEPARATOR_LINE_Y, SCREEN_WIDTH, DISPLAY_WHITE);
 
     bool wifi_connected = serial_comm_is_wifi_connected();
-    DEBUG_PRINTF(false, "Status bar wifi icon: %d\n", wifi_connected);
+//    DEBUG_PRINTF(false, "Status bar wifi icon: %d\n", wifi_connected);
 
     // Add branch-specific debug to verify which code path is taken
     if (wifi_connected) {

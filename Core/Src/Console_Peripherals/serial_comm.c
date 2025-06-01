@@ -3,180 +3,411 @@
  *
  *  Created on: Apr 25, 2025
  *      Author: rohitimandi
- *  Modified: To support AT commands and game data transmission
+ *
  */
 
 #include "Console_Peripherals/serial_comm.h"
 #include "Utils/debug_conf.h"
+#include "Utils/comm_utils.h"
 
-/* Private variables */
-static uint8_t rx_buffer[MAX_BUFFER_SIZE];
-static uint16_t rx_index = 0;
-static bool message_complete = false;
+/* Communication handles */
+static circular_buffer_t rx_buffer;
+static message_queue_t msg_queue;
+static message_parser_t parser;
+static comm_stats_t stats;
+
+/* Message storage */
+static uart_message_t message_storage[MESSAGE_QUEUE_SIZE];
+static uint8_t parse_buffer[sizeof(uart_message_t)];
+
+/* Protocol state */
 static ProtocolState current_state = PROTO_STATE_INIT;
-static AtCommandState at_state = AT_STATE_IDLE;
 static uint32_t last_activity_time = 0;
-static uint32_t last_at_command_time = 0;
-static const uint32_t AT_COMMAND_TIMEOUT_MS = 3000; // 3 second AT command timeout
+static uint32_t last_heartbeat_time = 0;
+static const uint32_t HEARTBEAT_INTERVAL_MS = 5000;
 
 /* Connection status */
-static bool is_serial_connected = false;
-static bool at_response_complete = false;
+static bool is_esp32_ready = false;
 static bool is_wifi_connected = false;
+static bool is_websocket_connected = false;
+
+/* Callback functions */
+static game_data_received_callback_t game_data_callback = NULL;
+static chat_message_received_callback_t chat_message_callback = NULL;
+static command_received_callback_t command_callback = NULL;
+static status_received_callback_t status_callback = NULL;
 
 /* Private function prototypes */
 static void UART_RxCallback(uint8_t data);
-static bool check_for_at_response_end(void);
+static uint8_t calculate_checksum(const uart_message_t* msg);
+static bool validate_message(const uart_message_t* msg);
+static void process_received_message(const uart_message_t* msg);
+static UART_Status send_raw_message(const uart_message_t* msg);
+static void handle_esp32_status(const uart_status_t* status);
+static void handle_esp32_command(const uart_command_t* command);
+static void handle_game_data(const uart_game_data_t* game_data);
+static void handle_chat_message(const uart_chat_message_t* chat_message);
+static void parse_incoming_data(void);
 
+/* Calculate checksum to match ESP32 */
+static uint8_t calculate_checksum(const uart_message_t* msg)
+{
+    uint8_t checksum = 0;
+    const uint8_t* data = (const uint8_t*)msg;
+
+    // Calculate for all bytes except checksum and end_byte (last 2 bytes)
+    size_t total_length = sizeof(uart_message_t);
+    for (size_t i = 0; i < total_length - 2; i++) {
+        checksum ^= data[i];
+    }
+
+    return checksum;
+}
+
+/* Validate received message */
+static bool validate_message(const uart_message_t* msg)
+{
+    /* Check start and end bytes */
+    if (msg->start_byte != MSG_START_BYTE || msg->end_byte != MSG_END_BYTE) {
+        DEBUG_PRINTF(false, "Invalid delimiters: start=0x%02X, end=0x%02X\r\n",
+                     msg->start_byte, msg->end_byte);
+        return false;
+    }
+
+    /* Check message type */
+    if (msg->msg_type < MSG_TYPE_DATA || msg->msg_type > MSG_TYPE_CHAT) {
+        DEBUG_PRINTF(false, "Invalid message type: 0x%02X\r\n", msg->msg_type);
+        return false;
+    }
+
+    /* Check length */
+    if (msg->length > MAX_PAYLOAD_SIZE) {
+        DEBUG_PRINTF(false, "Invalid message length: %d\r\n", msg->length);
+        return false;
+    }
+
+    /* Calculate and verify checksum */
+    uint8_t calculated_checksum = calculate_checksum(msg);
+    if (msg->checksum != calculated_checksum) {
+        DEBUG_PRINTF(false, "Checksum mismatch: expected=0x%02X, calculated=0x%02X\r\n",
+                     msg->checksum, calculated_checksum);
+        stats.parse_errors++;
+        return false;
+    }
+
+    return true;
+}
+
+/* Parse incoming data from circular buffer */
+static void parse_incoming_data(void)
+{
+    uint8_t data;
+
+    while (circular_buffer_get(&rx_buffer, &data)) {
+        if (message_parser_add_byte(&parser, data, MSG_START_BYTE)) {
+            stats.bytes_received++;
+
+            // Check if we have a complete message
+            if (message_parser_is_complete(&parser)) {
+                uart_message_t* msg = (uart_message_t*)message_parser_get_buffer(&parser);
+
+                if (validate_message(msg)) {
+                    if (message_queue_put(&msg_queue, msg)) {
+                        DEBUG_PRINTF(false, "Message parsed and queued: type=0x%02X\r\n", msg->msg_type);
+                        stats.messages_parsed++;
+                    } else {
+                        DEBUG_PRINTF(false, "Message queue full, dropping message\r\n");
+                    }
+                } else {
+                    DEBUG_PRINTF(false, "Message validation failed\r\n");
+                }
+                message_parser_reset(&parser);
+            }
+        }
+    }
+}
+
+/* UART receive callback - called from interrupt (keep minimal!) */
+static void UART_RxCallback(uint8_t data)
+{
+    // Simply store data in circular buffer - keep ISR minimal
+    circular_buffer_put(&rx_buffer, data);
+}
+
+/* Handle game data messages */
+static void handle_game_data(const uart_game_data_t* game_data)
+{
+    DEBUG_PRINTF(false, "GAME DATA: Type=%.16s, Data=%.64s, Meta=%.32s\r\n",
+                 game_data->data_type, game_data->game_data, game_data->metadata);
+
+    // Call registered callback if available
+    if (game_data_callback) {
+        game_data_callback(game_data);
+    }
+
+    // Send ACK for received game data
+    serial_comm_send_ack();
+}
+
+/* Handle chat messages */
+static void handle_chat_message(const uart_chat_message_t* chat_message)
+{
+    DEBUG_PRINTF(false, "CHAT MESSAGE: From=%.32s, Type=%.16s, Message=%.96s\r\n",
+                 chat_message->sender, chat_message->chat_type, chat_message->message);
+
+    // Call registered callback if available
+    if (chat_message_callback) {
+        chat_message_callback(chat_message);
+    }
+
+    // Send ACK for received chat message
+    serial_comm_send_ack();
+}
+
+/* Handle ESP32 status messages */
+static void handle_esp32_status(const uart_status_t* status)
+{
+    DEBUG_PRINTF(false, "ESP32 Status: %d, Error: %d, Msg: %.32s\r\n",
+                 status->system_status, status->error_code, status->status_message);
+
+    switch (status->system_status) {
+    case 1: // ESP32 started
+        if (current_state == PROTO_STATE_INIT) {
+            current_state = PROTO_STATE_ESP32_READY;
+            is_esp32_ready = true;
+            DEBUG_PRINTF(false, "ESP32 ready\r\n");
+        }
+        break;
+
+    case 2: // WiFi connecting
+        if (current_state == PROTO_STATE_ESP32_READY) {
+            current_state = PROTO_STATE_WIFI_CONNECTING;
+            DEBUG_PRINTF(false, "ESP32 WiFi connecting\r\n");
+        }
+        break;
+
+    case 3: // WiFi connected
+        current_state = PROTO_STATE_WIFI_CONNECTED;
+        is_wifi_connected = true;
+        DEBUG_PRINTF(false, "ESP32 WiFi connected\r\n");
+        break;
+
+    case 4: // WebSocket connected
+        current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
+        is_websocket_connected = true;
+        DEBUG_PRINTF(false, "ESP32 WebSocket connected\r\n");
+        break;
+
+    case 0: // Error state
+        current_state = PROTO_STATE_ERROR;
+        is_wifi_connected = false;
+        is_websocket_connected = false;
+        DEBUG_PRINTF(false, "ESP32 error state\r\n");
+        break;
+    }
+
+    // Call registered callback if available
+    if (status_callback) {
+        status_callback(status);
+    }
+}
+
+/* Handle ESP32 commands */
+static void handle_esp32_command(const uart_command_t* command)
+{
+    DEBUG_PRINTF(false, "ESP32 Command: %.32s %.64s\r\n",
+                 command->command, command->parameters);
+
+    if (strncmp(command->command, "game_ready", 10) == 0) {
+        current_state = PROTO_STATE_GAME_ACTIVE;
+        DEBUG_PRINTF(false, "Game session ready\r\n");
+        serial_comm_send_ack();
+    }
+    else if (strncmp(command->command, "ping", 4) == 0) {
+        DEBUG_PRINTF(false, "Ping received, sending ACK\r\n");
+        serial_comm_send_ack();
+    }
+    else if (strncmp(command->command, "pong", 4) == 0) {
+        DEBUG_PRINTF(false, "Pong received from ESP32\r\n");
+    }
+
+    // Call registered callback if available
+    if (command_callback) {
+        command_callback(command);
+    }
+}
+
+/* Process received message */
+static void process_received_message(const uart_message_t* msg)
+{
+    DEBUG_PRINTF(false, "Processing message type: 0x%02X, length: %d\r\n",
+                 msg->msg_type, msg->length);
+
+    switch (msg->msg_type) {
+    case MSG_TYPE_DATA:
+        if (msg->length == sizeof(uart_game_data_t)) {
+            handle_game_data((uart_game_data_t*)msg->data);
+        }
+        break;
+
+    case MSG_TYPE_CHAT:
+        if (msg->length == sizeof(uart_chat_message_t)) {
+            handle_chat_message((uart_chat_message_t*)msg->data);
+        }
+        break;
+
+    case MSG_TYPE_COMMAND:
+        if (msg->length == sizeof(uart_command_t)) {
+            handle_esp32_command((uart_command_t*)msg->data);
+        }
+        break;
+
+    case MSG_TYPE_STATUS:
+        if (msg->length == sizeof(uart_status_t)) {
+            handle_esp32_status((uart_status_t*)msg->data);
+        }
+        break;
+
+    case MSG_TYPE_ACK:
+        DEBUG_PRINTF(false, "Received ACK from ESP32\r\n");
+        break;
+
+    case MSG_TYPE_NACK:
+        DEBUG_PRINTF(false, "Received NACK from ESP32\r\n");
+        break;
+
+    case MSG_TYPE_HEARTBEAT:
+        DEBUG_PRINTF(false, "Received heartbeat from ESP32\r\n");
+        serial_comm_send_ack();
+        break;
+
+    default:
+        DEBUG_PRINTF(false, "Unknown message type: 0x%02X\r\n", msg->msg_type);
+        break;
+    }
+}
+
+/* Send raw message */
+static UART_Status send_raw_message(const uart_message_t* msg)
+{
+    UART_Status status = UART_SendBuffer(UART_PORT_2, (uint8_t*)msg,
+                                        sizeof(uart_message_t), 1000);
+    if (status == UART_OK) {
+        stats.bytes_sent += sizeof(uart_message_t);
+        DEBUG_PRINTF(false, "Message sent successfully\r\n");
+    }
+    else {
+        DEBUG_PRINTF(false, "Failed to send message, status: %d\r\n", status);
+    }
+    return status;
+}
+
+/* Public Function Implementations */
 UART_Status serial_comm_init(void)
 {
-    /* Initialize message buffer */
-    memset(rx_buffer, 0, MAX_BUFFER_SIZE);
-    rx_index = 0;
-    message_complete = false;
-    at_response_complete = false;
+    /* Initialize all communication utilities */
+    circular_buffer_init(&rx_buffer);
+    message_queue_init(&msg_queue, message_storage, MESSAGE_QUEUE_SIZE, sizeof(uart_message_t));
+    message_parser_init(&parser, parse_buffer, sizeof(uart_message_t));
+    comm_stats_init(&stats);
+
+    /* Initialize protocol state */
     current_state = PROTO_STATE_INIT;
-    at_state = AT_STATE_IDLE;
-    is_serial_connected = false;
+    is_esp32_ready = false;
+    is_wifi_connected = false;
+    is_websocket_connected = false;
+
+    /* Initialize callbacks to NULL */
+    game_data_callback = NULL;
+    chat_message_callback = NULL;
+    command_callback = NULL;
+    status_callback = NULL;
 
     /* Initialize UART driver */
     UART_Status status = UART_Init();
     if (status != UART_OK) {
-        DEBUG_PRINTF(false, "UART initialization failed: %d\n", status);
-        Error_Handler();
+        DEBUG_PRINTF(false, "UART initialization failed: %d\r\n", status);
+        return status;
     }
 
     /* Register callback for interrupt-based reception */
     status = UART_RegisterRxCallback(UART_PORT_2, UART_RxCallback);
     if (status != UART_OK) {
-        DEBUG_PRINTF(false, "UART callback registration failed: %d\n", status);
-        Error_Handler();
+        DEBUG_PRINTF(false, "UART callback registration failed: %d\r\n", status);
+        return status;
     }
 
     /* Enable Rx interrupt */
     status = UART_EnableRxInterrupt(UART_PORT_2);
     if (status != UART_OK) {
-        DEBUG_PRINTF(false, "UART interrupt enable failed: %d\n", status);
-        Error_Handler();
+        DEBUG_PRINTF(false, "UART interrupt enable failed: %d\r\n", status);
+        return status;
     }
 
     /* Record start time */
     last_activity_time = get_current_ms();
-    last_at_command_time = get_current_ms();
+    last_heartbeat_time = get_current_ms();
 
-    /* Send debug message */
-    serial_comm_send_debug("STM32 UART Communication Initialized\r\n", 100);
+    DEBUG_PRINTF(false, "STM32 UART Communication Initialized (Clean Architecture)\r\n");
+
+    // Send initial status to ESP32
+    serial_comm_send_status(1, 0, "STM32_READY");
 
     return UART_OK;
 }
 
+UART_Status serial_comm_deinit(void)
+{
+    UART_DisableRxInterrupt(UART_PORT_2);
+
+    /* Reset protocol state */
+    current_state = PROTO_STATE_INIT;
+    is_esp32_ready = false;
+    is_wifi_connected = false;
+    is_websocket_connected = false;
+
+    /* Clear callbacks */
+    game_data_callback = NULL;
+    chat_message_callback = NULL;
+    command_callback = NULL;
+    status_callback = NULL;
+
+    /* Clear all buffers */
+    circular_buffer_flush(&rx_buffer);
+    message_queue_flush(&msg_queue);
+    message_parser_reset(&parser);
+
+    DEBUG_PRINTF(false, "UART Communication Deinitialized\r\n");
+    return UART_OK;
+}
+
+/* Non-blocking message check - parses data and checks queue */
 bool serial_comm_is_message_ready(void)
 {
     uint32_t current_time = get_current_ms();
 
-    /* Check for timeout in AT command state */
-    if (at_state != AT_STATE_IDLE &&
-        current_time - last_at_command_time > AT_COMMAND_TIMEOUT_MS) {
-        /* AT command timeout */
-        serial_comm_send_debug("AT command timeout occurred\r\n", 100);
+    /* Parse any available data from circular buffer */
+    parse_incoming_data();
 
-        /* Reset AT state but keep protocol state */
-        at_state = AT_STATE_IDLE;
-    }
-
-    /* In initial state, start AT command sequence */
-    if (current_state == PROTO_STATE_INIT && at_state == AT_STATE_IDLE) {
-        /* Start with basic AT command */
-        serial_comm_send_debug("Starting AT sequence...\r\n", 100);
-        serial_comm_send_at_command("AT", 100);
-        current_state = PROTO_STATE_AT_MODE;
-        at_state = AT_STATE_WAITING_BASIC;
-        last_at_command_time = current_time;
-    }
-
-    return message_complete || at_response_complete;
+    /* Check if we have any parsed messages ready */
+    return !message_queue_is_empty(&msg_queue);
 }
 
 void serial_comm_process_messages(void)
 {
-    if (!message_complete && !at_response_complete) {
-        return;
+    uart_message_t msg;
+
+    /* Process all available messages */
+    while (message_queue_get(&msg_queue, &msg)) {
+        process_received_message(&msg);
+        last_activity_time = get_current_ms();
     }
-
-    /* Print received message to debug port */
-    serial_comm_send_debug("Received: ", 100);
-    serial_comm_send_debug((char*)rx_buffer, 100);
-    serial_comm_send_debug("\r\n", 100);
-
-    /* Process message based on current state */
-    switch (current_state) {
-        case PROTO_STATE_INIT:
-            /* Only AT commands should trigger in init state */
-            serial_comm_process_at_response();
-            break;
-
-        case PROTO_STATE_AT_MODE:
-            /* Handle AT command responses */
-            serial_comm_process_at_response();
-            break;
-
-        case PROTO_STATE_CONNECTED:
-            /* Process messages when WiFi is connected */
-            if (strstr((char*)rx_buffer, "+IPD")) {
-                /* Received data from network */
-                serial_comm_send_debug("Received network data\r\n", 100);
-                /* Process the incoming network data here */
-            }
-            else if (at_response_complete) {
-                /* Process AT command response when already connected */
-                serial_comm_process_at_response();
-            }
-            is_serial_connected = true;
-            break;
-
-        case PROTO_STATE_DATA_MODE:
-            /* Process data mode messages (game data) */
-            /* Add game data specific handling here */
-            serial_comm_send_debug("Processing game data\r\n", 100);
-            break;
-
-        case PROTO_STATE_ERROR:
-            /* In error state, try to recover with a basic AT command */
-            serial_comm_send_at_command("AT", 100);
-            at_state = AT_STATE_WAITING_BASIC;
-            current_state = PROTO_STATE_AT_MODE;
-            break;
-
-        default:
-            /* Should not reach here, but reset if we do */
-            current_state = PROTO_STATE_INIT;
-            at_state = AT_STATE_IDLE;
-            is_serial_connected = false;
-            break;
-    }
-
-    /* Update activity time on any message */
-    last_activity_time = get_current_ms();
-
-    /* Reset buffer for next message */
-    rx_index = 0;
-    message_complete = false;
-    at_response_complete = false;
 }
 
-UART_Status serial_comm_send_message(const char *message, uint32_t timeout)
+// Getter Functions
+bool serial_comm_is_esp32_ready(void)
 {
-    return UART_SendString(UART_PORT_2, message, timeout);
-}
-
-void serial_comm_send_debug(const char *message, uint32_t timeout)
-{
-    DEBUG_PRINTF(false, message);
-}
-
-bool serial_comm_on(void)
-{
-    return is_serial_connected ;
+    return is_esp32_ready;
 }
 
 bool serial_comm_is_wifi_connected(void)
@@ -184,254 +415,210 @@ bool serial_comm_is_wifi_connected(void)
     return is_wifi_connected;
 }
 
-
-UART_Status serial_comm_send_at_command(const char *command, uint32_t timeout)
+bool serial_comm_is_websocket_connected(void)
 {
-    char at_command[MAX_BUFFER_SIZE];
-
-    /* Format the AT command with proper line ending */
-    snprintf(at_command, MAX_BUFFER_SIZE, "%s\r\n", command);
-
-    /* Log the command being sent */
-    serial_comm_send_debug("Sending AT command: ", 100);
-    serial_comm_send_debug(at_command, 100);
-
-    /* Update last command time */
-    last_at_command_time = get_current_ms();
-
-    /* Send the command */
-    return serial_comm_send_message(at_command, timeout);
+    return is_websocket_connected;
 }
 
-AtCommandState serial_comm_get_at_state(void)
+ProtocolState serial_comm_get_state(void)
 {
-    return at_state;
+    return current_state;
 }
 
-void serial_comm_set_at_state(AtCommandState state)
+// Message Sending Functions
+UART_Status serial_comm_send_message(MessageType type, const uint8_t* data, uint8_t length)
 {
-    at_state = state;
-    last_at_command_time = get_current_ms();
-}
-
-bool serial_comm_is_at_response_complete(void)
-{
-    return at_response_complete;
-}
-
-void serial_comm_process_at_response(void)
-{
-    /* Process based on current AT command state */
-    if (strstr((char*)rx_buffer, "OK")) {
-        /* Command succeeded */
-        serial_comm_send_debug("AT command succeeded\r\n", 100);
-
-        switch (at_state) {
-            case AT_STATE_WAITING_BASIC:
-                /* Basic AT succeeded, set WiFi mode */
-                serial_comm_send_at_command("AT+CWMODE=1", 100);
-                at_state = AT_STATE_WAITING_CWMODE;
-                break;
-
-            case AT_STATE_WAITING_CWMODE:
-            	 /* WiFi mode set, check if we need to connect to WiFi */
-            	if (!is_wifi_connected) {
-            		/* Connect to WiFi using the defined SSID and password */
-            		char connect_cmd[128];
-            		snprintf(connect_cmd, sizeof(connect_cmd),
-            				"AT+CWJAP=\"%s\",\"%s\"", WIFI_SSID, WIFI_PASSWORD);
-            		serial_comm_send_at_command(connect_cmd, 100);
-            		at_state = AT_STATE_WAITING_CONNECT;
-            	} else {
-            		/* Already connected, proceed to scan */
-            		serial_comm_send_at_command("AT+CWLAP", 100);
-            		at_state = AT_STATE_WAITING_CWLAP;
-            	}
-                break;
-
-            case AT_STATE_WAITING_CWLAP:
-                /* Scan completed successfully */
-                serial_comm_send_debug("WiFi scan completed\r\n", 100);
-                at_state = AT_STATE_IDLE;
-
-                /* Process the scan results here if needed */
-                /* CWLAP results should have been captured in previous messages */
-                break;
-
-            case AT_STATE_WAITING_CONNECT:
-                /* Connection successful */
-                serial_comm_send_debug("WiFi connection established\r\n", 100);
-                is_wifi_connected = true;
-                current_state = PROTO_STATE_CONNECTED;
-
-                /* Get IP address */
-                serial_comm_send_at_command("AT+CIFSR", 100);
-                at_state = AT_STATE_WAITING_IP;
-                break;
-
-            case AT_STATE_WAITING_IP:
-                /* Received IP info */
-                serial_comm_send_debug("IP address acquired\r\n", 100);
-                at_state = AT_STATE_IDLE;
-                break;
-
-            case AT_STATE_CUSTOM:
-                /* Custom AT command completed */
-                serial_comm_send_debug("Custom AT command completed\r\n", 100);
-                at_state = AT_STATE_IDLE;
-                break;
-
-            default:
-                at_state = AT_STATE_IDLE;
-                break;
-        }
-    }
-    else if (strstr((char*)rx_buffer, "ERROR") || strstr((char*)rx_buffer, "FAIL")) {
-        /* Command failed - get human readable error message */
-    	const char* error_message = translate_at_error((char*)rx_buffer);
-    	char debug_msg[MAX_BUFFER_SIZE];
-    	snprintf(debug_msg, MAX_BUFFER_SIZE, "AT command failed: %s\r\n", error_message);
-    	serial_comm_send_debug(debug_msg, 100);
-
-        /* Handle specific error cases */
-        if (at_state == AT_STATE_WAITING_CONNECT) {
-            /* Connection attempt failed */
-            is_wifi_connected = false;
-            serial_comm_send_debug("WiFi connection failed\r\n", 100);
-
-        }
-
-        /* Reset AT state */
-        at_state = AT_STATE_IDLE;
-    }
-    else if (strstr((char*)rx_buffer, "+CWLAP:")) {
-        /* Received WiFi scan results, continue waiting for OK */
-        serial_comm_send_debug("Found WiFi network: ", 100);
-    }
-    else if (strstr((char*)rx_buffer, "+CIFSR:")) {
-        /* Received IP address info, continue waiting for OK */
-        serial_comm_send_debug("IP information: ", 100);
-    }
-}
-
-UART_Status serial_comm_send_game_data(const char *data, uint16_t length, uint32_t timeout)
-{
-    if (!is_serial_connected || current_state != PROTO_STATE_CONNECTED) {
+    if (length > MAX_PAYLOAD_SIZE) {
+        DEBUG_PRINTF(false, "Message data too long: %d bytes (max %d)\r\n",
+                     length, MAX_PAYLOAD_SIZE);
         return UART_ERROR;
     }
 
-    /* For game data, format will depend on your specific needs */
-    /* This is just an example - modify as needed */
+    uart_message_t msg;
+    memset(&msg, 0, sizeof(msg));
 
-    char header[32];
-    snprintf(header, sizeof(header), "AT+CIPSEND=%d\r\n", length);
+    msg.start_byte = MSG_START_BYTE;
+    msg.msg_type = (uint8_t)type;
+    msg.length = length;
 
-    UART_Status status = serial_comm_send_message(header, timeout);
-    if (status != UART_OK) {
-        return status;
+    if (data && length > 0) {
+        memcpy(msg.data, data, length);
     }
 
-    /* Wait briefly for the '>' prompt */
-    HAL_Delay(100);
+    // Calculate checksum AFTER setting all other fields
+    msg.checksum = calculate_checksum(&msg);
+    msg.end_byte = MSG_END_BYTE;
 
-    /* Send the actual data */
-    return UART_SendBuffer(UART_PORT_2, (uint8_t*)data, length, timeout);
+    DEBUG_PRINTF(false, "Sending message: type=0x%02X, length=%d, checksum=0x%02X\r\n",
+                 type, length, msg.checksum);
+
+    return send_raw_message(&msg);
 }
 
-void serial_comm_enter_data_mode(void)
+UART_Status serial_comm_send_game_data(const char* data_type, const char* game_data, const char* metadata)
 {
-    current_state = PROTO_STATE_DATA_MODE;
-    serial_comm_send_debug("Entered data mode\r\n", 100);
+    uart_game_data_t payload;
+    memset(&payload, 0, sizeof(payload));
+
+    strncpy(payload.data_type, data_type, sizeof(payload.data_type) - 1);
+    strncpy(payload.game_data, game_data, sizeof(payload.game_data) - 1);
+    if (metadata) {
+        strncpy(payload.metadata, metadata, sizeof(payload.metadata) - 1);
+    }
+    payload.sequence_num = stats.bytes_sent; // Use bytes sent as sequence
+
+    DEBUG_PRINTF(false, "Sending game data: type='%s', data='%s', meta='%s'\r\n",
+                 data_type, game_data, metadata ? metadata : "");
+
+    return serial_comm_send_message(MSG_TYPE_DATA, (const uint8_t*)&payload, sizeof(payload));
 }
 
-void serial_comm_exit_data_mode(void)
+UART_Status serial_comm_send_chat_message(const char* message, const char* sender, const char* chat_type)
 {
-    current_state = PROTO_STATE_CONNECTED;
-    serial_comm_send_debug("Exited data mode\r\n", 100);
+    uart_chat_message_t payload;
+    memset(&payload, 0, sizeof(payload));
+
+    strncpy(payload.message, message, sizeof(payload.message) - 1);
+    strncpy(payload.sender, sender ? sender : "STM32", sizeof(payload.sender) - 1);
+    strncpy(payload.chat_type, chat_type ? chat_type : "general", sizeof(payload.chat_type) - 1);
+    payload.timestamp = get_current_ms();
+
+    DEBUG_PRINTF(false, "Sending chat message: from='%s', type='%s', message='%s'\r\n",
+                 payload.sender, payload.chat_type, payload.message);
+
+    return serial_comm_send_message(MSG_TYPE_CHAT, (const uint8_t*)&payload, sizeof(payload));
+}
+
+UART_Status serial_comm_send_command(const char* command, const char* parameters)
+{
+    uart_command_t cmd;
+    memset(&cmd, 0, sizeof(cmd));
+
+    strncpy(cmd.command, command, sizeof(cmd.command) - 1);
+    if (parameters) {
+        strncpy(cmd.parameters, parameters, sizeof(cmd.parameters) - 1);
+    }
+
+    return serial_comm_send_message(MSG_TYPE_COMMAND, (const uint8_t*)&cmd, sizeof(cmd));
+}
+
+UART_Status serial_comm_send_status(uint8_t system_status, uint8_t error_code, const char* message)
+{
+    uart_status_t status;
+    memset(&status, 0, sizeof(status));
+
+    status.system_status = system_status;
+    status.error_code = error_code;
+    if (message) {
+        strncpy(status.status_message, message, sizeof(status.status_message) - 1);
+    }
+
+    return serial_comm_send_message(MSG_TYPE_STATUS, (const uint8_t*)&status, sizeof(status));
+}
+
+UART_Status serial_comm_send_ack(void)
+{
+    return serial_comm_send_message(MSG_TYPE_ACK, NULL, 0);
+}
+
+UART_Status serial_comm_send_nack(void)
+{
+    return serial_comm_send_message(MSG_TYPE_NACK, NULL, 0);
+}
+
+UART_Status serial_comm_send_heartbeat(void)
+{
+    DEBUG_PRINTF(false, "Sending heartbeat to ESP32\r\n");
+    return serial_comm_send_message(MSG_TYPE_HEARTBEAT, NULL, 0);
+}
+
+// Callback Registration Functions
+void serial_comm_register_game_data_callback(game_data_received_callback_t callback)
+{
+    game_data_callback = callback;
+    DEBUG_PRINTF(false, "Game data callback registered\r\n");
+}
+
+void serial_comm_register_chat_message_callback(chat_message_received_callback_t callback)
+{
+    chat_message_callback = callback;
+    DEBUG_PRINTF(false, "Chat message callback registered\r\n");
+}
+
+void serial_comm_register_command_callback(command_received_callback_t callback)
+{
+    command_callback = callback;
+    DEBUG_PRINTF(false, "Command callback registered\r\n");
+}
+
+void serial_comm_register_status_callback(status_received_callback_t callback)
+{
+    status_callback = callback;
+    DEBUG_PRINTF(false, "Status callback registered\r\n");
+}
+
+// Utility Functions
+
+void serial_comm_send_debug(const char* message, uint32_t timeout)
+{
+    DEBUG_PRINTF(false, "%s", message);
 }
 
 UART_Status serial_comm_reset(void)
 {
+    /* Reset protocol state */
     current_state = PROTO_STATE_INIT;
-    at_state = AT_STATE_IDLE;
-    is_serial_connected = false;
-    rx_index = 0;
-    message_complete = false;
-    at_response_complete = false;
+    is_esp32_ready = false;
+    is_wifi_connected = false;
+    is_websocket_connected = false;
 
-    /* Send reset command to ESP32 */
-    UART_Status status = serial_comm_send_at_command("AT+RST", 100);
-    if (status != UART_OK) {
-        return status;
-    }
+    /* Clear all communication buffers */
+    circular_buffer_flush(&rx_buffer);
+    message_queue_flush(&msg_queue);
+    message_parser_reset(&parser);
 
-    serial_comm_send_debug("Communication reset initiated\r\n", 100);
+    DEBUG_PRINTF(false, "Communication reset initiated\r\n");
     last_activity_time = get_current_ms();
 
     return UART_OK;
 }
 
-
-void serial_comm_off(void)
+void serial_comm_print_stats(void)
 {
-    // Reset communication states
-    current_state = PROTO_STATE_INIT;
-    at_state = AT_STATE_IDLE;
-    is_serial_connected = false;
-    is_wifi_connected = false;
+    /* Update stats with current buffer/queue info */
+    comm_stats_update_buffer(&stats, &rx_buffer);
+    comm_stats_update_queue(&stats, &msg_queue);
 
-    // Reset buffers
-    rx_index = 0;
-    message_complete = false;
-    at_response_complete = false;
-
-    // Log the event
-    serial_comm_send_debug("ESP32 powered off\r\n", 100);
+    /* Print comprehensive stats */
+    DEBUG_PRINTF(false, "=== UART Communication Statistics ===\r\n");
+    DEBUG_PRINTF(false, "Messages parsed: %lu\r\n", stats.messages_parsed);
+    DEBUG_PRINTF(false, "Parse errors: %lu\r\n", stats.parse_errors);
+    DEBUG_PRINTF(false, "Bytes received: %lu\r\n", stats.bytes_received);
+    DEBUG_PRINTF(false, "Bytes sent: %lu\r\n", stats.bytes_sent);
+    DEBUG_PRINTF(false, "Buffer overflows: %lu\r\n", stats.buffer_overflows);
+    DEBUG_PRINTF(false, "Queue overflows: %lu\r\n", stats.queue_overflows);
+    DEBUG_PRINTF(false, "Current RX buffer: %d/%d bytes\r\n",
+                 circular_buffer_available(&rx_buffer), CIRCULAR_BUFFER_SIZE);
+    DEBUG_PRINTF(false, "Current message queue: %d/%d messages\r\n",
+                 message_queue_available(&msg_queue), MESSAGE_QUEUE_SIZE);
+    DEBUG_PRINTF(false, "===================================\r\n");
 }
 
-static void UART_RxCallback(uint8_t data)
+// Advanced Diagnostic Functions
+void serial_comm_get_buffer_status(uint16_t* rx_used, uint16_t* rx_free, uint8_t* msg_count)
 {
-    /* Echo the received character to debug port for monitoring */
-    char debug_char[2] = {data, '\0'};
-    serial_comm_send_debug(debug_char, 10);
-
-    /* Store byte in buffer if there's space */
-    if (rx_index < MAX_BUFFER_SIZE - 1) {
-        rx_buffer[rx_index++] = data;
-        rx_buffer[rx_index] = '\0'; /* Always keep null-terminated */
-    }
-
-    /* Check for line endings for message completion */
-    if (data == LINE_ENDING || data == '\r') {
-        if (current_state == PROTO_STATE_AT_MODE ||
-            current_state == PROTO_STATE_INIT ||
-            at_state != AT_STATE_IDLE) {
-            /* In AT mode, check if response is complete */
-            at_response_complete = check_for_at_response_end();
-        } else {
-            /* In other modes, treat line ending as message end */
-            message_complete = true;
-        }
-    }
+    if (rx_used) *rx_used = circular_buffer_available(&rx_buffer);
+    if (rx_free) *rx_free = circular_buffer_free_space(&rx_buffer);
+    if (msg_count) *msg_count = message_queue_available(&msg_queue);
 }
 
-static bool check_for_at_response_end(void)
+bool serial_comm_is_buffer_healthy(void)
 {
-    /* AT responses typically end with OK, ERROR, FAIL, or SEND OK */
-    if (strstr((char*)rx_buffer, "OK\r\n") ||
-        strstr((char*)rx_buffer, "ERROR\r\n") ||
-        strstr((char*)rx_buffer, "FAIL\r\n") ||
-        strstr((char*)rx_buffer, "SEND OK\r\n")) {
-        return true;
-    }
+    /* Consider buffer healthy if not near overflow and no excessive errors */
+    uint16_t buffer_usage = circular_buffer_available(&rx_buffer);
+    uint16_t buffer_usage_percent = (buffer_usage * 100) / CIRCULAR_BUFFER_SIZE;
 
-    /* Special cases for multi-line responses */
-    if (at_state == AT_STATE_WAITING_CWLAP &&
-        strstr((char*)rx_buffer, "OK\r\n") &&
-        strstr((char*)rx_buffer, "+CWLAP:")) {
-        return true;
-    }
-
-    /* Not a complete response yet */
-    return false;
+    return (buffer_usage_percent < 80) &&
+           (stats.buffer_overflows < 10) &&
+           (stats.queue_overflows < 5);
 }
