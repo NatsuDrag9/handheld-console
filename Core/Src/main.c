@@ -147,8 +147,8 @@ int main(void)
 //  display_set_cursor(10, 10);
 //  display_write_string("Hello World", Font_7x10, DISPLAY_BLACK);
 
-  oled_show_screen(SCREEN_WELCOME);
-  oled_show_screen(SCREEN_MENU);
+  console_ui_show_screen(SCREEN_WELCOME);
+  console_ui_show_screen(SCREEN_MENU);
 
   // Start with a simple tone test
 //  audio_play_tone(440, 1000);  // 440 Hz (A4) for 1 second
@@ -196,13 +196,13 @@ int main(void)
 //	  	oled_menu_handle_input(js_status);
 //	  	DEBUG_PRINTF(0, "Selected menu item: %s\n", oled_get_selected_menu_item().title);
 
-	  	if (oled_is_game_active()) {
-	  	        oled_run_game();
+	  	if (console_ui_is_game_active()) {
+	  	        console_ui_run_game();
 
 	  	        add_delay(1);  // Control game speed
 	  	    } else {
 	  	        JoystickStatus js_status = joystick_get_status();
-	  	        oled_menu_handle_input(js_status);
+	  	        console_ui_handle_input(js_status);
 	  	    }
 
 //	  	 if(pb1_get_state() == 1) {

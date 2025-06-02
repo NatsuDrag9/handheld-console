@@ -9,7 +9,7 @@
 #define INC_GAME_ENGINE_GAME_ENGINE_H_
 
 #include <Console_Peripherals/Hardware/Drivers/display_driver.h>
-#include <Console_Peripherals/Hardware/types.h>
+#include <Console_Peripherals/types.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include "Utils/misc_utils.h"

@@ -8,7 +8,7 @@
 #ifndef INC_SOUNDS_AUDIO_SOUNDS_H_
 #define INC_SOUNDS_AUDIO_SOUNDS_H_
 
-#include <Console_Peripherals/Hardware/types.h>
+#include <Console_Peripherals/types.h>
 #include "Utils/misc_utils.h"
 
 // Note frequency definitions (based on A4 = 440 Hz)

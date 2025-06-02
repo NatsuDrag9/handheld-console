@@ -24,7 +24,7 @@ static uint8_t parse_buffer[sizeof(uart_message_t)];
 static ProtocolState current_state = PROTO_STATE_INIT;
 static uint32_t last_activity_time = 0;
 static uint32_t last_heartbeat_time = 0;
-static const uint32_t HEARTBEAT_INTERVAL_MS = 5000;
+//static const uint32_t HEARTBEAT_INTERVAL_MS = 5000;
 
 /* Connection status */
 static bool is_esp32_ready = false;
@@ -384,7 +384,7 @@ UART_Status serial_comm_deinit(void)
 /* Non-blocking message check - parses data and checks queue */
 bool serial_comm_is_message_ready(void)
 {
-    uint32_t current_time = get_current_ms();
+//    uint32_t current_time = get_current_ms();
 
     /* Parse any available data from circular buffer */
     parse_incoming_data();

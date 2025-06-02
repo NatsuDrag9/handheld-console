@@ -5,10 +5,12 @@
  *      Author: rohitimandi
  *  Modified on: Apr 13, 2025
  *      Added dirty rectangle optimization
+ *  Refactored on: Jun 5, 2025
+ *      Updated to use modular display architecture
  */
 
-#include <Console_Peripherals/Hardware/push_button.h>
-#include "Console_Peripherals/oled.h"
+#include "Console_Peripherals/Hardware/push_button.h"
+#include "Console_Peripherals/Hardware/display_manager.h"
 #include "Game_Engine/game_engine.h"
 
 static uint32_t game_over_start_time = 0;
@@ -68,7 +70,7 @@ void game_engine_handle_buttons(GameEngine* engine) {
         }
         else {
             // Calculate how long button has been held
-            //            uint32_t hold_duration = current_time - button2_press_start_time;
+            // uint32_t hold_duration = current_time - button2_press_start_time;
 
             // For UI feedback, could add code here to show hold progress
             // (e.g., drawing a progress bar when holding for main menu)
@@ -146,16 +148,11 @@ void game_engine_render_countdown(GameEngine* engine) {
             if (elapsed_time >= RETURN_MESSAGE_START_TIME
                 && elapsed_time < GAME_OVER_MESSAGE_TIME) {
                 uint32_t remaining_secs = (GAME_OVER_MESSAGE_TIME - elapsed_time) / 1000;
-                char countdown_msg[32];
+                char countdown_msg[64];
                 snprintf(countdown_msg, sizeof(countdown_msg),
-                    "Returning to main\n menu in: %lu", remaining_secs + 1);
+                    "Returning to main menu in: %lu", remaining_secs + 1);
 
-#ifdef DISPLAY_MODULE_LCD
-                display_write_string_centered(countdown_msg, Font_11x18, 45, DISPLAY_WHITE);
-#else
-                display_write_string_centered(countdown_msg, Font_7x10, 45, DISPLAY_WHITE);
-#endif
-
+                display_manager_show_centered_message(countdown_msg, 45);
             }
 
             last_second = current_second;
@@ -166,6 +163,10 @@ void game_engine_render_countdown(GameEngine* engine) {
             return;
         }
     }
+}
+
+void game_engine_render_paused_message(void) {
+    display_manager_show_centered_message("PAUSED", 30);
 }
 
 void game_engine_render(GameEngine* engine) {
@@ -179,7 +180,7 @@ void game_engine_render(GameEngine* engine) {
 
         // Clear screen only when needed
         if (state_changed || require_full_refresh) {
-            display_clear();
+            display_manager_clear_screen();
             require_full_refresh = false;
         }
 
@@ -188,11 +189,7 @@ void game_engine_render(GameEngine* engine) {
 
         // Render paused message if game is paused
         if (engine->base_state.paused) {
-#ifdef DISPLAY_MODULE_LCD
-        	display_write_string_centered("PAUSED", Font_11x18, 30, DISPLAY_WHITE);
-#else
-            display_write_string_centered("PAUSED", Font_7x10, 30, DISPLAY_WHITE);
-#endif
+            game_engine_render_paused_message();
         }
 
         // Render countdown if in game over state
@@ -204,8 +201,8 @@ void game_engine_render(GameEngine* engine) {
         was_paused = engine->base_state.paused;
         was_game_over = engine->base_state.game_over;
 
-        // Send updates to display
-        display_update();
+        // Update display
+        display_manager_update();
     }
 }
 
