@@ -8,9 +8,9 @@
 #ifndef INC_GAME_ENGINE_GAMES_PACMAN_MAZE_H_
 #define INC_GAME_ENGINE_GAMES_PACMAN_MAZE_H_
 
+#include <Console_Peripherals/Hardware/Drivers/display_driver.h>  // For DISPLAY_WIDTH and DISPLAY_HEIGHT
 #include <stdbool.h>
 #include "Sprites/sprite.h"
-#include "Console_Peripherals/Drivers/display_driver.h"  // For DISPLAY_WIDTH and DISPLAY_HEIGHT
 #include "Game_Engine/game_engine_conf.h"  // For GAME_AREA_TOP, TILE_SIZE, BORDER_OFFSET
 
 // Maze elements

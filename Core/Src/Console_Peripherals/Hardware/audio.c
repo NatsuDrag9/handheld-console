@@ -6,7 +6,7 @@
  */
 
 
-#include "Console_Peripherals/audio.h"
+#include <Console_Peripherals/Hardware/audio.h>
 #include <math.h>
 
  // Audio state variables

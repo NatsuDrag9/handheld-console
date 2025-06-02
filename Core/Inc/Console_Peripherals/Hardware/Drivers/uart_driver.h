@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_DRIVERS_UART_DRIVER_H_
-#define INC_CONSOLE_PERIPHERALS_DRIVERS_UART_DRIVER_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_UART_DRIVER_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_UART_DRIVER_H_
 
 #include "stm32f4xx_hal.h"
 #include <stdint.h>
@@ -43,4 +43,4 @@ UART_Status UART_EnableRxInterrupt(UART_Port port);
 UART_Status UART_DisableRxInterrupt(UART_Port port);
 UART_Status UART_RegisterRxCallback(UART_Port port, void (*callback)(uint8_t));
 
-#endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_UART_DRIVER_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_UART_DRIVER_H_ */

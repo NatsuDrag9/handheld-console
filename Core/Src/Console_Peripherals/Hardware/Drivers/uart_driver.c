@@ -5,7 +5,7 @@
  *      Author: rohitimandi
  */
 
-#include "Console_Peripherals/Drivers/uart_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/uart_driver.h>
 #include "Utils/debug_conf.h"
 
  /* External variable declarations */

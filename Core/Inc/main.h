@@ -34,7 +34,7 @@ extern "C" {
 #ifndef UNITY_TEST
 #include "System/pin_definitions.h"
 #include "System/system_conf.h"
-#include "Console_Peripherals/console_peripherals_conf.h"
+#include <Console_Peripherals/console_peripherals_conf.h>
 #include <Utils/misc_utils.h>
 #include "Game_Engine/game_engine.h"
 #include "Game_Engine/Games/snake_game.h"

@@ -8,7 +8,7 @@
 #ifndef SRC_PERIPHERALS_D_PAD_C_
 #define SRC_PERIPHERALS_D_PAD_C_
 
-#include "Console_Peripherals/d_pad.h"
+#include <Console_Peripherals/Hardware/d_pad.h>
 #include "Utils/debug_conf.h"
 
 static uint8_t last_direction = 0;

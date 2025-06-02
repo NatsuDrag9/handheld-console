@@ -8,14 +8,14 @@
 #ifndef INC_CONSOLE_PERIPHERALS_OLED_H_
 #define INC_CONSOLE_PERIPHERALS_OLED_H_
 
+#include <Console_Peripherals/Hardware/d_pad.h>
+#include <Console_Peripherals/Hardware/Drivers/display_driver.h>
+#include <Console_Peripherals/Hardware/joystick.h>
+#include <Console_Peripherals/Hardware/serial_comm.h>
+#include <Console_Peripherals/types.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include "string.h"
-#include "Console_Peripherals/types.h"
-#include "Console_Peripherals/joystick.h"
-#include "Console_Peripherals/Drivers/display_driver.h"
-#include "Console_Peripherals/d_pad.h"
-#include "Console_Peripherals/serial_comm.h"
 #include "Game_Engine/game_menu.h"
 #include "Game_Engine/game_engine.h"
 #include "Game_Engine/Games/snake_game.h"

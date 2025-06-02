@@ -5,10 +5,10 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_SERIAL_COMM_H_
-#define INC_CONSOLE_PERIPHERALS_SERIAL_COMM_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_SERIAL_COMM_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_SERIAL_COMM_H_
 
-#include "Console_Peripherals/Drivers/uart_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/uart_driver.h>
 #include "System/system_conf.h"
 #include "Utils/comm_utils.h"
 #include <string.h>
@@ -125,4 +125,4 @@ void serial_comm_send_debug(const char* message, uint32_t timeout);
 UART_Status serial_comm_reset(void);
 void serial_comm_print_stats(void);
 
-#endif /* INC_CONSOLE_PERIPHERALS_SERIAL_COMM_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_SERIAL_COMM_H_ */

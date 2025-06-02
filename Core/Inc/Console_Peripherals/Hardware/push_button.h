@@ -5,10 +5,10 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_PUSH_BUTTON_H_
-#define INC_CONSOLE_PERIPHERALS_PUSH_BUTTON_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_PUSH_BUTTON_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_PUSH_BUTTON_H_
 
-#include "Console_Peripherals/Drivers/push_button_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/push_button_driver.h>
 
 // Button states structure (made public for testing)
 typedef struct {
@@ -34,4 +34,4 @@ void process_button(Button_TypeDef *button, uint8_t current_reading, uint32_t cu
 
 
 
-#endif /* INC_CONSOLE_PERIPHERALS_PUSH_BUTTON_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_PUSH_BUTTON_H_ */

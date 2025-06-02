@@ -8,13 +8,13 @@
 #ifndef INC_CONSOLE_PERIPHERALS_CONSOLE_PERIPHERALS_CONF_H_
 #define INC_CONSOLE_PERIPHERALS_CONSOLE_PERIPHERALS_CONF_H_
 
-#include "joystick.h"
-#include "push_button.h"
-#include "d_pad.h"
+#include <Console_Peripherals/Hardware/audio.h>
+#include <Console_Peripherals/Hardware/d_pad.h>
+#include <Console_Peripherals/Hardware/joystick.h>
+#include <Console_Peripherals/Hardware/push_button.h>
+#include <Console_Peripherals/Hardware/serial_comm.h>
 #include "Game_Engine/game_menu.h"
 #include "oled.h"
-#include "audio.h"
-#include "serial_comm.h"
 
 void console_peripherals_init(void);
 

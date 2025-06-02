@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#include "Console_Peripherals/Drivers/joystick_driver.h"
-#include "Console_Peripherals/joystick.h"
+#include <Console_Peripherals/Hardware/Drivers/joystick_driver.h>
+#include <Console_Peripherals/Hardware/joystick.h>
 
 // Private variables for hardware interaction
 static volatile uint16_t adc_buf[2];

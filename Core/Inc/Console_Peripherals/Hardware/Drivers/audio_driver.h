@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_DRIVERS_AUDIO_DRIVER_H_
-#define INC_CONSOLE_PERIPHERALS_DRIVERS_AUDIO_DRIVER_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_AUDIO_DRIVER_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_AUDIO_DRIVER_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -25,4 +25,4 @@ void audio_driver_stop(void); // Explicit stop function
 extern DAC_HandleTypeDef hdac;
 #endif
 
-#endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_AUDIO_DRIVER_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_AUDIO_DRIVER_H_ */

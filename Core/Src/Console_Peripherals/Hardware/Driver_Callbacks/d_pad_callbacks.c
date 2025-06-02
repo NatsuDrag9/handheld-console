@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#include "Console_Peripherals/Driver_Callbacks/d_pad_callbacks.h"
-#include "Console_Peripherals/d_pad.h"
+#include <Console_Peripherals/Hardware/d_pad.h>
+#include <Console_Peripherals/Hardware/Driver_Callbacks/d_pad_callbacks.h>
 #include "System/pin_definitions.h"
 #include "Utils/debug_conf.h"
 

@@ -8,7 +8,7 @@
 #ifndef INC_SPRITES_SPRITE_H_
 #define INC_SPRITES_SPRITE_H_
 
-#include "Console_Peripherals/Drivers/display_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/display_driver.h>
 
 #ifdef DISPLAY_MODULE_LCD
 #define STATUS_START_Y 19 // Font_11X18's height + 1

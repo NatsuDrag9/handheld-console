@@ -5,7 +5,7 @@
  *      Author: rohitimandi
  */
 
-#include "Console_Peripherals/Drivers/display_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/display_driver.h>
 #include "Utils/debug_conf.h"
 
 #ifdef DISPLAY_MODULE_LCD

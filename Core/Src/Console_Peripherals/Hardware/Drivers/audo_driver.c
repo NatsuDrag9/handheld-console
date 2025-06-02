@@ -136,7 +136,7 @@
  * audio_driver.c - Improved phase-correct implementation
  */
 
-#include "Console_Peripherals/Drivers/audio_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/audio_driver.h>
 #include "Utils/debug_conf.h"
 
 // Fixed sample rate of 22kHz

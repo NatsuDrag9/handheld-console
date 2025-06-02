@@ -6,7 +6,7 @@
  *
  */
 
-#include "Console_Peripherals/serial_comm.h"
+#include <Console_Peripherals/Hardware/serial_comm.h>
 #include "Utils/debug_conf.h"
 #include "Utils/comm_utils.h"
 

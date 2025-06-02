@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_DRIVERS_DISPLAY_DRIVER_H_
-#define INC_CONSOLE_PERIPHERALS_DRIVERS_DISPLAY_DRIVER_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_DISPLAY_DRIVER_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_DISPLAY_DRIVER_H_
 
 // Select the display module
 //#define DISPLAY_MODULE_LCD 1
@@ -83,4 +83,4 @@ void display_draw_border_at(coord_t x_offset, coord_t y_offset, coord_t dist_fro
 void display_draw_pixel(coord_t x, coord_t y, DisplayColor color);
 void display_draw_bitmap(coord_t x, coord_t y, const uint8_t* bitmap, coord_t width, coord_t height, DisplayColor color);
 
-#endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_DISPLAY_DRIVER_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_DISPLAY_DRIVER_H_ */

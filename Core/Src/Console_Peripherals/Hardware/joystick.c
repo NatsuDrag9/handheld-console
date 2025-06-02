@@ -9,8 +9,8 @@
 #ifndef SRC_PERIPHERALS_JOYSTICK_C_
 #define SRC_PERIPHERALS_JOYSTICK_C_
 
-#include "Console_Peripherals/joystick.h"
-#include "Console_Peripherals/Drivers/joystick_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/joystick_driver.h>
+#include <Console_Peripherals/Hardware/joystick.h>
 
 static uint8_t last_direction = JS_DIR_CENTERED;
 static volatile JoystickStatus joystick_status = { JS_DIR_CENTERED, 0, 0 };

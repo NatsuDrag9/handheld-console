@@ -7,9 +7,9 @@
  *      Added dirty rectangle optimization
  */
 
+#include <Console_Peripherals/Hardware/push_button.h>
 #include "Console_Peripherals/oled.h"
 #include "Game_Engine/game_engine.h"
-#include "Console_Peripherals/push_button.h"
 
 static uint32_t game_over_start_time = 0;
 static uint32_t button2_press_start_time = 0;

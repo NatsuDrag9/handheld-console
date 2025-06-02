@@ -5,16 +5,16 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_AUDIO_H_
-#define INC_CONSOLE_PERIPHERALS_AUDIO_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_AUDIO_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_AUDIO_H_
 
+#include <Console_Peripherals/Hardware/Drivers/audio_driver.h>
+#include <Console_Peripherals/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include "Game_Engine/game_engine_conf.h"
-#include "Console_Peripherals/Drivers/audio_driver.h"
 #include "Sounds/audio_sounds.h"
-#include "Console_Peripherals/types.h"
 
  // Sound types
 typedef enum {
@@ -38,4 +38,4 @@ void audio_update(void); // Update function to be called in main loop
 bool audio_is_playing(void); // Check if audio is currently playing
 void audio_play_sound_once(SoundEffect effect); // Plays the sound only once until the sound is restarted manually
 
-#endif /* INC_CONSOLE_PERIPHERALS_AUDIO_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_AUDIO_H_ */

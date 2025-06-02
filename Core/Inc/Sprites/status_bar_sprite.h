@@ -8,7 +8,7 @@
 #ifndef INC_SPRITES_STATUS_BAR_SPRITE_H_
 #define INC_SPRITES_STATUS_BAR_SPRITE_H_
 
-#include "Console_Peripherals/types.h"
+#include <Console_Peripherals/Hardware/types.h>
 #include "sprite.h"
 
 // Dimensions for status bar icons

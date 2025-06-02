@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_DRIVERS_JOYSTICK_DRIVER_H_
-#define INC_CONSOLE_PERIPHERALS_DRIVERS_JOYSTICK_DRIVER_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_JOYSTICK_DRIVER_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_JOYSTICK_DRIVER_H_
 
 #include <stdint.h>
 
@@ -32,4 +32,4 @@ void joystick_driver_get_adc_values(uint16_t* x, uint16_t* y);
    void __enable_irq(void);
 #endif
 
-#endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_JOYSTICK_DRIVER_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_JOYSTICK_DRIVER_H_ */

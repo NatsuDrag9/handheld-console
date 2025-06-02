@@ -5,7 +5,7 @@
  *      Author: rohitimandi
  */
 
-#include "Console_Peripherals/Drivers/push_button_driver.h"
+#include <Console_Peripherals/Hardware/Drivers/push_button_driver.h>
 
 uint8_t PB_Driver_ReadPin1(void) {
     return (HAL_GPIO_ReadPin(PB_GPIO_Port, PB_1_Pin) == GPIO_PIN_SET) ? 1 : 0;

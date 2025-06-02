@@ -5,9 +5,9 @@
  *      Author: rohitimandi
  */
 
-#include "Console_Peripherals/Driver_Callbacks/joystick_callbacks.h"
-#include "Console_Peripherals/Drivers/joystick_driver.h"
-#include "Console_Peripherals/joystick.h"
+#include <Console_Peripherals/Hardware/Driver_Callbacks/joystick_callbacks.h>
+#include <Console_Peripherals/Hardware/Drivers/joystick_driver.h>
+#include <Console_Peripherals/Hardware/joystick.h>
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {

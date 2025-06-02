@@ -8,12 +8,12 @@
 #ifndef INC_GAME_ENGINE_GAME_ENGINE_H_
 #define INC_GAME_ENGINE_GAME_ENGINE_H_
 
+#include <Console_Peripherals/Hardware/Drivers/display_driver.h>
+#include <Console_Peripherals/Hardware/types.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "Console_Peripherals/types.h"
 #include "Utils/misc_utils.h"
 #include "game_engine_conf.h"
-#include "Console_Peripherals/Drivers/display_driver.h"
 
 typedef void (*UpdateWithJoystick)(JoystickStatus);
 typedef void (*UpdateWithDPad)(DPAD_STATUS);

@@ -5,8 +5,8 @@
  *      Author: rohitimandi
  */
 
-#ifndef INC_CONSOLE_PERIPHERALS_DRIVERS_PUSH_BUTTON_DRIVER_H_
-#define INC_CONSOLE_PERIPHERALS_DRIVERS_PUSH_BUTTON_DRIVER_H_
+#ifndef INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_PUSH_BUTTON_DRIVER_H_
+#define INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_PUSH_BUTTON_DRIVER_H_
 
 #include "main.h"
 #include <stdint.h>
@@ -23,4 +23,4 @@ uint8_t read_dpad_pin_down(void);
 // Get system time for debouncing
 uint32_t PB_Driver_GetTick(void);
 
-#endif /* INC_CONSOLE_PERIPHERALS_DRIVERS_PUSH_BUTTON_DRIVER_H_ */
+#endif /* INC_CONSOLE_PERIPHERALS_HARDWARE_DRIVERS_PUSH_BUTTON_DRIVER_H_ */
