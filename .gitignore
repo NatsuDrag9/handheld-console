@@ -46,6 +46,8 @@ run_tests
 ili9341_two.c
 *_old.c
 *_old.h
+*_new.h
+*_new.c
 # display_driver_old.c
 # snake_game_old.c
 # oled_old.c
