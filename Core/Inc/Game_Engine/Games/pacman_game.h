@@ -9,6 +9,7 @@
 #define INC_GAME_ENGINE_GAMES_PACMAN_GAME_H_
 
 #include "Game_Engine/game_engine.h"
+#include "Game_Engine/Games/game_types.h"
 #include "Sprites/pacman_sprite.h"
 #include "Game_Engine/Games/pacman_maze.h"
 
@@ -40,12 +41,6 @@ typedef enum {
     MODE_SCATTER,
     MODE_FRIGHTENED
 } GhostMode;
-
-// Position structure
-typedef struct {
-    coord_t x;
-    coord_t y;
-} Position;
 
 // Ghost structure
 typedef struct {

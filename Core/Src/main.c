@@ -147,7 +147,7 @@ int main(void)
 //  display_set_cursor(10, 10);
 //  display_write_string("Hello World", Font_7x10, DISPLAY_BLACK);
 
-  console_ui_show_screen(SCREEN_WELCOME);
+//  console_ui_show_screen(SCREEN_WELCOME); // Already shown in console_ui_init_with_default_menu() in console_peripherals_init()
   console_ui_show_screen(SCREEN_MENU);
 
   // Start with a simple tone test

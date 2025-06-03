@@ -56,7 +56,7 @@ void display_manager_update(void) {
 	display_update();
 }
 
-void display_manager_show_welcome_message(const char* line1, const char* line2) {
+void display_manager_show_welcome_message(char* line1, char* line2) {
 	display_clear();
 	display_draw_border();
 
@@ -69,12 +69,12 @@ void display_manager_show_welcome_message(const char* line1, const char* line2) 
 	add_delay(3000);  /* Show welcome screen for 3 seconds */
 }
 
-void display_manager_show_game_title(const char* title) {
+void display_manager_show_game_title(char* title) {
 	display_write_string_centered((char*) title, DISPLAY_TITLE_FONT,
 			DISPLAY_GAME_TITLE_Y, DISPLAY_WHITE);
 }
 
-void display_manager_show_game_over_message(const char* message, uint32_t final_score) {
+void display_manager_show_game_over_message(char* message, uint32_t final_score) {
 	display_clear();
 	display_draw_border();
 
@@ -94,18 +94,18 @@ void display_manager_show_game_over_message(const char* message, uint32_t final_
 	display_update();
 }
 
-void display_manager_show_status_message(const char* message) {
+void display_manager_show_status_message(char* message) {
 	display_clear();
 	display_write_string_centered((char*) message, DISPLAY_STATUS_FONT, 25, DISPLAY_WHITE);
 	display_update();
 	add_delay(100);
 }
 
-void display_manager_show_centered_message(const char* message, uint8_t y_position) {
+void display_manager_show_centered_message(char* message, uint8_t y_position) {
 	display_write_string_centered((char*) message, DISPLAY_STATUS_FONT, y_position, DISPLAY_WHITE);
 }
 
-void display_manager_show_error_message(const char* error) {
+void display_manager_show_error_message(char* error) {
 	display_clear();
 	display_write_string_centered("ERROR", DISPLAY_ERROR_FONT, 20, DISPLAY_WHITE);
 	display_write_string_centered(error, DISPLAY_ERROR_FONT, 35, DISPLAY_WHITE);

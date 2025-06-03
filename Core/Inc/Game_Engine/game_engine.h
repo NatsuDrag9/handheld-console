@@ -8,8 +8,8 @@
 #ifndef INC_GAME_ENGINE_GAME_ENGINE_H_
 #define INC_GAME_ENGINE_GAME_ENGINE_H_
 
-#include <Console_Peripherals/Hardware/Drivers/display_driver.h>
-#include <Console_Peripherals/types.h>
+#include "Console_Peripherals/Hardware/Drivers/display_driver.h"
+#include "Console_Peripherals/types.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include "Utils/misc_utils.h"
@@ -23,6 +23,7 @@ typedef struct {
 //    void (*update)(JoystickStatus);  // Game logic update
     void (*render)(void);            // Draw game state
     void (*cleanup)(void);           // Cleanup resources
+    void (*show_game_over_message)(void); // Displays a custom game over message
 
     // Union for different update function signatures
        union {

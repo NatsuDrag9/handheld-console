@@ -5,7 +5,7 @@
  *      Author: rohitimandi
  */
 
-#include <Console_Peripherals/console_peripherals_conf.h>
+#include "Console_Peripherals/console_peripherals_conf.h"
 #include "Utils/misc_utils.h"
 
 void console_peripherals_init(void) {

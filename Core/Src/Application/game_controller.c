@@ -1,15 +1,6 @@
 /*
  * game_controller.c
  *
- *  Created on: Jun 2, 2025
- *      Author: rohitimandi
- */
-#include "Application/game_controller.h"
-
-
-/*
- * game_controller.c
- *
  *  Created on: Jan 5, 2025
  *      Author: rohitimandi
  */
@@ -18,7 +9,8 @@
 #include "Console_Peripherals/Hardware/display_manager.h"
 #include "Console_Peripherals/Hardware/d_pad.h"
 #include "Console_Peripherals/Hardware/serial_comm.h"
-#include "Game_Engine/Games/snake_game.h"
+//#include "Game_Engine/Games/snake_game.h"
+#include "Game_Engine/Games/Single_Player/snake_game.h"
 #include "Game_Engine/Games/pacman_game.h"
 #include "Utils/debug_conf.h"
 
@@ -111,9 +103,16 @@ void game_controller_handle_input(JoystickStatus js_status) {
 
         case APP_STATE_GAME_OVER:
             /* Game over screen - any input returns to menu */
-            if (js_status.is_new && (js_status.button || pb1_get_state())) {
-                game_controller_return_to_menu();
-            }
+//            if (js_status.is_new && (js_status.button || pb1_get_state())) {
+//                game_controller_return_to_menu();
+//            }
+//        	Return to main menu after pressing push-button one or joystick button
+//        	if (pb1_get_state() || (js_status.is_new && js_status.button)) {
+//        		game_controller_return_to_menu();
+//        	}
+
+//        	Auto-return to main menu
+        	game_controller_return_to_menu();
             break;
 
         default:
@@ -269,14 +268,28 @@ static void process_game_loop(GameEngine* engine) {
     game_engine_render(engine);
 }
 
+// Returns to main menu when push-button 1 is press
+//static bool handle_game_over(GameEngine* engine) {
+//    if (engine->base_state.game_over && engine->countdown_over) {
+//        /* Show game over screen */
+//        display_manager_show_game_over_message("Press PB 1 to continue",
+//                                             engine->base_state.score);
+//
+//        // Clean up after displaying the score
+//        game_engine_cleanup(engine);
+//        current_app_state = APP_STATE_GAME_OVER;
+//        return false;
+//    }
+//
+//    return true;
+//}
+
+// Auto-returns to main menu and is in sync with the countdown
 static bool handle_game_over(GameEngine* engine) {
     if (engine->base_state.game_over && engine->countdown_over) {
+        // Clean up after displaying the score
         game_engine_cleanup(engine);
         current_app_state = APP_STATE_GAME_OVER;
-
-        /* Show game over screen */
-        display_manager_show_game_over_message("Press any button to continue",
-                                             engine->base_state.score);
         return false;
     }
 

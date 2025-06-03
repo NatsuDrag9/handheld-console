@@ -38,4 +38,7 @@
 #define SAMPLE_COUNT 128
 extern const uint16_t SINE_WAVE_TABLE[SAMPLE_COUNT]; // Pre-calculated sine wave samples (normalized to DAC range 0-4095)
 
+// Default lives in a game
+#define DEFAULT_LIVES 1
+
 #endif /* INC_GAME_ENGINE_GAME_ENGINE_CONF_H_ */

@@ -25,7 +25,7 @@ void game_engine_init(GameEngine* engine) {
     if (engine && engine->init) {
         // Initialize base state
         engine->base_state.score = 0;
-        engine->base_state.lives = 3;
+        engine->base_state.lives = DEFAULT_LIVES;
         engine->base_state.paused = false;
         engine->base_state.is_reset = false;
         engine->base_state.game_over = false;
@@ -191,6 +191,14 @@ void game_engine_render(GameEngine* engine) {
         if (engine->base_state.paused) {
             game_engine_render_paused_message();
         }
+
+        // Show custom game over message only once when state first changes
+        if (engine->base_state.game_over && !was_game_over) {
+        	if (engine->show_game_over_message) {
+        		engine->show_game_over_message();
+        	}
+        }
+
 
         // Render countdown if in game over state
         if (engine->base_state.game_over) {

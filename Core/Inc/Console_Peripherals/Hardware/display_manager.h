@@ -65,12 +65,12 @@ void display_manager_clear_main_area(void);
 void display_manager_update(void);
 
 /* Semantic display functions - these hide display-specific details */
-void display_manager_show_welcome_message(const char* line1, const char* line2);
-void display_manager_show_game_title(const char* title);
-void display_manager_show_game_over_message(const char* message, uint32_t final_score);
-void display_manager_show_status_message(const char* message);
-void display_manager_show_centered_message(const char* message, uint8_t y_position);
-void display_manager_show_error_message(const char* error);
+void display_manager_show_welcome_message(char* line1, char* line2);
+void display_manager_show_game_title(char* title);
+void display_manager_show_game_over_message(char* message, uint32_t final_score);
+void display_manager_show_status_message(char* message);
+void display_manager_show_centered_message(char* message, uint8_t y_position);
+void display_manager_show_error_message(char* error);
 
 /* Status bar functions */
 void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int lives, bool in_game);
