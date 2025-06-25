@@ -241,7 +241,7 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
                 }
 
                 // Send status to STM32
-                uart_send_status(4, 0, "WebSocket Connected");
+                uart_send_status(WEBSOCKET_CONNECTED, 0, "WebSocket Connected");
             }
             else {
                 ESP_LOGE(TAG, "Connection message but no ID found");
@@ -442,7 +442,7 @@ static void websocket_event_handler(void* handler_args, esp_event_base_t base, i
         memset(client_id, 0, sizeof(client_id));
 
         // Send initial status to STM32
-        uart_send_status(3, 0, "WebSocket Connecting...");
+        uart_send_status(WEBSOCKET_CONNECTING, 0, "WebSocket Connecting...");
 
         // Send a test message to ensure the connection is working
         vTaskDelay(pdMS_TO_TICKS(1000)); // Give server time to send connection message
@@ -461,7 +461,7 @@ static void websocket_event_handler(void* handler_args, esp_event_base_t base, i
         }
 
         // Send status to STM32
-        uart_send_status(0, 1, "WebSocket Disconnected");
+        uart_send_status(WEBSOCKET_DISCONNECTED, 1, "WebSocket Disconnected");
         break;
 
     case WEBSOCKET_EVENT_DATA:

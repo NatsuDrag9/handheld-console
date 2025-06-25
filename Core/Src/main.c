@@ -71,49 +71,49 @@ void uart_test_loop(void) {
         serial_comm_process_messages();
     }
 
-    // Send test messages to ESP32 every 5 seconds
-    if (current_time - last_uart_test_time > 5000) {
-        uart_test_counter++;
-
-        char debug_msg[128];
-        snprintf(debug_msg, sizeof(debug_msg), "Sending test message #%lu to ESP32\r\n", uart_test_counter);
-        serial_comm_send_debug(debug_msg, 100);
-
-        // Send different types of test messages
-        switch (uart_test_counter % 5) {
-            case 0:
-                serial_comm_send_debug("   -> Sending game data\r\n", 100);
-                serial_comm_send_game_data("stm32_test", "Hello from STM32!", "test_meta_data");
-                break;
-
-            case 1:
-                serial_comm_send_debug("   -> Sending ping command\r\n", 100);
-                serial_comm_send_command("ping", "stm32_ping_parameter");
-                break;
-
-            case 2:
-                serial_comm_send_debug("   -> Sending status\r\n", 100);
-                serial_comm_send_status(uart_test_counter, 0, "STM32 structured status");
-                break;
-
-            case 3:
-                serial_comm_send_debug("   -> Sending heartbeat\r\n", 100);
-                serial_comm_send_heartbeat();
-                break;
-
-            case 4:
-            	serial_comm_send_debug("   -> Sending chat message\r\n", 100);
-            	serial_comm_send_chat_message("My name is stm32", "STM32", "general");
-        }
-
-        // Print statistics every 810messages
-        if (uart_test_counter % 10 == 0) {
-            serial_comm_send_debug("Printing UART statistics:\r\n", 100);
-            serial_comm_print_stats();
-        }
-
-        last_uart_test_time = current_time;
-    }
+//    // Send test messages to ESP32 every 5 seconds
+//    if (current_time - last_uart_test_time > 5000) {
+//        uart_test_counter++;
+//
+//        char debug_msg[128];
+//        snprintf(debug_msg, sizeof(debug_msg), "Sending test message #%lu to ESP32\r\n", uart_test_counter);
+//        serial_comm_send_debug(debug_msg, 100);
+//
+//        // Send different types of test messages
+//        switch (uart_test_counter % 5) {
+//            case 0:
+//                serial_comm_send_debug("   -> Sending game data\r\n", 100);
+//                serial_comm_send_game_data("stm32_test", "Hello from STM32!", "test_meta_data");
+//                break;
+//
+//            case 1:
+//                serial_comm_send_debug("   -> Sending ping command\r\n", 100);
+//                serial_comm_send_command("ping", "stm32_ping_parameter");
+//                break;
+//
+//            case 2:
+//                serial_comm_send_debug("   -> Sending status\r\n", 100);
+//                serial_comm_send_status(uart_test_counter, 0, "STM32 structured status");
+//                break;
+//
+//            case 3:
+//                serial_comm_send_debug("   -> Sending heartbeat\r\n", 100);
+//                serial_comm_send_heartbeat();
+//                break;
+//
+//            case 4:
+//            	serial_comm_send_debug("   -> Sending chat message\r\n", 100);
+//            	serial_comm_send_chat_message("My name is stm32", "STM32", "general");
+//        }
+//
+//        // Print statistics every 810messages
+//        if (uart_test_counter % 10 == 0) {
+//            serial_comm_send_debug("Printing UART statistics:\r\n", 100);
+//            serial_comm_print_stats();
+//        }
+//
+//        last_uart_test_time = current_time;
+//    }
 }
 
 /* USER CODE END 0 */
@@ -204,6 +204,8 @@ int main(void)
 	  	        JoystickStatus js_status = joystick_get_status();
 	  	        console_ui_handle_input(js_status);
 	  	    }
+//	  	bool wifi_connected = serial_comm_is_wifi_connected();
+//	    DEBUG_PRINTF(false, "Wifi connected: %d\n", wifi_connected);
 
 //	  	 if(pb1_get_state() == 1) {
 //	  		 DEBUG_PRINTF(false, "PB1 is pressed\n");

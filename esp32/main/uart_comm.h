@@ -11,6 +11,9 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
+// Include common status types from STM32 folder
+#include "../../Core/Inc/Console_Peripherals/Hardware/common_status_types.h"
+
 // UART Configuration
 #define UART_PORT_NUM           UART_NUM_2
 #define UART_BAUD_RATE          115200
@@ -89,6 +92,14 @@ typedef struct {
     char status_message[32];
 } uart_status_t;
 
+// ACK tracking structure
+typedef struct {
+    bool waiting_for_ack;
+    TickType_t ack_start_time;
+    uint32_t timeout_ms;
+    SemaphoreHandle_t ack_semaphore;
+} ack_tracker_t;
+
 #pragma pack(pop)
 
 // Callback function types
@@ -105,10 +116,15 @@ esp_err_t uart_send_message(uart_message_type_t type, const uint8_t* data, size_
 esp_err_t uart_send_game_data(const char* data_type, const char* game_data, const char* metadata);
 esp_err_t uart_send_chat_message(const char* message, const char* sender, const char* chat_type);
 esp_err_t uart_send_command(const char* command, const char* parameters);
-esp_err_t uart_send_status(uint8_t system_status, uint8_t error_code, const char* message);
+esp_err_t uart_send_status(system_status_type_t system_status, uint8_t error_code, const char* message);
 esp_err_t uart_send_ack(void);
 esp_err_t uart_send_nack(void);
 esp_err_t uart_send_heartbeat(void);
+esp_err_t uart_send_status_with_ack(system_status_type_t system_status, uint8_t error_code,
+    const char* message, uint32_t timeout_ms);
+esp_err_t uart_init_ack_system(void);
+void uart_deinit_ack_system(void);
+
 
 // Callback registration functions
 void uart_register_message_callback(uart_message_callback_t callback);

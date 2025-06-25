@@ -171,38 +171,108 @@ static void handle_esp32_status(const uart_status_t* status)
                  status->system_status, status->error_code, status->status_message);
 
     switch (status->system_status) {
-    case 1: // ESP32 started
+    case SYSTEM_STATUS_ESP32_STARTED:
         if (current_state == PROTO_STATE_INIT) {
             current_state = PROTO_STATE_ESP32_READY;
             is_esp32_ready = true;
-            DEBUG_PRINTF(false, "ESP32 ready\r\n");
+            DEBUG_PRINTF(false, "ESP32 started and ready \r\n");
         }
         break;
 
-    case 2: // WiFi connecting
+    case SYSTEM_STATUS_ESP32_READY:
+        current_state = PROTO_STATE_ESP32_READY;
+        is_esp32_ready = true;
+        DEBUG_PRINTF(false, "ESP32 initialization complete - sending ack\r\n");
+
+        // CRITICAL: Send ACK immediately for handshake
+        serial_comm_send_ack();
+        DEBUG_PRINTF(false, "ESP32 critical handshake ACK sent\r\n");
+        break;
+
+    case SYSTEM_STATUS_WIFI_CONNECTING:
         if (current_state == PROTO_STATE_ESP32_READY) {
             current_state = PROTO_STATE_WIFI_CONNECTING;
             DEBUG_PRINTF(false, "ESP32 WiFi connecting\r\n");
         }
         break;
 
-    case 3: // WiFi connected
+    case SYSTEM_STATUS_WIFI_CONNECTED:
         current_state = PROTO_STATE_WIFI_CONNECTED;
         is_wifi_connected = true;
-        DEBUG_PRINTF(false, "ESP32 WiFi connected\r\n");
+        DEBUG_PRINTF(false, "ESP32 WiFi connected successfully\r\n");
         break;
 
-    case 4: // WebSocket connected
+    case SYSTEM_STATUS_WIFI_DISCONNECTED:
+        current_state = PROTO_STATE_ESP32_READY;
+        is_wifi_connected = false;
+        is_websocket_connected = false;
+        DEBUG_PRINTF(false, "ESP32 WiFi disconnected\r\n");
+        break;
+
+    case SYSTEM_STATUS_WEBSOCKET_CONNECTING:
+        if (current_state == PROTO_STATE_WIFI_CONNECTED) {
+            current_state = PROTO_STATE_WEBSOCKET_CONNECTING;
+            DEBUG_PRINTF(false, "ESP32 WebSocket connecting\r\n");
+        }
+        break;
+
+    case SYSTEM_STATUS_WEBSOCKET_CONNECTED:
         current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
         is_websocket_connected = true;
-        DEBUG_PRINTF(false, "ESP32 WebSocket connected\r\n");
+        DEBUG_PRINTF(false, "ESP32 WebSocket connected successfully\r\n");
         break;
 
-    case 0: // Error state
+    case SYSTEM_STATUS_WEBSOCKET_DISCONNECTED:
+        if (is_websocket_connected) {
+            current_state = PROTO_STATE_WIFI_CONNECTED;
+            is_websocket_connected = false;
+            DEBUG_PRINTF(false, "ESP32 WebSocket disconnected\r\n");
+        }
+        break;
+
+    case SYSTEM_STATUS_GAME_READY:
+        current_state = PROTO_STATE_GAME_READY;
+        DEBUG_PRINTF(false, "ESP32 game session ready\r\n");
+
+        // Respond that STM32 game logic is ready
+        serial_comm_send_status(SYSTEM_STATUS_STM32_GAME_READY, 0, "STM32_GAME_READY");
+        break;
+
+    case SYSTEM_STATUS_GAME_ACTIVE:
+    	if (current_state == PROTO_STATE_GAME_READY) {
+    		current_state = PROTO_STATE_GAME_ACTIVE;
+    		DEBUG_PRINTF(false, "✓ Game session active\r\n");
+    	}
+        break;
+
+    case SYSTEM_STATUS_GAME_ENDED:
+    	if (current_state == PROTO_STATE_GAME_ACTIVE) {
+    		current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
+    		DEBUG_PRINTF(false, "Game session ended - back to ready state\r\n");
+    	}
+        break;
+
+    case SYSTEM_STATUS_OPPONENT_CONNECTED:
+        DEBUG_PRINTF(false, "Opponent connected\r\n");
+        break;
+
+    case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
+        DEBUG_PRINTF(false, "Opponent disconnected\r\n");
+        break;
+
+    case SYSTEM_STATUS_PLAYER_ASSIGNMENT:
+        DEBUG_PRINTF(false, "Player assignment received\r\n");
+        break;
+
+    case SYSTEM_STATUS_ERROR:
         current_state = PROTO_STATE_ERROR;
         is_wifi_connected = false;
         is_websocket_connected = false;
         DEBUG_PRINTF(false, "ESP32 error state\r\n");
+        break;
+
+    default:
+        DEBUG_PRINTF(false, "Unknown ESP32 status: %d\r\n", status->system_status);
         break;
     }
 
@@ -212,6 +282,7 @@ static void handle_esp32_status(const uart_status_t* status)
     }
 }
 
+
 /* Handle ESP32 commands */
 static void handle_esp32_command(const uart_command_t* command)
 {
@@ -219,8 +290,20 @@ static void handle_esp32_command(const uart_command_t* command)
                  command->command, command->parameters);
 
     if (strncmp(command->command, "game_ready", 10) == 0) {
-        current_state = PROTO_STATE_GAME_ACTIVE;
+        current_state = PROTO_STATE_GAME_READY;
         DEBUG_PRINTF(false, "Game session ready\r\n");
+        // Respond that STM32 game logic is ready
+        serial_comm_send_status(SYSTEM_STATUS_STM32_GAME_READY, 0, "STM32_GAME_READY");
+        serial_comm_send_ack();
+    }
+    else if (strncmp(command->command, "start_game", 10) == 0) {
+        current_state = PROTO_STATE_GAME_ACTIVE;
+        DEBUG_PRINTF(false, "Game session started\r\n");
+        serial_comm_send_ack();
+    }
+    else if (strncmp(command->command, "end_game", 8) == 0) {
+        current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
+        DEBUG_PRINTF(false, "Game session ended\r\n");
         serial_comm_send_ack();
     }
     else if (strncmp(command->command, "ping", 4) == 0) {
@@ -230,12 +313,18 @@ static void handle_esp32_command(const uart_command_t* command)
     else if (strncmp(command->command, "pong", 4) == 0) {
         DEBUG_PRINTF(false, "Pong received from ESP32\r\n");
     }
+    else if (strncmp(command->command, "reset", 5) == 0) {
+        DEBUG_PRINTF(false, "Reset command received\r\n");
+        serial_comm_reset();
+        serial_comm_send_ack();
+    }
 
     // Call registered callback if available
     if (command_callback) {
         command_callback(command);
     }
 }
+
 
 /* Process received message */
 static void process_received_message(const uart_message_t* msg)
@@ -351,7 +440,7 @@ UART_Status serial_comm_init(void)
     DEBUG_PRINTF(false, "STM32 UART Communication Initialized (Clean Architecture)\r\n");
 
     // Send initial status to ESP32
-    serial_comm_send_status(1, 0, "STM32_READY");
+    serial_comm_send_status(SYSTEM_STATUS_STM32_READY, 0, "STM32_READY");
 
     return UART_OK;
 }
@@ -502,7 +591,7 @@ UART_Status serial_comm_send_command(const char* command, const char* parameters
     return serial_comm_send_message(MSG_TYPE_COMMAND, (const uint8_t*)&cmd, sizeof(cmd));
 }
 
-UART_Status serial_comm_send_status(uint8_t system_status, uint8_t error_code, const char* message)
+UART_Status serial_comm_send_status(system_status_type_t system_status, uint8_t error_code, const char* message)
 {
     uart_status_t status;
     memset(&status, 0, sizeof(status));
@@ -512,6 +601,9 @@ UART_Status serial_comm_send_status(uint8_t system_status, uint8_t error_code, c
     if (message) {
         strncpy(status.status_message, message, sizeof(status.status_message) - 1);
     }
+
+    DEBUG_PRINTF(false, "Sending status: system=%d, error=%d, message='%s'\r\n",
+                 system_status, error_code, message ? message : "");
 
     return serial_comm_send_message(MSG_TYPE_STATUS, (const uint8_t*)&status, sizeof(status));
 }

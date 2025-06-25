@@ -6,6 +6,7 @@
  */
 #include "Console_Peripherals/UI/menu_system.h"
 #include "Console_Peripherals/Hardware/display_manager.h"
+#include "Console_Peripherals/Hardware/serial_comm.h"
 
 /* Private function declarations */
 static bool handle_navigation_up(MenuState* menu_state);
@@ -57,6 +58,10 @@ void menu_system_render(const MenuState* menu_state) {
 
     display_manager_clear_screen();
     display_manager_draw_border();
+
+    // Draw status bar on main menu screen wihout score
+    bool wifi_connected = serial_comm_is_wifi_connected();
+    display_manager_draw_status_bar(wifi_connected, 0, 0, false);
 
     /* Draw menu title */
     display_manager_draw_menu_title("Select Game");

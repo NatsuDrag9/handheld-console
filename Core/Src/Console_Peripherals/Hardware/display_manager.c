@@ -23,10 +23,10 @@ extern void add_delay(uint32_t ms);
 #define VISIBLE_ITEMS    3
 #define MENU_TITLE_Y     10
 #elif defined(DISPLAY_MODULE_LCD)
-#define MENU_START_Y     50
-#define MENU_ITEM_HEIGHT 35
+#define MENU_START_Y     60
+#define MENU_ITEM_HEIGHT 30
 #define VISIBLE_ITEMS    4
-#define MENU_TITLE_Y     25
+#define MENU_TITLE_Y     35
 #else
 /* Default to OLED */
 #define MENU_START_Y     25
@@ -133,6 +133,8 @@ void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int li
 		display_set_cursor(5, 2);
 		display_write_string(status_text, DISPLAY_STATUS_FONT, DISPLAY_WHITE);
 	}
+
+	display_update();
 }
 
 void display_manager_draw_border(void) {
@@ -140,7 +142,7 @@ void display_manager_draw_border(void) {
 }
 
 void display_manager_draw_menu_title(const char* title) {
-	display_write_string_centered(title, DISPLAY_TITLE_FONT, MENU_TITLE_Y, DISPLAY_WHITE);
+	display_write_string_centered((char*) title, DISPLAY_TITLE_FONT, MENU_TITLE_Y, DISPLAY_WHITE);
 }
 
 void display_manager_draw_menu_item(const char* item_text, uint8_t position, bool is_selected) {

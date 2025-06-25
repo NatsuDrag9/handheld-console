@@ -35,5 +35,8 @@
 
    // Function prototypes
 void wifi_init_sta(void);
+bool wifi_is_connected(void);
+void wifi_get_ip_string(char* buffer, size_t buffer_size);
+esp_err_t wifi_get_connection_info(wifi_ap_record_t* ap_info);
 
 #endif /* WIFI_H */

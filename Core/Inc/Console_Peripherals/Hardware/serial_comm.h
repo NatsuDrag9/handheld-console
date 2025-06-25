@@ -12,6 +12,8 @@
 #include "System/system_conf.h"
 #include "Utils/comm_utils.h"
 #include <string.h>
+// Include common status types
+#include "common_status_types.h"
 
  /* Communication Settings */
 #define MAX_BUFFER_SIZE 256
@@ -24,14 +26,15 @@
 
 /* Protocol States - Simplified without AT commands */
 typedef enum {
-    PROTO_STATE_INIT,          // Initial state - waiting for ESP32
-    PROTO_STATE_ESP32_READY,   // ESP32 has sent ready signal
-    PROTO_STATE_WIFI_CONNECTING, // ESP32 connecting to WiFi
-    PROTO_STATE_WIFI_CONNECTED,  // WiFi connected
-    PROTO_STATE_WEBSOCKET_CONNECTING, // WebSocket connecting
-    PROTO_STATE_WEBSOCKET_CONNECTED,  // WebSocket connected - ready for game data
-    PROTO_STATE_GAME_ACTIVE,   // Game session active
-    PROTO_STATE_ERROR          // Error occurred
+    PROTO_STATE_INIT,                    // Initial state - waiting for ESP32
+    PROTO_STATE_ESP32_READY,             // ESP32 has sent ready signal
+    PROTO_STATE_WIFI_CONNECTING,         // ESP32 connecting to WiFi
+    PROTO_STATE_WIFI_CONNECTED,          // WiFi connected
+    PROTO_STATE_WEBSOCKET_CONNECTING,    // WebSocket connecting
+    PROTO_STATE_WEBSOCKET_CONNECTED,     // WebSocket connected - ready for game data
+    PROTO_STATE_GAME_READY,              // Game session ready (waiting for players/setup)
+    PROTO_STATE_GAME_ACTIVE,             // Game session active (game in progress)
+    PROTO_STATE_ERROR                    // Error occurred
 } ProtocolState;
 
 #pragma pack(push, 1)

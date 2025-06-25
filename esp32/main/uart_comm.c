@@ -1,5 +1,6 @@
 #include "uart_comm.h"
 
+static ack_tracker_t ack_tracker = { 0 };
 static const char* TAG = "UART_COMM";
 
 // Global variables
@@ -47,6 +48,28 @@ void debug_struct_sizes(void) {
     ESP_LOGI(TAG, "checksum offset: %zu", (size_t)&test_msg.checksum - (size_t)&test_msg);
     ESP_LOGI(TAG, "end_byte offset: %zu", (size_t)&test_msg.end_byte - (size_t)&test_msg);
     ESP_LOGI(TAG, "===============================");
+}
+
+// Initialize ACK tracking system
+esp_err_t uart_init_ack_system(void) {
+    ack_tracker.ack_semaphore = xSemaphoreCreateBinary();
+    if (ack_tracker.ack_semaphore == NULL) {
+        ESP_LOGE(TAG, "Failed to create ACK semaphore");
+        return ESP_FAIL;
+    }
+    ack_tracker.waiting_for_ack = false;
+    ESP_LOGI(TAG, "ACK tracking system initialized");
+    return ESP_OK;
+}
+
+
+// Deinitialize ACK tracking system
+void uart_deinit_ack_system(void) {
+    if (ack_tracker.ack_semaphore) {
+        vSemaphoreDelete(ack_tracker.ack_semaphore);
+        ack_tracker.ack_semaphore = NULL;
+    }
+    ack_tracker.waiting_for_ack = false;
 }
 
 // Calculate simple checksum
@@ -141,6 +164,7 @@ static void process_received_message(const uart_message_t* msg) {
     case UART_MSG_COMMAND:
         if (command_callback && msg->length == sizeof(uart_command_t)) {
             uart_command_t* command = (uart_command_t*)msg->data;
+            ESP_LOGI(TAG, "Received command: %s %s", command->command, command->parameters);
             command_callback(command);
         }
         break;
@@ -148,20 +172,31 @@ static void process_received_message(const uart_message_t* msg) {
     case UART_MSG_STATUS:
         if (status_callback && msg->length == sizeof(uart_status_t)) {
             uart_status_t* status = (uart_status_t*)msg->data;
+            ESP_LOGI(TAG, "Received status: system=%d, error=%d, message=%s",
+                status->system_status, status->error_code, status->status_message);
             status_callback(status);
         }
         break;
 
     case UART_MSG_ACK:
-        ESP_LOGI(TAG, "Received ACK");
+        ESP_LOGI(TAG, "Received ACK from STM32");
+
+        // Signal ACK received if we're waiting for one
+        if (ack_tracker.waiting_for_ack && ack_tracker.ack_semaphore) {
+            BaseType_t higher_priority_task_woken = pdFALSE;
+            xSemaphoreGiveFromISR(ack_tracker.ack_semaphore, &higher_priority_task_woken);
+            if (higher_priority_task_woken) {
+                portYIELD_FROM_ISR();
+            }
+        }
         break;
 
     case UART_MSG_NACK:
-        ESP_LOGI(TAG, "Received NACK");
+        ESP_LOGI(TAG, "Received NACK from STM32");
         break;
 
     case UART_MSG_HEARTBEAT:
-        ESP_LOGI(TAG, "Received heartbeat");
+        ESP_LOGI(TAG, "Received heartbeat from STM32");
         // Automatically respond to heartbeat
         uart_send_ack();
         break;
@@ -173,6 +208,74 @@ static void process_received_message(const uart_message_t* msg) {
 
     uart_stats.messages_received++;
 }
+
+
+// static void process_received_message(const uart_message_t* msg) {
+//     ESP_LOGI(TAG, "Processing message type: 0x%02X, length: %d",
+//         msg->msg_type, msg->length);
+
+//     // Call generic message callback if registered
+//     if (message_callback) {
+//         message_callback((uart_message_type_t)msg->msg_type, msg->data, msg->length);
+//     }
+
+//     // Process specific message types
+//     switch (msg->msg_type) {
+//     case UART_MSG_DATA:
+//         if (game_data_callback && msg->length == sizeof(uart_game_data_t)) {
+//             uart_game_data_t* game_data = (uart_game_data_t*)msg->data;
+//             ESP_LOGI(TAG, "Game Data: type=%s, data=%s", game_data->data_type, game_data->game_data);
+//             game_data_callback(game_data);
+//         }
+//         break;
+
+//     case UART_MSG_CHAT:
+//         if (chat_message_callback && msg->length == sizeof(uart_chat_message_t)) {
+//             uart_chat_message_t* chat_message = (uart_chat_message_t*)msg->data;
+//             ESP_LOGI(TAG, "Chat Message: from=%s, type=%s, message=%s",
+//                 chat_message->sender, chat_message->chat_type, chat_message->message);
+//             chat_message_callback(chat_message);
+//         }
+//         break;
+
+//     case UART_MSG_COMMAND:
+//         if (command_callback && msg->length == sizeof(uart_command_t)) {
+//             uart_command_t* command = (uart_command_t*)msg->data;
+//             ESP_LOGI(TAG, "Received command: %s %s", command->command, command->parameters);
+//             command_callback(command);
+//         }
+//         break;
+
+//     case UART_MSG_STATUS:
+//         if (status_callback && msg->length == sizeof(uart_status_t)) {
+//             uart_status_t* status = (uart_status_t*)msg->data;
+//             ESP_LOGI(TAG, "Received status: system=%d, error=%d, message=%s",
+//                 status->system_status, status->error_code, status->status_message);
+//             status_callback(status);
+//         }
+//         break;
+
+//     case UART_MSG_ACK:
+//         ESP_LOGI(TAG, "Received ACK from STM32");
+//         break;
+
+//     case UART_MSG_NACK:
+//         ESP_LOGI(TAG, "Received NACK from STM32");
+//         break;
+
+//     case UART_MSG_HEARTBEAT:
+//         ESP_LOGI(TAG, "Received heartbeat from STM32");
+//         // Automatically respond to heartbeat
+//         uart_send_ack();
+//         break;
+
+//     default:
+//         ESP_LOGW(TAG, "Unknown message type: 0x%02X", msg->msg_type);
+//         break;
+//     }
+
+//     uart_stats.messages_received++;
+// }
 
 // Send raw message
 static esp_err_t uart_send_raw_message(const uart_message_t* msg) {
@@ -371,6 +474,17 @@ esp_err_t uart_comm_init(void) {
     // Check message length
     debug_struct_sizes();
 
+    // Initialize ACK tracking system
+    esp_err_t ack_result = uart_init_ack_system();
+    if (ack_result != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize ACK system");
+        uart_driver_delete(UART_PORT_NUM);
+        return ack_result;
+    }
+
+    uart_initialized = true;
+    ESP_LOGI(TAG, "UART communication initialized successfully");
+
     return ESP_OK;
 }
 
@@ -386,6 +500,9 @@ esp_err_t uart_comm_deinit(void) {
         vTaskDelete(uart_task_handle);
         uart_task_handle = NULL;
     }
+
+    // Cleanup ACK system
+    uart_deinit_ack_system();
 
     // Delete driver
     uart_driver_delete(UART_PORT_NUM);
@@ -464,16 +581,61 @@ esp_err_t uart_send_command(const char* command, const char* parameters) {
     return uart_send_message(UART_MSG_COMMAND, (const uint8_t*)&cmd, sizeof(cmd));
 }
 
-esp_err_t uart_send_status(uint8_t system_status, uint8_t error_code, const char* message) {
+esp_err_t uart_send_status(system_status_type_t system_status, uint8_t error_code, const char* message) {
     uart_status_t status = { 0 };
 
-    status.system_status = system_status;
+    status.system_status = system_status;  // Now uses enum directly
     status.error_code = error_code;
     if (message) {
         strncpy(status.status_message, message, sizeof(status.status_message) - 1);
     }
 
     return uart_send_message(UART_MSG_STATUS, (const uint8_t*)&status, sizeof(status));
+}
+
+// Send status message and wait for ACK
+esp_err_t uart_send_status_with_ack(system_status_type_t system_status, uint8_t error_code,
+    const char* message, uint32_t timeout_ms) {
+    if (!uart_initialized || !ack_tracker.ack_semaphore) {
+        ESP_LOGE(TAG, "UART or ACK system not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    // Ensure we're not already waiting for an ACK
+    if (ack_tracker.waiting_for_ack) {
+        ESP_LOGW(TAG, "Already waiting for ACK, ignoring new request");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    // Set up ACK tracking
+    ack_tracker.waiting_for_ack = true;
+    ack_tracker.ack_start_time = xTaskGetTickCount();
+    ack_tracker.timeout_ms = timeout_ms;
+
+    // Send the status message
+    esp_err_t send_result = uart_send_status(system_status, error_code, message);
+    if (send_result != ESP_OK) {
+        ack_tracker.waiting_for_ack = false;
+        ESP_LOGE(TAG, "Failed to send status message");
+        return send_result;
+    }
+
+    ESP_LOGI(TAG, "Status sent, waiting for ACK (timeout: %lu ms)", timeout_ms);
+
+    // Wait for ACK with timeout
+    TickType_t timeout_ticks = pdMS_TO_TICKS(timeout_ms);
+    BaseType_t result = xSemaphoreTake(ack_tracker.ack_semaphore, timeout_ticks);
+
+    ack_tracker.waiting_for_ack = false;
+
+    if (result == pdTRUE) {
+        ESP_LOGI(TAG, "ACK received successfully");
+        return ESP_OK;
+    }
+    else {
+        ESP_LOGW(TAG, "ACK timeout after %lu ms", timeout_ms);
+        return ESP_ERR_TIMEOUT;
+    }
 }
 
 esp_err_t uart_send_ack(void) {
