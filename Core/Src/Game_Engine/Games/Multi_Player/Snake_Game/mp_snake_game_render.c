@@ -97,6 +97,9 @@ void mp_snake_render_waiting_screen(void) {
         case PROTO_STATE_WEBSOCKET_CONNECTED:
             status_text = "Waiting for opponent...";
             break;
+        case PROTO_STATE_GAME_READY:
+                status_text = "Game ready...";
+                break;
         case PROTO_STATE_GAME_ACTIVE:
             status_text = "Starting game...";
             break;
@@ -105,7 +108,7 @@ void mp_snake_render_waiting_screen(void) {
             break;
     }
 
-    display_manager_show_centered_message(status_text, DISPLAY_HEIGHT/2 - 10);
+    display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT/2 - 10);
 
     char player_text[32];
     snprintf(player_text, sizeof(player_text), "You are Player %d", mp_snake_data.local_player_id);

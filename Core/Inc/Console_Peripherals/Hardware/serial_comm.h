@@ -106,6 +106,8 @@ bool serial_comm_is_esp32_ready(void);
 bool serial_comm_is_wifi_connected(void);
 bool serial_comm_is_websocket_connected(void);
 ProtocolState serial_comm_get_state(void);
+bool serial_comm_needs_ui_update(void);
+void serial_comm_clear_ui_update_flag(void);
 
 /* Message sending functions */
 UART_Status serial_comm_send_message(MessageType type, const uint8_t* data, uint8_t length);

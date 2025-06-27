@@ -6,7 +6,7 @@
  *
  */
 
-#include <Console_Peripherals/Hardware/serial_comm.h>
+#include "Console_Peripherals/Hardware/serial_comm.h"
 #include "Utils/debug_conf.h"
 #include "Utils/comm_utils.h"
 
@@ -30,6 +30,7 @@ static uint32_t last_heartbeat_time = 0;
 static bool is_esp32_ready = false;
 static bool is_wifi_connected = false;
 static bool is_websocket_connected = false;
+static volatile bool ui_needs_status_update = false;
 
 /* Callback functions */
 static game_data_received_callback_t game_data_callback = NULL;
@@ -200,6 +201,7 @@ static void handle_esp32_status(const uart_status_t* status)
         current_state = PROTO_STATE_WIFI_CONNECTED;
         is_wifi_connected = true;
         DEBUG_PRINTF(false, "ESP32 WiFi connected successfully\r\n");
+        ui_needs_status_update = true;
         break;
 
     case SYSTEM_STATUS_WIFI_DISCONNECTED:
@@ -207,6 +209,7 @@ static void handle_esp32_status(const uart_status_t* status)
         is_wifi_connected = false;
         is_websocket_connected = false;
         DEBUG_PRINTF(false, "ESP32 WiFi disconnected\r\n");
+        ui_needs_status_update = true;
         break;
 
     case SYSTEM_STATUS_WEBSOCKET_CONNECTING:
@@ -453,6 +456,7 @@ UART_Status serial_comm_deinit(void)
     current_state = PROTO_STATE_INIT;
     is_esp32_ready = false;
     is_wifi_connected = false;
+    ui_needs_status_update = false;
     is_websocket_connected = false;
 
     /* Clear callbacks */
@@ -507,6 +511,14 @@ bool serial_comm_is_wifi_connected(void)
 bool serial_comm_is_websocket_connected(void)
 {
     return is_websocket_connected;
+}
+
+bool serial_comm_needs_ui_update(void) {
+    return ui_needs_status_update;
+}
+
+void serial_comm_clear_ui_update_flag(void) {
+    ui_needs_status_update = false;
 }
 
 ProtocolState serial_comm_get_state(void)
@@ -662,6 +674,7 @@ UART_Status serial_comm_reset(void)
     current_state = PROTO_STATE_INIT;
     is_esp32_ready = false;
     is_wifi_connected = false;
+    ui_needs_status_update = false;
     is_websocket_connected = false;
 
     /* Clear all communication buffers */

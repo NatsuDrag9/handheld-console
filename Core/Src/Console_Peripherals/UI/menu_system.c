@@ -59,7 +59,7 @@ void menu_system_render(const MenuState* menu_state) {
     display_manager_clear_screen();
     display_manager_draw_border();
 
-    // Draw status bar on main menu screen wihout score
+    // Draw status bar on main menu screen without score
     bool wifi_connected = serial_comm_is_wifi_connected();
     display_manager_draw_status_bar(wifi_connected, 0, 0, false);
 
