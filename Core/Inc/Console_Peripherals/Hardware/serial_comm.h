@@ -15,9 +15,6 @@
 // Include common status types
 #include "common_status_types.h"
 
- /* Communication Settings */
-#define MAX_BUFFER_SIZE 256
-#define LINE_ENDING '\n'
 
 /* Message Protocol - Matches ESP32 UART module */
 #define MSG_START_BYTE 0xAA
@@ -97,17 +94,25 @@ typedef void (*chat_message_received_callback_t)(const uart_chat_message_t* chat
 typedef void (*command_received_callback_t)(const uart_command_t* command);
 typedef void (*status_received_callback_t)(const uart_status_t* status);
 
-/* Function Prototypes */
+/* Core communication funcitons */
 UART_Status serial_comm_init(void);
 UART_Status serial_comm_deinit(void);
 bool serial_comm_is_message_ready(void);
 void serial_comm_process_messages(void);
+
+
+/* Connection status functions */
 bool serial_comm_is_esp32_ready(void);
 bool serial_comm_is_wifi_connected(void);
 bool serial_comm_is_websocket_connected(void);
 ProtocolState serial_comm_get_state(void);
 bool serial_comm_needs_ui_update(void);
 void serial_comm_clear_ui_update_flag(void);
+
+/* Enhanced error handling functions */
+bool serial_comm_has_network_error(void);
+void serial_comm_clear_network_error(void);
+const char* serial_comm_get_error_message(void);
 
 /* Message sending functions */
 UART_Status serial_comm_send_message(MessageType type, const uint8_t* data, uint8_t length);

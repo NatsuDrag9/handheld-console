@@ -32,6 +32,11 @@ static bool is_wifi_connected = false;
 static bool is_websocket_connected = false;
 static volatile bool ui_needs_status_update = false;
 
+/* Error handling state */
+static bool network_error_displayed = false;
+static uint32_t last_error_display_time = 0;
+static const uint32_t ERROR_DISPLAY_COOLDOWN_MS = 5000; // Don't spam error messages
+
 /* Callback functions */
 static game_data_received_callback_t game_data_callback = NULL;
 static chat_message_received_callback_t chat_message_callback = NULL;
@@ -49,6 +54,51 @@ static void handle_esp32_command(const uart_command_t* command);
 static void handle_game_data(const uart_game_data_t* game_data);
 static void handle_chat_message(const uart_chat_message_t* chat_message);
 static void parse_incoming_data(void);
+
+/* Error handling functions */
+static void handle_connection_error(const char* debug_message, const char* user_message);
+static void clear_connection_error(void);
+static void show_user_error_message(const char* message);
+
+/* Error handling implementation */
+static void handle_connection_error(const char* debug_message, const char* user_message) {
+    // Always log detailed error for debugging
+    DEBUG_PRINTF(false, "Connection Error: %s\r\n", debug_message);
+
+    // Show user-friendly message (with cooldown to prevent spam)
+    uint32_t current_time = get_current_ms();
+    if (!network_error_displayed ||
+        (current_time - last_error_display_time) > ERROR_DISPLAY_COOLDOWN_MS) {
+
+        show_user_error_message(user_message);
+        network_error_displayed = true;
+        last_error_display_time = current_time;
+
+        DEBUG_PRINTF(false, "Connection lost - will exit game\r\n");
+    }
+
+    // Update connection state
+    is_wifi_connected = false;
+    is_websocket_connected = false;
+    current_state = PROTO_STATE_ERROR;
+    ui_needs_status_update = true;
+}
+
+static void clear_connection_error(void) {
+    if (network_error_displayed) {
+        // Clear error message from display
+        display_manager_clear_screen();
+        display_manager_update();
+        network_error_displayed = false;
+        DEBUG_PRINTF(false, "Connection error cleared\r\n");
+    }
+}
+
+static void show_user_error_message(const char* message) {
+    // Show error message to user through display manager
+    display_manager_show_centered_message((char*)message, DISPLAY_HEIGHT/2);
+    DEBUG_PRINTF(false, "User Error Message: %s\r\n", message);
+}
 
 /* Calculate checksum to match ESP32 */
 static uint8_t calculate_checksum(const uart_message_t* msg)
@@ -166,8 +216,7 @@ static void handle_chat_message(const uart_chat_message_t* chat_message)
 }
 
 /* Handle ESP32 status messages */
-static void handle_esp32_status(const uart_status_t* status)
-{
+static void handle_esp32_status(const uart_status_t* status) {
     DEBUG_PRINTF(false, "ESP32 Status: %d, Error: %d, Msg: %.32s\r\n",
                  status->system_status, status->error_code, status->status_message);
 
@@ -176,23 +225,23 @@ static void handle_esp32_status(const uart_status_t* status)
         if (current_state == PROTO_STATE_INIT) {
             current_state = PROTO_STATE_ESP32_READY;
             is_esp32_ready = true;
-            DEBUG_PRINTF(false, "ESP32 started and ready \r\n");
+            clear_connection_error(); // Clear any previous errors
+            DEBUG_PRINTF(false, "ESP32 started and ready\r\n");
         }
         break;
 
     case SYSTEM_STATUS_ESP32_READY:
         current_state = PROTO_STATE_ESP32_READY;
         is_esp32_ready = true;
+        clear_connection_error();
         DEBUG_PRINTF(false, "ESP32 initialization complete - sending ack\r\n");
-
-        // CRITICAL: Send ACK immediately for handshake
         serial_comm_send_ack();
-        DEBUG_PRINTF(false, "ESP32 critical handshake ACK sent\r\n");
         break;
 
     case SYSTEM_STATUS_WIFI_CONNECTING:
         if (current_state == PROTO_STATE_ESP32_READY) {
             current_state = PROTO_STATE_WIFI_CONNECTING;
+            clear_connection_error(); // Clear error while attempting connection
             DEBUG_PRINTF(false, "ESP32 WiFi connecting\r\n");
         }
         break;
@@ -200,16 +249,18 @@ static void handle_esp32_status(const uart_status_t* status)
     case SYSTEM_STATUS_WIFI_CONNECTED:
         current_state = PROTO_STATE_WIFI_CONNECTED;
         is_wifi_connected = true;
+        clear_connection_error();
         DEBUG_PRINTF(false, "ESP32 WiFi connected successfully\r\n");
         ui_needs_status_update = true;
         break;
 
     case SYSTEM_STATUS_WIFI_DISCONNECTED:
-        current_state = PROTO_STATE_ESP32_READY;
-        is_wifi_connected = false;
-        is_websocket_connected = false;
-        DEBUG_PRINTF(false, "ESP32 WiFi disconnected\r\n");
-        ui_needs_status_update = true;
+        // Detailed debug info
+        DEBUG_PRINTF(false, "WiFi disconnected: reason=%d, message=%s\r\n",
+                     status->error_code, status->status_message);
+
+        // Unified user error handling
+        handle_connection_error("WiFi disconnected", "Lost WiFi Connection");
         break;
 
     case SYSTEM_STATUS_WEBSOCKET_CONNECTING:
@@ -222,37 +273,38 @@ static void handle_esp32_status(const uart_status_t* status)
     case SYSTEM_STATUS_WEBSOCKET_CONNECTED:
         current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
         is_websocket_connected = true;
+        clear_connection_error();
         DEBUG_PRINTF(false, "ESP32 WebSocket connected successfully\r\n");
         break;
 
     case SYSTEM_STATUS_WEBSOCKET_DISCONNECTED:
-        if (is_websocket_connected) {
-            current_state = PROTO_STATE_WIFI_CONNECTED;
-            is_websocket_connected = false;
-            DEBUG_PRINTF(false, "ESP32 WebSocket disconnected\r\n");
-        }
+        // Detailed debug info
+        DEBUG_PRINTF(false, "WebSocket disconnected: error=%d, message=%s\r\n",
+                     status->error_code, status->status_message);
+
+        // Unified user error handling - same message as WiFi for simplicity
+        handle_connection_error("WebSocket disconnected", "Lost WiFi Connection");
         break;
 
     case SYSTEM_STATUS_GAME_READY:
         current_state = PROTO_STATE_GAME_READY;
+        clear_connection_error();
         DEBUG_PRINTF(false, "ESP32 game session ready\r\n");
-
-        // Respond that STM32 game logic is ready
         serial_comm_send_status(SYSTEM_STATUS_STM32_GAME_READY, 0, "STM32_GAME_READY");
         break;
 
     case SYSTEM_STATUS_GAME_ACTIVE:
-    	if (current_state == PROTO_STATE_GAME_READY) {
-    		current_state = PROTO_STATE_GAME_ACTIVE;
-    		DEBUG_PRINTF(false, "✓ Game session active\r\n");
-    	}
+        if (current_state == PROTO_STATE_GAME_READY) {
+            current_state = PROTO_STATE_GAME_ACTIVE;
+            DEBUG_PRINTF(false, "✓ Game session active\r\n");
+        }
         break;
 
     case SYSTEM_STATUS_GAME_ENDED:
-    	if (current_state == PROTO_STATE_GAME_ACTIVE) {
-    		current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
-    		DEBUG_PRINTF(false, "Game session ended - back to ready state\r\n");
-    	}
+        if (current_state == PROTO_STATE_GAME_ACTIVE) {
+            current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
+            DEBUG_PRINTF(false, "Game session ended - back to ready state\r\n");
+        }
         break;
 
     case SYSTEM_STATUS_OPPONENT_CONNECTED:
@@ -261,6 +313,7 @@ static void handle_esp32_status(const uart_status_t* status)
 
     case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
         DEBUG_PRINTF(false, "Opponent disconnected\r\n");
+        // Note: Opponent disconnect is not a connection error - game continues
         break;
 
     case SYSTEM_STATUS_PLAYER_ASSIGNMENT:
@@ -268,10 +321,12 @@ static void handle_esp32_status(const uart_status_t* status)
         break;
 
     case SYSTEM_STATUS_ERROR:
-        current_state = PROTO_STATE_ERROR;
-        is_wifi_connected = false;
-        is_websocket_connected = false;
-        DEBUG_PRINTF(false, "ESP32 error state\r\n");
+        // Detailed debug info
+        DEBUG_PRINTF(false, "ESP32 general error: code=%d, message=%s\r\n",
+                     status->error_code, status->status_message);
+
+        // General error handling
+        handle_connection_error("ESP32 system error", "Connection Error");
         break;
 
     default:
@@ -409,6 +464,10 @@ UART_Status serial_comm_init(void)
     is_wifi_connected = false;
     is_websocket_connected = false;
 
+    // Reset error state
+    network_error_displayed = false;
+    last_error_display_time = 0;
+
     /* Initialize callbacks to NULL */
     game_data_callback = NULL;
     chat_message_callback = NULL;
@@ -524,6 +583,22 @@ void serial_comm_clear_ui_update_flag(void) {
 ProtocolState serial_comm_get_state(void)
 {
     return current_state;
+}
+
+// Enhanced connection status functions
+bool serial_comm_has_network_error(void) {
+    return network_error_displayed || (current_state == PROTO_STATE_ERROR);
+}
+
+void serial_comm_clear_network_error(void) {
+    clear_connection_error();
+}
+
+const char* serial_comm_get_error_message(void) {
+    if (network_error_displayed) {
+        return "Lost WiFi Connection";
+    }
+    return NULL;
 }
 
 // Message Sending Functions
