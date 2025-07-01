@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Forward declarations for internal modules
+ // Forward declarations for internal modules
 #include "mp_snake_game_core.h"
 #include "mp_snake_game_network.h"
 #include "mp_snake_game_render.h"

@@ -35,26 +35,24 @@ typedef enum {
     MP_RESULT_DRAW = 3
 } MultiplayerGameResult;
 
-// Multiplayer Snake Game Data Structure
+// Multiplayer Snake Game Data Structure (simplified - no prediction)
 typedef struct {
     // Server-authoritative state (received from server)
+	uint16_t session_id;
     SnakeState server_player1;
     SnakeState server_player2;
     Position server_food;
     uint32_t server_scores[2];          // [player1_score, player2_score]
     bool players_alive[2];              // [player1_alive, player2_alive]
 
-    // Local prediction state (for responsive controls)
-    SnakeState predicted_local_player;
-    SnakeState display_opponent;
-
-    // Game state
+    // Game configuration (like TS MultiplayerGameConfig)
     MultiplayerPlayerId local_player_id;    // 1 or 2
+    MultiplayerPlayerId opponent_player_id; // 1 or 2
     uint32_t target_score;                  // Score needed to win
     MultiplayerGamePhase phase;
     MultiplayerGameResult winner;
 
-    // Timing and synchronization
+    // Timing (simplified - no prediction timing)
     uint32_t last_server_update_time;
     uint32_t last_input_send_time;
     uint32_t game_start_time;
@@ -67,26 +65,45 @@ typedef struct {
 
 // Core game state access
 extern MultiplayerSnakeGameData mp_snake_data;
-extern uint32_t last_move_time;
-extern uint32_t last_prediction_move_time;
 
-// Core game logic functions
+// Core game logic functions (similar to TS MultiplayerSnakeCore methods)
 void mp_snake_core_init(MultiplayerPlayerId player_id, uint32_t target_score);
 void mp_snake_core_cleanup(void);
-void mp_snake_process_local_prediction(DPAD_STATUS dpad_status);
-void mp_snake_reconcile_prediction_with_server(void);
-void mp_snake_update_display_state(void);
 
-// Game state queries
+// Movement simulation (like TS moveAllPlayersLocally)
+void mp_snake_start_movement_simulation(void);
+void mp_snake_stop_movement_simulation(void);
+void mp_snake_move_all_players_locally(void);
+
+// Game state queries (similar to TS getters)
 MultiplayerPlayerId mp_snake_get_opponent_id(void);
 SnakeState* mp_snake_get_local_player_state(void);
 SnakeState* mp_snake_get_opponent_state(void);
-bool mp_snake_should_move_prediction(void);
+Position* mp_snake_get_food(void);
+SnakeState* mp_snake_get_all_players(uint8_t* player_count);
 
-// Game events
+// Input validation (similar to TS canChangeDirection)
+bool mp_snake_can_change_direction(uint8_t new_direction);
+
+// Game events (similar to TS event handlers)
 void mp_snake_handle_game_start(void);
 void mp_snake_handle_game_end(MultiplayerGameResult result);
 void mp_snake_handle_player_collision(MultiplayerPlayerId player_id);
 void mp_snake_handle_food_eaten(MultiplayerPlayerId player_id);
+void mp_snake_handle_game_event(const char* event_data);
+
+// Game stats (similar to TS getGameStats)
+typedef struct {
+    uint32_t p1_score;
+    uint32_t p1_lives;
+    uint32_t p2_score;
+    uint32_t p2_lives;
+    uint32_t target_score;
+} GameStats;
+
+GameStats mp_snake_get_game_stats(void);
+
+// Utility parsing (helper for game events)
+uint8_t mp_snake_parse_single_value(const char* str, const char* key);
 
 #endif /* INC_GAME_ENGINE_GAMES_MULTI_PLAYER_SNAKE_GAME_MP_SNAKE_GAME_CORE_H_ */

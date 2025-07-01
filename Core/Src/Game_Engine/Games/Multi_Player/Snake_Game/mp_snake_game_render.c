@@ -15,37 +15,28 @@
 #include <string.h>
 #include <stdio.h>
 
-// Rendering optimization tracking
-coord_t previous_local_head_x = 0, previous_local_head_y = 0;
-coord_t previous_opponent_head_x = 0, previous_opponent_head_y = 0;
-coord_t previous_food_x = 0, previous_food_y = 0;
-uint8_t previous_local_length = 0;
-uint8_t previous_opponent_length = 0;
-uint32_t previous_local_score = 0;
-uint32_t previous_opponent_score = 0;
-bool first_render = true;
+// Rendering optimization tracking (similar to TS private properties)
+static coord_t previous_local_head_x = 0, previous_local_head_y = 0;
+static coord_t previous_opponent_head_x = 0, previous_opponent_head_y = 0;
+static coord_t previous_food_x = 0, previous_food_y = 0;
+static uint8_t previous_local_length = 0;
+static uint8_t previous_opponent_length = 0;
+static uint32_t previous_local_score = 0;
+static uint32_t previous_opponent_score = 0;
+static bool first_render = true;
 
-// Main rendering function
-void mp_snake_render_game(void) {
-    switch (mp_snake_data.phase) {
-        case MP_PHASE_WAITING:
-            mp_snake_render_waiting_screen();
-            break;
-        case MP_PHASE_PLAYING:
-            mp_snake_render_game_area();
-            mp_snake_render_multiplayer_ui();
-            break;
-        case MP_PHASE_ENDED:
-            mp_snake_render_game_area();
-            mp_snake_render_game_over_screen();
-            break;
-    }
-}
+// Private function prototypes (similar to TS private methods)
+static void render_waiting_screen(ProtocolState connection_status, uint8_t local_player_id);
+static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,
+                           GameStats* game_stats, uint8_t local_player_id);
+static void render_game_area(SnakeState* players, uint8_t player_count, Position* food, uint8_t local_player_id);
+static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id);
+static void clear_previous_positions(SnakeState* players, uint8_t player_count, Position* food);
+static void reset_render_tracking(SnakeState* players, uint8_t player_count, Position* food);
 
-// Rendering initialization and cleanup
+// Rendering initialization and cleanup (similar to TS constructor/destructor)
 void mp_snake_render_init(void) {
     first_render = true;
-    mp_snake_reset_render_tracking();
     DEBUG_PRINTF(false, "Render: Multiplayer snake rendering initialized\r\n");
 }
 
@@ -54,31 +45,42 @@ void mp_snake_render_cleanup(void) {
     DEBUG_PRINTF(false, "Render: Multiplayer snake rendering cleanup completed\r\n");
 }
 
-void mp_snake_reset_render_tracking(void) {
-    previous_local_head_x = mp_snake_data.predicted_local_player.head_x;
-    previous_local_head_y = mp_snake_data.predicted_local_player.head_y;
-    previous_opponent_head_x = mp_snake_data.display_opponent.head_x;
-    previous_opponent_head_y = mp_snake_data.display_opponent.head_y;
-    previous_food_x = mp_snake_data.server_food.x;
-    previous_food_y = mp_snake_data.server_food.y;
-    previous_local_length = mp_snake_data.predicted_local_player.length;
-    previous_opponent_length = mp_snake_data.display_opponent.length;
-    previous_local_score = 0;
-    previous_opponent_score = 0;
+// Main rendering function
+void mp_snake_render_game(
+    MultiplayerGamePhase game_phase,
+    SnakeState* players,
+    uint8_t player_count,
+    Position* food,
+    GameStats* game_stats,
+    ProtocolState connection_status,
+    uint8_t local_player_id,
+    bool is_spectator
+) {
+    // Route to appropriate phase renderer (like TS switch statement)
+    switch (game_phase) {
+        case MP_PHASE_WAITING:
+            render_waiting_screen(connection_status, local_player_id);
+            break;
+        case MP_PHASE_PLAYING:
+            render_gameplay(players, player_count, food, game_stats, local_player_id);
+            break;
+        case MP_PHASE_ENDED:
+            render_gameplay(players, player_count, food, game_stats, local_player_id);
+            break;
+    }
 }
 
-// Phase-specific rendering functions
-void mp_snake_render_waiting_screen(void) {
+// Phase-specific rendering functions (similar to TS screen rendering methods)
+static void render_waiting_screen(ProtocolState connection_status, uint8_t local_player_id) {
     if (first_render) {
         display_clear();
         first_render = false;
     }
 
-    // Show connection status
-    ProtocolState state = mp_snake_get_connection_state();
+    // Show connection status (similar to TS renderWaitingScreen)
     const char* status_text = "";
 
-    switch (state) {
+    switch (connection_status) {
         case PROTO_STATE_INIT:
             status_text = "Initializing...";
             break;
@@ -98,8 +100,8 @@ void mp_snake_render_waiting_screen(void) {
             status_text = "Waiting for opponent...";
             break;
         case PROTO_STATE_GAME_READY:
-                status_text = "Game ready...";
-                break;
+            status_text = "Game ready...";
+            break;
         case PROTO_STATE_GAME_ACTIVE:
             status_text = "Starting game...";
             break;
@@ -111,40 +113,50 @@ void mp_snake_render_waiting_screen(void) {
     display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT/2 - 10);
 
     char player_text[32];
-    snprintf(player_text, sizeof(player_text), "You are Player %d", mp_snake_data.local_player_id);
+    snprintf(player_text, sizeof(player_text), "You are Player %d", local_player_id);
     display_manager_show_centered_message(player_text, DISPLAY_HEIGHT/2 + 5);
 
     // Show debug info if in error state
-    if (state == PROTO_STATE_ERROR) {
-    	display_manager_show_centered_message("Check ESP32 connection", DISPLAY_HEIGHT/2 + 20);
+    if (connection_status == PROTO_STATE_ERROR) {
+        display_manager_show_centered_message("Check ESP32 connection", DISPLAY_HEIGHT/2 + 20);
     }
 }
 
-void mp_snake_render_game_area(void) {
+static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,
+                           GameStats* game_stats, uint8_t local_player_id) {
+
+    render_game_area(players, player_count, food, local_player_id);
+    render_multiplayer_ui(game_stats, local_player_id);
+}
+
+static void render_game_area(SnakeState* players, uint8_t player_count, Position* food, uint8_t local_player_id) {
     if (first_render) {
         display_draw_border_at(1, STATUS_START_Y, 3, 3);
+        reset_render_tracking(players, player_count, food);
         first_render = false;
     }
 
-    // Clear previous positions
-    mp_snake_clear_previous_positions();
+    // Clear previous positions (like TS dirty rectangle optimization)
+    clear_previous_positions(players, player_count, food);
 
-    // Draw local player (predicted state for responsiveness)
-    // Use different colors to distinguish players
-    if (mp_snake_data.players_alive[mp_snake_data.local_player_id - 1]) {
-        // TODO: Implement color differentiation when available
-        snake_helper_draw_snake(&mp_snake_data.predicted_local_player);
+    // Draw all players (like TS renderPlayers - no prediction, just server state)
+    for (uint8_t i = 0; i < player_count; i++) {
+        MultiplayerPlayerId player_id = (i == 0) ? MP_PLAYER_1 : MP_PLAYER_2;
+        bool is_alive = (player_id == MP_PLAYER_1) ?
+                       (game_stats->p1_lives > 0) : (game_stats->p2_lives > 0);
+
+        if (is_alive) {
+            // Use different colors to distinguish players (when available)
+            snake_helper_draw_snake(&players[i]);
+
+            // TODO: Implement color differentiation for local vs opponent
+            // if (player_id == local_player_id) { /* local player color */ }
+            // else { /* opponent player color */ }
+        }
     }
 
-    // Draw opponent (server state)
-    MultiplayerPlayerId opponent_id = mp_snake_get_opponent_id();
-    if (mp_snake_data.players_alive[opponent_id - 1]) {
-        // TODO: Draw opponent in different color
-        snake_helper_draw_snake(&mp_snake_data.display_opponent);
-    }
-
-    // Draw shared food
-    snake_helper_draw_food(&mp_snake_data.server_food);
+    // Draw shared food (like TS renderFood)
+    snake_helper_draw_food(food);
 
     // Periodically redraw border to ensure it's intact
     if (get_current_ms() % 1000 == 0) {
@@ -152,108 +164,50 @@ void mp_snake_render_game_area(void) {
     }
 }
 
-void mp_snake_render_multiplayer_ui(void) {
+static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id) {
     // Clear status area
     display_fill_rectangle(2, 2, DISPLAY_WIDTH - 2, STATUS_START_Y - 1, DISPLAY_BLACK);
 
-    // Draw scores for both players
+    // Draw scores for both players (like TS renderStatus)
     char score_text[64];
     snprintf(score_text, sizeof(score_text), "P1:%lu P2:%lu Target:%lu",
-             mp_snake_data.server_scores[0],
-             mp_snake_data.server_scores[1],
-             mp_snake_data.target_score);
+             game_stats->p1_score, game_stats->p2_score, game_stats->target_score);
 
     display_set_cursor(2, 2);
     display_write_string(score_text, Font_7x10, DISPLAY_WHITE);
 
-    // Draw connection status on second line
-    char status_text[64] = "";
-    if (!mp_snake_data.opponent_connected) {
-        strcpy(status_text, "Opponent Disconnected");
-    } else if (!mp_snake_is_websocket_connected()) {
-        strcpy(status_text, "Connection Lost");
+    // Draw player identification (like TS renderPlayerId)
+    char status_text[64];
+    if (local_player_id == MP_PLAYER_1) {
+        strcpy(status_text, "You: P1 (Green)");
     } else {
-        // Show which player is you
-        if (mp_snake_data.local_player_id == MP_PLAYER_1) {
-            strcpy(status_text, "You: P1 (Green)");
-        } else {
-            strcpy(status_text, "You: P2 (Blue)");
-        }
+        strcpy(status_text, "You: P2 (Blue)");
     }
 
     display_set_cursor(2, 12);
     display_write_string(status_text, Font_7x10, DISPLAY_WHITE);
 }
 
-void mp_snake_render_game_over_screen(void) {
-    char result_text[32];
-    char details_text[32] = "";
+// Optimization functions (like TS rendering optimization)
+static void clear_previous_positions(SnakeState* players, uint8_t player_count, Position* food) {
+    // Optimized dirty rectangle clearing for multiplayer (like TS optimization)
 
-    switch (mp_snake_data.winner) {
-        case MP_RESULT_PLAYER1_WINS:
-            if (mp_snake_data.local_player_id == MP_PLAYER_1) {
-                strcpy(result_text, "YOU WIN!");
-            } else {
-                strcpy(result_text, "PLAYER 1 WINS");
-            }
-            snprintf(details_text, sizeof(details_text), "Score: %lu", mp_snake_data.server_scores[0]);
-            break;
-        case MP_RESULT_PLAYER2_WINS:
-            if (mp_snake_data.local_player_id == MP_PLAYER_2) {
-                strcpy(result_text, "YOU WIN!");
-            } else {
-                strcpy(result_text, "PLAYER 2 WINS");
-            }
-            snprintf(details_text, sizeof(details_text), "Score: %lu", mp_snake_data.server_scores[1]);
-            break;
-        case MP_RESULT_DRAW:
-            strcpy(result_text, "DRAW!");
-            snprintf(details_text, sizeof(details_text), "Both: %lu", mp_snake_data.server_scores[0]);
-            break;
-        default:
-            strcpy(result_text, "GAME OVER");
-            break;
-    }
-
-    // Draw semi-transparent overlay
-    display_fill_rectangle(10, DISPLAY_HEIGHT/2 - 20, DISPLAY_WIDTH - 10, DISPLAY_HEIGHT/2 + 20, DISPLAY_BLACK);
-
-    display_manager_show_centered_message(result_text, DISPLAY_HEIGHT/2 - 10);
-       if (strlen(details_text) > 0) {
-       	display_manager_show_centered_message(details_text, DISPLAY_HEIGHT/2 + 15);
-       }
-}
-
-// Optimization functions
-void mp_snake_clear_previous_positions(void) {
-    // Optimized dirty rectangle clearing for multiplayer
-    // Similar to single-player but handles two snakes
-
-    // Clear previous local player head if it moved
-    if (previous_local_head_x != mp_snake_data.predicted_local_player.head_x ||
-        previous_local_head_y != mp_snake_data.predicted_local_player.head_y) {
+    // Clear previous player 1 head if it moved
+    if (player_count > 0 &&
+        (previous_local_head_x != players[0].head_x || previous_local_head_y != players[0].head_y)) {
 
         // Check if previous position is not occupied by any snake
         bool is_occupied = false;
 
-        // Check local player body
-        for (uint8_t i = 0; i < mp_snake_data.predicted_local_player.length; i++) {
-            if (previous_local_head_x == mp_snake_data.predicted_local_player.body[i].x &&
-                previous_local_head_y == mp_snake_data.predicted_local_player.body[i].y) {
-                is_occupied = true;
-                break;
-            }
-        }
-
-        // Check opponent
-        if (!is_occupied) {
-            for (uint8_t i = 0; i < mp_snake_data.display_opponent.length; i++) {
-                if (previous_local_head_x == mp_snake_data.display_opponent.body[i].x &&
-                    previous_local_head_y == mp_snake_data.display_opponent.body[i].y) {
+        for (uint8_t p = 0; p < player_count; p++) {
+            for (uint8_t i = 0; i < players[p].length; i++) {
+                if (previous_local_head_x == players[p].body[i].x &&
+                    previous_local_head_y == players[p].body[i].y) {
                     is_occupied = true;
                     break;
                 }
             }
+            if (is_occupied) break;
         }
 
         if (!is_occupied) {
@@ -261,30 +215,22 @@ void mp_snake_clear_previous_positions(void) {
         }
     }
 
-    // Similar logic for opponent head
-    if (previous_opponent_head_x != mp_snake_data.display_opponent.head_x ||
-        previous_opponent_head_y != mp_snake_data.display_opponent.head_y) {
+    // Clear previous player 2 head if it moved
+    if (player_count > 1 &&
+        (previous_opponent_head_x != players[1].head_x || previous_opponent_head_y != players[1].head_y)) {
 
         // Check if previous position is not occupied by any snake
         bool is_occupied = false;
 
-        // Check both snakes
-        for (uint8_t i = 0; i < mp_snake_data.predicted_local_player.length; i++) {
-            if (previous_opponent_head_x == mp_snake_data.predicted_local_player.body[i].x &&
-                previous_opponent_head_y == mp_snake_data.predicted_local_player.body[i].y) {
-                is_occupied = true;
-                break;
-            }
-        }
-
-        if (!is_occupied) {
-            for (uint8_t i = 0; i < mp_snake_data.display_opponent.length; i++) {
-                if (previous_opponent_head_x == mp_snake_data.display_opponent.body[i].x &&
-                    previous_opponent_head_y == mp_snake_data.display_opponent.body[i].y) {
+        for (uint8_t p = 0; p < player_count; p++) {
+            for (uint8_t i = 0; i < players[p].length; i++) {
+                if (previous_opponent_head_x == players[p].body[i].x &&
+                    previous_opponent_head_y == players[p].body[i].y) {
                     is_occupied = true;
                     break;
                 }
             }
+            if (is_occupied) break;
         }
 
         if (!is_occupied) {
@@ -293,21 +239,40 @@ void mp_snake_clear_previous_positions(void) {
     }
 
     // Clear previous food position if changed
-    if (previous_food_x != mp_snake_data.server_food.x || previous_food_y != mp_snake_data.server_food.y) {
+    if (previous_food_x != food->x || previous_food_y != food->y) {
         if (previous_food_x != 0 && previous_food_y != 0) {
             display_clear_region(previous_food_x, previous_food_y, SPRITE_SIZE, SPRITE_SIZE);
         }
     }
 
     // Update previous positions for next frame
-    previous_local_head_x = mp_snake_data.predicted_local_player.head_x;
-    previous_local_head_y = mp_snake_data.predicted_local_player.head_y;
-    previous_opponent_head_x = mp_snake_data.display_opponent.head_x;
-    previous_opponent_head_y = mp_snake_data.display_opponent.head_y;
-    previous_food_x = mp_snake_data.server_food.x;
-    previous_food_y = mp_snake_data.server_food.y;
-    previous_local_length = mp_snake_data.predicted_local_player.length;
-    previous_opponent_length = mp_snake_data.display_opponent.length;
-    previous_local_score = mp_snake_data.server_scores[mp_snake_data.local_player_id - 1];
-    previous_opponent_score = mp_snake_data.server_scores[mp_snake_get_opponent_id() - 1];
+    if (player_count > 0) {
+        previous_local_head_x = players[0].head_x;
+        previous_local_head_y = players[0].head_y;
+        previous_local_length = players[0].length;
+    }
+    if (player_count > 1) {
+        previous_opponent_head_x = players[1].head_x;
+        previous_opponent_head_y = players[1].head_y;
+        previous_opponent_length = players[1].length;
+    }
+    previous_food_x = food->x;
+    previous_food_y = food->y;
+}
+
+static void reset_render_tracking(SnakeState* players, uint8_t player_count, Position* food) {
+    if (player_count > 0) {
+        previous_local_head_x = players[0].head_x;
+        previous_local_head_y = players[0].head_y;
+        previous_local_length = players[0].length;
+    }
+    if (player_count > 1) {
+        previous_opponent_head_x = players[1].head_x;
+        previous_opponent_head_y = players[1].head_y;
+        previous_opponent_length = players[1].length;
+    }
+    previous_food_x = food->x;
+    previous_food_y = food->y;
+    previous_local_score = 0;
+    previous_opponent_score = 0;
 }
