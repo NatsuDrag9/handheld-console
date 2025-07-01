@@ -12,6 +12,7 @@
 #include "Console_Peripherals/Hardware/push_button.h"
 #include "Console_Peripherals/Hardware/display_manager.h"
 #include "Game_Engine/game_engine.h"
+#include "Game_Engine/game_engine_network.h"
 
 static uint32_t game_over_start_time = 0;
 static uint32_t button2_press_start_time = 0;
@@ -38,6 +39,9 @@ void game_engine_init(GameEngine* engine) {
         // Reset button state tracking
         button2_press_start_time = 0;
         button2_being_held = false;
+
+        // Initialize network error handling
+        game_engine_network_init();
 
         // Call game-specific initialization
         engine->init();
@@ -87,6 +91,9 @@ void game_engine_handle_buttons(GameEngine* engine) {
                     engine->base_state.is_reset = true;
                     // Force full refresh on reset
                     require_full_refresh = true;
+
+                    // Clear any network errors on game reset
+                    game_engine_network_clear_error();
                 }
             }
             else if (hold_duration >= BUTTON_MENU_MIN_DURATION) {  // Long press 3 seconds
@@ -105,6 +112,9 @@ void game_engine_update(GameEngine* engine, void* input_data) {
     if (engine) {
         // Always handle button input regardless of game state
         game_engine_handle_buttons(engine);
+
+        // Check for network errors (for multiplayer games)
+        game_engine_network_check_errors(engine);
 
         // Only update game logic if not paused and not game over
         if (!engine->base_state.game_over && !engine->base_state.paused) {
@@ -174,9 +184,12 @@ void game_engine_render(GameEngine* engine) {
         // Check for state changes that require full screen refresh
         static bool was_paused = false;
         static bool was_game_over = false;
+        static bool was_network_error = false;
 
+        bool current_network_error = game_engine_network_has_error();
         bool state_changed = (was_paused != engine->base_state.paused) ||
-                            (was_game_over != engine->base_state.game_over);
+        		(was_game_over != engine->base_state.game_over) ||
+				(was_network_error != current_network_error);
 
         // Clear screen only when needed
         if (state_changed || require_full_refresh) {
@@ -186,6 +199,11 @@ void game_engine_render(GameEngine* engine) {
 
         // Call game-specific render function - this will update dirty regions
         engine->render();
+
+        // Render network error if present
+        if (current_network_error) {
+        	game_engine_network_render_error();
+        }
 
         // Render paused message if game is paused
         if (engine->base_state.paused) {
@@ -208,6 +226,7 @@ void game_engine_render(GameEngine* engine) {
         // Update state tracking
         was_paused = engine->base_state.paused;
         was_game_over = engine->base_state.game_over;
+        was_network_error = current_network_error;
 
         // Update display
         display_manager_update();
@@ -221,6 +240,9 @@ void game_engine_cleanup(GameEngine* engine) {
         game_over_start_time = 0;  // Reset timer on cleanup
         button2_press_start_time = 0;
         button2_being_held = false;
+
+        // Cleanup network error handling
+        game_engine_network_cleanup();
 
         // Force full refresh after cleanup
         require_full_refresh = true;
