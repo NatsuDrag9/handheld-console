@@ -4,12 +4,18 @@
  *  Created on: Jun 4, 2025
  *      Author: rohitimandi
  *
+ *
  *  Network communication and message parsing for multiplayer snake
  *  Similar to TypeScript MultiplayerSnakeNetwork class
  */
 
 #include "Game_Engine/Games/Multi_Player/Snake_Game/mp_snake_game_network.h"
 #include "Utils/debug_conf.h"
+
+// Private function declarations
+static void mp_snake_parse_coordinate_pair(const char* str, coord_t* x, coord_t* y);
+static uint8_t mp_snake_parse_single_value(const char* str, const char* key);
+
 
 // Message sending functions
 void mp_snake_send_input_to_server(uint8_t direction) {
@@ -140,7 +146,7 @@ bool mp_snake_parse_game_state(const char* game_data) {
 }
 
 // Utility parsing functions
-void mp_snake_parse_coordinate_pair(const char* str, coord_t* x, coord_t* y) {
+static void mp_snake_parse_coordinate_pair(const char* str, coord_t* x, coord_t* y) {
     if (!str || !x || !y) return;
 
     // Parse "x:45,y:67" format
@@ -155,7 +161,7 @@ void mp_snake_parse_coordinate_pair(const char* str, coord_t* x, coord_t* y) {
     }
 }
 
-uint8_t mp_snake_parse_single_value(const char* str, const char* key) {
+static uint8_t mp_snake_parse_single_value(const char* str, const char* key) {
     if (!str || !key) return 0;
 
     char search_key[16];

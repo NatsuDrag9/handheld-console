@@ -29,7 +29,8 @@ static bool first_render = true;
 static void render_waiting_screen(ProtocolState connection_status, uint8_t local_player_id);
 static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,
                            GameStats* game_stats, uint8_t local_player_id);
-static void render_game_area(SnakeState* players, uint8_t player_count, Position* food, uint8_t local_player_id);
+static void render_game_area(SnakeState* players, uint8_t player_count, Position* food,
+                           GameStats* game_stats, uint8_t local_player_id);
 static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id);
 static void clear_previous_positions(SnakeState* players, uint8_t player_count, Position* food);
 static void reset_render_tracking(SnakeState* players, uint8_t player_count, Position* food);
@@ -125,11 +126,11 @@ static void render_waiting_screen(ProtocolState connection_status, uint8_t local
 static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,
                            GameStats* game_stats, uint8_t local_player_id) {
 
-    render_game_area(players, player_count, food, local_player_id);
+    render_game_area(players, player_count, food, game_stats, local_player_id);
     render_multiplayer_ui(game_stats, local_player_id);
 }
 
-static void render_game_area(SnakeState* players, uint8_t player_count, Position* food, uint8_t local_player_id) {
+static void render_game_area(SnakeState* players, uint8_t player_count, Position* food, GameStats* game_stats, uint8_t local_player_id) {
     if (first_render) {
         display_draw_border_at(1, STATUS_START_Y, 3, 3);
         reset_render_tracking(players, player_count, food);

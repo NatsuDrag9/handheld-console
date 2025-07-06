@@ -93,7 +93,7 @@ void game_engine_handle_buttons(GameEngine* engine) {
                     require_full_refresh = true;
 
                     // Clear any network errors on game reset
-                    game_engine_network_clear_error();
+                    game_engine_network_cleanup();
                 }
             }
             else if (hold_duration >= BUTTON_MENU_MIN_DURATION) {  // Long press 3 seconds

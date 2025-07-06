@@ -33,7 +33,7 @@ GameEngine multiplayer_snake_game_engine = {
     .init = mp_snake_init_game_engine,
     .render = mp_snake_render_internal,
     .cleanup = mp_snake_cleanup_internal,
-	show_game_over_message = mp_snake_show_game_over_message_internal,
+	.show_game_over_message = mp_snake_show_game_over_message_internal,
     .update_func = {
         .update_dpad = mp_snake_update_dpad_internal
     },

@@ -27,6 +27,9 @@ static const uint32_t MOVEMENT_INTERVAL_MS = 100;
 static uint32_t last_processed_sequence = 0;
 static uint32_t last_server_reconciliation = 0;
 
+// Utility helpers
+static uint8_t mp_snake_parse_single_value(const char* str, const char* key);
+
 // Core game logic functions
 void mp_snake_core_init(MultiplayerPlayerId player_id, uint32_t target_score) {
     // Reset all state
@@ -272,7 +275,7 @@ GameStats mp_snake_get_game_stats(void) {
 }
 
 // Utility function for parsing values from event strings
-uint8_t mp_snake_parse_single_value(const char* str, const char* key) {
+static uint8_t mp_snake_parse_single_value(const char* str, const char* key) {
     if (!str || !key) return 0;
 
     char search_key[16];

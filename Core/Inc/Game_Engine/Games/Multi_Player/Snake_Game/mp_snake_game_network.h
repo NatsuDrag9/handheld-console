@@ -28,10 +28,6 @@ bool mp_snake_parse_player_update(const char* game_data);
 bool mp_snake_parse_game_event(const char* game_data);
 bool mp_snake_parse_game_state(const char* game_data);
 
-// Utility parsing functions
-void mp_snake_parse_coordinate_pair(const char* str, coord_t* x, coord_t* y);
-uint8_t mp_snake_parse_single_value(const char* str, const char* key);
-
 // Callback handler for serial_comm
 void mp_snake_on_game_data_received(const uart_game_data_t* game_data);
 

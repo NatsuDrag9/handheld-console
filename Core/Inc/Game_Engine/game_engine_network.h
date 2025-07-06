@@ -1,18 +1,6 @@
 /*
  * game_engine_network.h
  *
- *  Created on: Jul 1, 2025
- *      Author: rohitimandi
- *
- *  Network error handling for game engine - handles connection loss and exit logic
- */
-
-#ifndef INC_GAME_ENGINE_GAME_ENGINE_NETWORK_H_
-#define INC_GAME_ENGINE_GAME_ENGINE_NETWORK_H_
-
-/*
- * game_engine_network.h
- *
  *  Created on: Jun 6, 2025
  *      Author: rohitimandi
  *

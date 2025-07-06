@@ -103,7 +103,5 @@ typedef struct {
 
 GameStats mp_snake_get_game_stats(void);
 
-// Utility parsing (helper for game events)
-uint8_t mp_snake_parse_single_value(const char* str, const char* key);
 
 #endif /* INC_GAME_ENGINE_GAMES_MULTI_PLAYER_SNAKE_GAME_MP_SNAKE_GAME_CORE_H_ */
