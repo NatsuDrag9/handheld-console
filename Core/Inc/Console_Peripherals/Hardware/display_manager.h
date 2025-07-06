@@ -71,6 +71,7 @@ void display_manager_show_game_over_message(char* message, uint32_t final_score)
 void display_manager_show_status_message(char* message);
 void display_manager_show_centered_message(char* message, uint8_t y_position);
 void display_manager_show_error_message(char* error);
+void display_manager_show_wifi_error_with_timer(uint8_t seconds_remaining);
 
 /* Status bar functions */
 void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int lives, bool in_game);

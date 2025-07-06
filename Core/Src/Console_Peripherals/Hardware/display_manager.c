@@ -18,22 +18,29 @@ extern void add_delay(uint32_t ms);
 
 /* Display configuration constants based on display type */
 #if defined(DISPLAY_MODULE_OLED)
-#define MENU_START_Y     25
+#define MENU_START_Y     35
 #define MENU_ITEM_HEIGHT 12
 #define VISIBLE_ITEMS    3
 #define MENU_TITLE_Y     10
+#define MENU_TITLE_LINE2_Y  20  // second line for wrapped title
 #elif defined(DISPLAY_MODULE_LCD)
-#define MENU_START_Y     60
-#define MENU_ITEM_HEIGHT 30
+#define MENU_START_Y     80
+#define MENU_ITEM_HEIGHT 35
 #define VISIBLE_ITEMS    4
 #define MENU_TITLE_Y     35
+#define MENU_TITLE_LINE2_Y  65 // second line for wrapped title
 #else
 /* Default to OLED */
-#define MENU_START_Y     25
+#define MENU_START_Y     35
 #define MENU_ITEM_HEIGHT 12
 #define VISIBLE_ITEMS    3
 #define MENU_TITLE_Y     10
+#define MENU_TITLE_LINE2_Y  20  // second line for wrapped title
 #endif
+
+/* Private function declarations */
+static void display_manager_draw_wrapped_title(const char* title);
+
 
 void display_manager_init(void) {
 	display_init();
@@ -108,9 +115,25 @@ void display_manager_show_centered_message(char* message, uint8_t y_position) {
 void display_manager_show_error_message(char* error) {
 	display_clear();
 	display_write_string_centered("ERROR", DISPLAY_ERROR_FONT, 20, DISPLAY_WHITE);
-	display_write_string_centered(error, DISPLAY_ERROR_FONT, 35, DISPLAY_WHITE);
+	display_write_string_centered(error, DISPLAY_ERROR_FONT, 50, DISPLAY_WHITE);
 	display_update();
 	add_delay(2000);
+}
+
+/* WiFi error with countdown timer */
+void display_manager_show_wifi_error_with_timer(uint8_t seconds_remaining) {
+	display_clear();
+	display_draw_border();
+
+	display_write_string_centered("WiFi not connected!", DISPLAY_ERROR_FONT,
+								  DISPLAY_HEIGHT/2 - 20, DISPLAY_WHITE);
+
+	char timer_text[32];
+	snprintf(timer_text, sizeof(timer_text), "Returning in %d sec...", seconds_remaining);
+	display_write_string_centered(timer_text, DISPLAY_STATUS_FONT,
+								  DISPLAY_HEIGHT/2 + 5, DISPLAY_WHITE);
+
+	display_update();
 }
 
 void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int lives, bool in_game) {
@@ -141,8 +164,54 @@ void display_manager_draw_border(void) {
 	display_draw_border();
 }
 
+/* Helper function to draw wrapped and centered title */
+static void display_manager_draw_wrapped_title(const char* title) {
+	if (!title) return;
+
+	size_t title_len = strlen(title);
+
+	/* Check if title needs wrapping based on display type and font */
+#if defined(DISPLAY_MODULE_OLED)
+	const size_t max_chars_per_line = 18;  // Approximate for 7x10 font on OLED
+#elif defined(DISPLAY_MODULE_LCD)
+	const size_t max_chars_per_line = 15;  // Approximate for 16x26 font on LCD
+#else
+	const size_t max_chars_per_line = 18;  // Default to OLED
+#endif
+
+	if (title_len <= max_chars_per_line) {
+		/* Single line - center it */
+		display_write_string_centered((char*)title, DISPLAY_TITLE_FONT, MENU_TITLE_Y, DISPLAY_WHITE);
+	} else {
+		/* Need to wrap - find good break point */
+		size_t break_point = max_chars_per_line;
+
+		/* Try to break at a space for better readability */
+		for (int i = max_chars_per_line - 1; i >= max_chars_per_line / 2; i--) {
+			if (title[i] == ' ') {
+				break_point = i;
+				break;
+			}
+		}
+
+		/* Draw first line */
+		char first_line[32] = {0};
+		strncpy(first_line, title, break_point);
+		first_line[break_point] = '\0';
+		display_write_string_centered(first_line, DISPLAY_TITLE_FONT, MENU_TITLE_Y, DISPLAY_WHITE);
+
+		/* Draw second line (skip space if break was at space) */
+		const char* second_line_start = title + break_point;
+		if (*second_line_start == ' ') {
+			second_line_start++;
+		}
+		display_write_string_centered((char*)second_line_start, DISPLAY_TITLE_FONT,
+									  MENU_TITLE_LINE2_Y, DISPLAY_WHITE);
+	}
+}
+
 void display_manager_draw_menu_title(const char* title) {
-	display_write_string_centered((char*) title, DISPLAY_TITLE_FONT, MENU_TITLE_Y, DISPLAY_WHITE);
+	display_manager_draw_wrapped_title((char*) title);
 }
 
 void display_manager_draw_menu_item(const char* item_text, uint8_t position, bool is_selected) {

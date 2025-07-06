@@ -3,6 +3,7 @@
  *
  *  Created on: Jun 2, 2025
  *      Author: rohitimandi
+ *  Updated: Added support for hierarchical menu system and multiplayer games
  */
 
 #ifndef INC_APPLICATION_CONSOLE_UI_H_
@@ -20,6 +21,8 @@
  * Console UI module provides the main interface for the gaming console.
  * This module coordinates display, menu, and game functionality through
  * the underlying modular architecture.
+ *
+ *
  */
 
 /* Core console UI functions */
@@ -37,6 +40,12 @@ MenuItem console_ui_get_selected_menu_item(void);
 void console_ui_run_game(void);
 bool console_ui_is_game_active(void);
 void console_ui_set_game_active(bool is_active);
+
+/* Menu navigation functions - NEW */
+bool console_ui_handle_menu_selection(void);
+void console_ui_handle_back_navigation(void);
+MenuType console_ui_get_current_menu_type(void);
+bool console_ui_is_in_main_menu(void);
 
 /* Status and query functions */
 uint8_t console_ui_get_menu_size(void);

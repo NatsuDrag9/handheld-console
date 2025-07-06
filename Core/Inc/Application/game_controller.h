@@ -31,7 +31,7 @@ typedef enum {
 
 /* Game controller initialization and main loop */
 void game_controller_init(MenuItem* menu_items, uint8_t menu_count);
-void game_controller_init_with_default_menu(void);  /* New convenience function */
+void game_controller_init_with_default_menu(void);  /* Convenience function */
 void game_controller_update(void);
 void game_controller_handle_input(JoystickStatus js_status);
 
@@ -52,9 +52,17 @@ GameEngine* game_controller_get_current_game_engine(void);
 void game_controller_handle_menu_input(JoystickStatus js_status);
 void game_controller_handle_game_input(JoystickStatus js_status);
 
+/* Menu navigation functions  */
+bool game_controller_handle_menu_selection(void);
+void game_controller_handle_back_navigation(void);
+
 /* Status and display functions */
 void game_controller_update_status_bar(void);
 MenuItem game_controller_get_selected_menu_item(void);
+
+/* Menu state functions - NEW */
+MenuType game_controller_get_current_menu_type(void);
+bool game_controller_is_in_main_menu(void);
 
 /* Utility functions for testing */
 uint8_t game_controller_get_current_menu_selection(void);
