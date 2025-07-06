@@ -414,7 +414,7 @@ static void game_controller_show_error_screen(ScreenType error_screen) {
     last_error_render_time = 0;
 
 //    /* Render the error screen immediately */
-//    game_controller_render_error_screen();
+    game_controller_render_error_screen();
 }
 
 static void game_controller_render_error_screen(void) {
@@ -426,7 +426,8 @@ static void game_controller_render_error_screen(void) {
 
     switch (current_error_screen) {
         case SCREEN_WIFI_ERROR:
-            display_manager_show_wifi_error_with_timer(seconds_remaining);
+        	display_manager_show_wifi_error();
+//            display_manager_show_wifi_error_with_timer(seconds_remaining);
             break;
 
         case SCREEN_ERROR:

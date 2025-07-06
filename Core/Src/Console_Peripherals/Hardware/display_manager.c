@@ -136,6 +136,23 @@ void display_manager_show_wifi_error_with_timer(uint8_t seconds_remaining) {
 	display_update();
 }
 
+/* WiFi error without timer */
+void display_manager_show_wifi_error() {
+	display_clear();
+	display_draw_border();
+
+	display_write_string_centered("WiFi not connected!", DISPLAY_ERROR_FONT,
+								  DISPLAY_HEIGHT/2 - 35, DISPLAY_WHITE);
+
+
+	display_write_string_centered("Press button 2 to", DISPLAY_STATUS_FONT,
+								  DISPLAY_HEIGHT/2, DISPLAY_WHITE);
+
+	display_write_string_centered("return to main menu", DISPLAY_STATUS_FONT, DISPLAY_HEIGHT/2 + 25, DISPLAY_WHITE);
+
+	display_update();
+}
+
 void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int lives, bool in_game) {
 	/* Draw horizontal separator line */
 	display_draw_horizontal_line(0, SEPARATOR_LINE_Y, DISPLAY_WIDTH, DISPLAY_WHITE);
