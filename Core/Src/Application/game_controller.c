@@ -76,7 +76,7 @@ static void handle_menu_navigation(uint8_t direction);
 static void handle_menu_selection(void);
 static bool handle_game_button_actions(GameEngine* engine);
 static void handle_error_input();
-static void handle_error_timeout(void);
+//static void handle_error_timeout(void);
 static void process_game_loop(GameEngine* engine);
 static bool handle_game_over(GameEngine* engine);
 static uint8_t convert_joystick_to_menu_nav(JoystickStatus js_status);
@@ -219,36 +219,36 @@ void game_controller_handle_menu_input(JoystickStatus js_status) {
 }
 
 
-static void handle_error_timeout(void) {
-	uint32_t current_time = get_current_ms();
-	uint32_t elapsed_time = current_time - error_start_time;
-
-    if (elapsed_time >= ERROR_DISPLAY_TIMEOUT_MS) {
-        /* Timeout expired - return to main menu */
-    	DEBUG_PRINTF(false, "Error state: Timeout expired, returning to main menu\r\n");
-        game_controller_return_to_menu();
-    }
-
-    /* Render error screen */
-    if (current_time - last_error_render_time >= 100) {  // Every 100ms
-        uint8_t seconds_remaining = (ERROR_DISPLAY_TIMEOUT_MS - elapsed_time) / 1000 + 1;
-
-        DEBUG_PRINTF(false, "Timer: elapsed=%lu, remaining=%d\r\n", elapsed_time, seconds_remaining);
-
-        switch (current_error_screen) {
-            case SCREEN_WIFI_ERROR:
-                display_manager_show_wifi_error_with_timer(seconds_remaining);
-                break;
-            case SCREEN_ERROR:
-            default:
-                display_manager_show_error_message("System Error");
-                break;
-        }
-
-        last_error_render_time = current_time;
-    }
-
-}
+//static void handle_error_timeout(void) {
+//	uint32_t current_time = get_current_ms();
+//	uint32_t elapsed_time = current_time - error_start_time;
+//
+//    if (elapsed_time >= ERROR_DISPLAY_TIMEOUT_MS) {
+//        /* Timeout expired - return to main menu */
+//    	DEBUG_PRINTF(false, "Error state: Timeout expired, returning to main menu\r\n");
+//        game_controller_return_to_menu();
+//    }
+//
+//    /* Render error screen */
+//    if (current_time - last_error_render_time >= 100) {  // Every 100ms
+//        uint8_t seconds_remaining = (ERROR_DISPLAY_TIMEOUT_MS - elapsed_time) / 1000 + 1;
+//
+//        DEBUG_PRINTF(false, "Timer: elapsed=%lu, remaining=%d\r\n", elapsed_time, seconds_remaining);
+//
+//        switch (current_error_screen) {
+//            case SCREEN_WIFI_ERROR:
+//                display_manager_show_wifi_error_with_timer(seconds_remaining);
+//                break;
+//            case SCREEN_ERROR:
+//            default:
+//                display_manager_show_error_message("System Error");
+//                break;
+//        }
+//
+//        last_error_render_time = current_time;
+//    }
+//
+//}
 
 static void handle_error_input() {
 	/* Pressing PB2 in error state returns to main menu */
@@ -268,13 +268,24 @@ static void handle_menu_navigation(uint8_t direction) {
     uint8_t old_selection = menu_system_get_current_selection(&main_menu);
 
     if (menu_system_handle_navigation(&main_menu, direction)) {
+        bool render_success = false;
+
         if (menu_system_needs_full_refresh(&main_menu)) {
-            menu_system_render(&main_menu);
+            render_success = menu_system_render(&main_menu);
         } else {
-            menu_system_render_partial_update(&main_menu, old_selection);
+            render_success = menu_system_render_partial_update(&main_menu, old_selection);
         }
+
+        // Handle render failure
+        if (!render_success) {
+            DEBUG_PRINTF(false, "Menu navigation render failed, showing menu error\r\n");
+            game_controller_show_error_screen(SCREEN_MENU_ERROR);
+            return;
+        }
+
         menu_system_clear_refresh_flag(&main_menu);
     }
+
 }
 
 static void handle_menu_selection(void) {
@@ -291,10 +302,18 @@ static void handle_menu_selection(void) {
             if (current_menu_type == MENU_TYPE_MAIN) {
                 if (selected.game_mode == GAME_MODE_SINGLE_PLAYER) {
                     menu_system_navigate_to_single_player(&main_menu);
-                    menu_system_render(&main_menu);
+                    if (!menu_system_render(&main_menu)) {
+                    	DEBUG_PRINTF(false, "Single player menu render failed, showing menu error\r\n");
+                    	game_controller_show_error_screen(SCREEN_MENU_ERROR);
+                    	return;
+                    }
                 } else if (selected.game_mode == GAME_MODE_MULTIPLAYER) {
                     if (menu_system_navigate_to_multiplayer(&main_menu)) {
-                        menu_system_render(&main_menu);
+                    	if (!menu_system_render(&main_menu)) {
+                    		DEBUG_PRINTF(false, "Multi-player menu render failed, showing menu error\r\n");
+                    		game_controller_show_error_screen(SCREEN_MENU_ERROR);
+                    		return;
+                    	}
                     }
                     else {
                     	/* WiFi check failed - show WiFi error */
@@ -319,7 +338,12 @@ void game_controller_handle_back_navigation(void) {
     /* Only allow back navigation from sub-menus */
     if (current_menu_type != MENU_TYPE_MAIN) {
         menu_system_navigate_back(&main_menu);
-        menu_system_render(&main_menu);
+
+        if (!menu_system_render(&main_menu)) {
+        	DEBUG_PRINTF(false, "Back navigation render failed, showing menu error\r\n");
+        	game_controller_show_error_screen(SCREEN_MENU_ERROR);
+        	return;
+        }
     }
 }
 
@@ -430,6 +454,10 @@ static void game_controller_render_error_screen(void) {
 //            display_manager_show_wifi_error_with_timer(seconds_remaining);
             break;
 
+        case SCREEN_MENU_ERROR:
+        	display_manager_show_error_message("Menu Unavailable");
+        	break;
+
         case SCREEN_ERROR:
         default:
             display_manager_show_error_message("System Error");
@@ -489,7 +517,11 @@ void game_controller_show_menu(void) {
     menu_system_get_main_menu(&main_menu_items, &main_menu_count);
     menu_system_init(&main_menu, main_menu_items, main_menu_count);
 
-    menu_system_render(&main_menu);
+    if (!menu_system_render(&main_menu)) {
+    	DEBUG_PRINTF(false, "Menu rendering failed, showing menu error\r\n");
+    	game_controller_show_error_screen(SCREEN_MENU_ERROR);
+    	return;
+    }
     current_app_state = APP_STATE_MENU;
 }
 

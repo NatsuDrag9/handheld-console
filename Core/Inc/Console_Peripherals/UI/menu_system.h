@@ -51,6 +51,7 @@ typedef enum {
     // Special screens
     SCREEN_GAMEPLAY_SELECTION,  // Main menu: Single Player / Multiplayer
     SCREEN_WIFI_ERROR,          // WiFi connection error
+	SCREEN_MENU_ERROR,			// Menu unavaialble error
     SCREEN_ERROR
 } ScreenType;
 
@@ -88,8 +89,8 @@ void menu_system_init(MenuState* menu_state, MenuItem* items, uint8_t item_count
 void menu_system_reset(MenuState* menu_state);
 
 /* Menu rendering functions */
-void menu_system_render(const MenuState* menu_state);
-void menu_system_render_partial_update(const MenuState* menu_state, uint8_t old_selection);
+bool menu_system_render(const MenuState* menu_state);
+bool menu_system_render_partial_update(const MenuState* menu_state, uint8_t old_selection);
 
 /* Menu navigation functions */
 bool menu_system_handle_navigation(MenuState* menu_state, MenuNavigation direction);

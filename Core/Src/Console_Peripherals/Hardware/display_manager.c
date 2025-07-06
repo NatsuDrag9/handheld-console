@@ -26,7 +26,7 @@ extern void add_delay(uint32_t ms);
 #elif defined(DISPLAY_MODULE_LCD)
 #define MENU_START_Y     80
 #define MENU_ITEM_HEIGHT 35
-#define VISIBLE_ITEMS    4
+#define VISIBLE_ITEMS    3
 #define MENU_TITLE_Y     35
 #define MENU_TITLE_LINE2_Y  65 // second line for wrapped title
 #else

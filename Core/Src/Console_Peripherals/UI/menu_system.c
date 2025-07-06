@@ -82,10 +82,9 @@ void menu_system_reset(MenuState* menu_state) {
 }
 
 /* Menu rendering functions */
-void menu_system_render(const MenuState* menu_state) {
+bool menu_system_render(const MenuState* menu_state) {
     if (!menu_state || menu_state->item_count == 0) {
-        display_manager_show_error_message("Menu Unavailable");
-        return;
+        return false;
     }
 
     display_manager_clear_screen();
@@ -123,9 +122,9 @@ void menu_system_render(const MenuState* menu_state) {
     display_manager_update();
 }
 
-void menu_system_render_partial_update(const MenuState* menu_state, uint8_t old_selection) {
+bool menu_system_render_partial_update(const MenuState* menu_state, uint8_t old_selection) {
     if (!menu_state) {
-        return;
+        return false;
     }
 
     /* Update the changed items only if both are visible */
