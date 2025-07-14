@@ -22,6 +22,8 @@ static uart_game_data_callback_t game_data_callback = NULL;
 static uart_chat_message_callback_t chat_message_callback = NULL;
 static uart_command_callback_t command_callback = NULL;
 static uart_status_callback_t status_callback = NULL;
+static uart_connection_message_callback_t connection_message_callback = NULL;
+static uart_tile_size_validation_callback_t tile_size_validation_callback = NULL;
 
 // Private function declarations
 static void uart_event_task(void* pvParameters);
@@ -93,10 +95,11 @@ static bool validate_message(const uart_message_t* msg) {
     }
 
     // Check message type
-    if (msg->msg_type < UART_MSG_DATA || msg->msg_type > UART_MSG_CHAT) {
+    if (msg->msg_type < UART_MSG_GAME_DATA || msg->msg_type > UART_MSG_TILE_SIZE_VALIDATION) {
         ESP_LOGW(TAG, "Invalid message type: 0x%02X", msg->msg_type);
         return false;
     }
+
 
     // Check length
     if (msg->length > 250) {
@@ -144,7 +147,7 @@ static void process_received_message(const uart_message_t* msg) {
 
     // Process specific message types
     switch (msg->msg_type) {
-    case UART_MSG_DATA:
+    case UART_MSG_GAME_DATA:
         if (game_data_callback && msg->length == sizeof(uart_game_data_t)) {
             uart_game_data_t* game_data = (uart_game_data_t*)msg->data;
             ESP_LOGI(TAG, "Game Data: type=%s, data=%s", game_data->data_type, game_data->game_data);
@@ -178,6 +181,24 @@ static void process_received_message(const uart_message_t* msg) {
         }
         break;
 
+    case UART_MSG_CONNECTION:
+        if (connection_message_callback && msg->length == sizeof(uart_connection_message_t)) {
+            uart_connection_message_t* connection_msg = (uart_connection_message_t*)msg->data;
+            ESP_LOGI(TAG, "Connection Message: message=%s, timestamp=%lu",
+                connection_msg->message, connection_msg->timestamp);
+            connection_message_callback(connection_msg);
+        }
+        break;
+
+    case UART_MSG_TILE_SIZE_VALIDATION:
+        if (tile_size_validation_callback && msg->length == sizeof(uart_tile_size_validation_t)) {
+            uart_tile_size_validation_t* tile_size_msg = (uart_tile_size_validation_t*)msg->data;
+            ESP_LOGI(TAG, "Tile Size Validation: tile_size=%d, timestamp=%lu",
+                tile_size_msg->tile_size, tile_size_msg->timestamp);
+            tile_size_validation_callback(tile_size_msg);
+        }
+        break;
+
     case UART_MSG_ACK:
         ESP_LOGI(TAG, "Received ACK from STM32");
 
@@ -208,74 +229,6 @@ static void process_received_message(const uart_message_t* msg) {
 
     uart_stats.messages_received++;
 }
-
-
-// static void process_received_message(const uart_message_t* msg) {
-//     ESP_LOGI(TAG, "Processing message type: 0x%02X, length: %d",
-//         msg->msg_type, msg->length);
-
-//     // Call generic message callback if registered
-//     if (message_callback) {
-//         message_callback((uart_message_type_t)msg->msg_type, msg->data, msg->length);
-//     }
-
-//     // Process specific message types
-//     switch (msg->msg_type) {
-//     case UART_MSG_DATA:
-//         if (game_data_callback && msg->length == sizeof(uart_game_data_t)) {
-//             uart_game_data_t* game_data = (uart_game_data_t*)msg->data;
-//             ESP_LOGI(TAG, "Game Data: type=%s, data=%s", game_data->data_type, game_data->game_data);
-//             game_data_callback(game_data);
-//         }
-//         break;
-
-//     case UART_MSG_CHAT:
-//         if (chat_message_callback && msg->length == sizeof(uart_chat_message_t)) {
-//             uart_chat_message_t* chat_message = (uart_chat_message_t*)msg->data;
-//             ESP_LOGI(TAG, "Chat Message: from=%s, type=%s, message=%s",
-//                 chat_message->sender, chat_message->chat_type, chat_message->message);
-//             chat_message_callback(chat_message);
-//         }
-//         break;
-
-//     case UART_MSG_COMMAND:
-//         if (command_callback && msg->length == sizeof(uart_command_t)) {
-//             uart_command_t* command = (uart_command_t*)msg->data;
-//             ESP_LOGI(TAG, "Received command: %s %s", command->command, command->parameters);
-//             command_callback(command);
-//         }
-//         break;
-
-//     case UART_MSG_STATUS:
-//         if (status_callback && msg->length == sizeof(uart_status_t)) {
-//             uart_status_t* status = (uart_status_t*)msg->data;
-//             ESP_LOGI(TAG, "Received status: system=%d, error=%d, message=%s",
-//                 status->system_status, status->error_code, status->status_message);
-//             status_callback(status);
-//         }
-//         break;
-
-//     case UART_MSG_ACK:
-//         ESP_LOGI(TAG, "Received ACK from STM32");
-//         break;
-
-//     case UART_MSG_NACK:
-//         ESP_LOGI(TAG, "Received NACK from STM32");
-//         break;
-
-//     case UART_MSG_HEARTBEAT:
-//         ESP_LOGI(TAG, "Received heartbeat from STM32");
-//         // Automatically respond to heartbeat
-//         uart_send_ack();
-//         break;
-
-//     default:
-//         ESP_LOGW(TAG, "Unknown message type: 0x%02X", msg->msg_type);
-//         break;
-//     }
-
-//     uart_stats.messages_received++;
-// }
 
 // Send raw message
 static esp_err_t uart_send_raw_message(const uart_message_t* msg) {
@@ -550,7 +503,7 @@ esp_err_t uart_send_game_data(const char* data_type, const char* game_data, cons
     ESP_LOGI(TAG, "Sending game data: type='%s', data='%s', meta='%s', seq=%lu",
         data_type, game_data, metadata ? metadata : "", game_payload.sequence_num);
 
-    return uart_send_message(UART_MSG_DATA, (const uint8_t*)&game_payload,
+    return uart_send_message(UART_MSG_GAME_DATA, (const uint8_t*)&game_payload,
         sizeof(game_payload));
 }
 
@@ -638,6 +591,35 @@ esp_err_t uart_send_status_with_ack(system_status_type_t system_status, uint8_t 
     }
 }
 
+esp_err_t uart_send_connection_message(const char* client_id, const char* message) {
+    uart_connection_message_t connection_payload;
+    memset(&connection_payload, 0, sizeof(connection_payload));
+
+    strncpy(connection_payload.client_id, client_id, sizeof(connection_payload.client_id) - 1);
+    strncpy(connection_payload.message, message, sizeof(connection_payload.message) - 1);
+    connection_payload.timestamp = esp_log_timestamp();
+
+    ESP_LOGI(TAG, "Sending connection message: message='%s', timestamp=%lu",
+        connection_payload.message, connection_payload.timestamp);
+
+    return uart_send_message(UART_MSG_CONNECTION, (const uint8_t*)&connection_payload,
+        sizeof(connection_payload));
+}
+
+esp_err_t uart_send_tile_size_validation(uint16_t tile_size) {
+    uart_tile_size_validation_t tile_size_payload;
+    memset(&tile_size_payload, 0, sizeof(tile_size_payload));
+
+    tile_size_payload.tile_size = tile_size;
+    tile_size_payload.timestamp = esp_log_timestamp();
+
+    ESP_LOGI(TAG, "Sending tile size validation: tile_size=%d, timestamp=%lu",
+        tile_size_payload.tile_size, tile_size_payload.timestamp);
+
+    return uart_send_message(UART_MSG_TILE_SIZE_VALIDATION, (const uint8_t*)&tile_size_payload,
+        sizeof(tile_size_payload));
+}
+
 esp_err_t uart_send_ack(void) {
     return uart_send_message(UART_MSG_ACK, NULL, 0);
 }
@@ -670,6 +652,15 @@ void uart_register_command_callback(uart_command_callback_t callback) {
 void uart_register_status_callback(uart_status_callback_t callback) {
     status_callback = callback;
 }
+
+void uart_register_connection_message_callback(uart_connection_message_callback_t callback) {
+    connection_message_callback = callback;
+}
+
+void uart_register_tile_size_validation_callback(uart_tile_size_validation_callback_t callback) {
+    tile_size_validation_callback = callback;
+}
+
 
 // Utility functions
 bool uart_is_connected(void) {

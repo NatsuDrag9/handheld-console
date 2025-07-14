@@ -4,6 +4,8 @@ idf_component_register(
         "wifi.c"
         "uart_comm.c"
         "websocket_client.c"
+        "helpers/websocket-client/websocket_client_to_server.c"
+        "helpers/websocket-client/websocket_client_to_stm32.c"
     PRIV_REQUIRES
         driver
         spi_flash 
@@ -12,5 +14,5 @@ idf_component_register(
         esp_event
         esp_http_client
         esp_websocket_client
-    INCLUDE_DIRS "."
+    INCLUDE_DIRS "." "helpers" "helpers/websocket-client"
 )

@@ -179,8 +179,7 @@ void app_main(void)
 
     uart_send_status(SYSTEM_STATUS_WEBSOCKET_CONNECTING, 0, "WebSocket Connecting");
 
-    // TODO: Replace with actual WebSocket connection logic
-    // websocket_app_main();
+    websocket_app_main();
 
     // For now, simulate WebSocket connection
     vTaskDelay(pdMS_TO_TICKS(1000));

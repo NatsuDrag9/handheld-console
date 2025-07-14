@@ -1,45 +1,61 @@
 #include "./websocket_client.h"
-#include <inttypes.h> // For PRIu32 format specifier
-#include "../components/cmp/cmp.h"
+#include "./helpers/websocket-client/websocket_client_to_server.h"
+#include "./websocket-client/websocket_client_to_stm32.h"
+#include <inttypes.h>
 
 static const char* TAG = "WEBSOCKET";
 
 // Unique client ID received from server
 static char client_id[37] = { 0 }; // 36 chars for UUID + null terminator
 
-// WebSocket client handle (global for access from callbacks)
-static esp_websocket_client_handle_t ws_client = NULL;
+typedef struct {
+    char type_str[32];
+    char message_id[64];
+    char message_text[128];
+    char game_data[128];
+    char player_id[64];
+    char metadata[64];
+    char data_type[32];
+    char status_type[32];
+    char command[32];
+    char command_data[128];
+    char session_id[64];
+    char status_data[128];
+    bool found_type;
+    bool found_id;
+} msgpack_parse_data_t;
+
+// WebSocket client handle (global for access from callbacks and helpers)
+esp_websocket_client_handle_t ws_client = NULL;
+// Static allocation - safe since WebSocket task is single-threaded
+static msgpack_parse_data_t g_parse_data = { 0 };
 
 // Callback functions
 static websocket_status_callback_t status_callback = NULL;
 static websocket_game_callback_t game_callback = NULL;
+static websocket_connection_callback_t connection_callback = NULL;
+static websocket_status_message_callback_t status_message_callback = NULL;
 
-// Custom buffer reader for MessagePack
-static bool buffer_reader(struct cmp_ctx_s* ctx, void* data, size_t limit) {
+// MessagePack utility functions (shared with helper modules)
+bool websocket_buffer_reader(struct cmp_ctx_s* ctx, void* data, size_t limit) {
     uint8_t** buffer_ptr = (uint8_t**)ctx->buf;
     memcpy(data, *buffer_ptr, limit);
     *buffer_ptr += limit;
     return true;
 }
 
-// Skip function for MessagePack
-static bool buffer_skipper(struct cmp_ctx_s* ctx, size_t count) {
+bool websocket_buffer_skipper(struct cmp_ctx_s* ctx, size_t count) {
     uint8_t** buffer_ptr = (uint8_t**)ctx->buf;
     *buffer_ptr += count;
     return true;
 }
 
-// Custom buffer writer for MessagePack
-static size_t buffer_writer(struct cmp_ctx_s* ctx, const void* data, size_t count) {
+size_t websocket_buffer_writer(struct cmp_ctx_s* ctx, const void* data, size_t count) {
     uint8_t** buffer_ptr = (uint8_t**)ctx->buf;
     memcpy(*buffer_ptr, data, count);
     *buffer_ptr += count;
     return count;
 }
-
-// Forward declarations for STM32 integration
-static void handle_server_game_data(const char* data_type, const char* game_data, const char* metadata);
-static void handle_server_chat_message(const char* message, const char* metadata);
 
 // MessagePack parsing function
 static void process_msgpack_data(const uint8_t* data, size_t len) {
@@ -50,12 +66,16 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
         return;
     }
 
+    // Clear the parse data structure
+    memset(&g_parse_data, 0, sizeof(g_parse_data));
+
     // Make a copy of the data buffer pointer so we can modify it
     const uint8_t* buffer_ptr = data;
 
     // Initialize CMP context
     cmp_ctx_t cmp;
-    cmp_init(&cmp, (void*)&buffer_ptr, buffer_reader, buffer_skipper, buffer_writer);
+    cmp_init(&cmp, (void*)&buffer_ptr, websocket_buffer_reader,
+        websocket_buffer_skipper, websocket_buffer_writer);
 
     // Read the object header (expecting a map)
     cmp_object_t obj;
@@ -77,19 +97,6 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
 
     ESP_LOGI(TAG, "Received a MessagePack map with %" PRIu32 " entries", map_size);
 
-    // Variables to store parsed values
-    char type_str[32] = { 0 };
-    char message_id[64] = { 0 };
-    char message_text[128] = { 0 };
-    char game_data[128] = { 0 };
-    char player_id[64] = { 0 };
-    char metadata[64] = { 0 };
-    char data_type[32] = { 0 };
-    char nested_type[32] = { 0 };
-    bool found_type = false;
-    bool found_id = false;
-    bool found_nested_message = false;
-
     // Read each key-value pair
     for (uint32_t i = 0; i < map_size; i++) {
         ESP_LOGI(TAG, "Reading entry %" PRIu32 "/%" PRIu32, i + 1, map_size);
@@ -103,7 +110,10 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
 
         if (!cmp_object_is_str(&key_obj)) {
             ESP_LOGE(TAG, "Expected string key at position %" PRIu32 " but got type %d", i, key_obj.type);
-            return;
+            // Skip this entry instead of returning - more robust error handling
+            cmp_object_t skip_value;
+            cmp_read_object(&cmp, &skip_value);
+            continue;
         }
 
         uint32_t key_len;
@@ -135,81 +145,132 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
         // Process specific keys based on message type
         if (strcmp(key, "type") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                if (cmp_object_to_str(&cmp, &value_obj, type_str, sizeof(type_str))) {
-                    found_type = true;
-                    ESP_LOGI(TAG, "Found type: '%s'", type_str);
+                if (cmp_object_to_str(&cmp, &value_obj, g_parse_data.type_str, sizeof(g_parse_data.type_str))) {
+                    g_parse_data.found_type = true;
+                    ESP_LOGI(TAG, "Found type: '%s'", g_parse_data.type_str);
                 }
             }
         }
         else if (strcmp(key, "id") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                if (cmp_object_to_str(&cmp, &value_obj, message_id, sizeof(message_id))) {
-                    found_id = true;
-                    ESP_LOGI(TAG, "Found id: '%s'", message_id);
+                if (cmp_object_to_str(&cmp, &value_obj, g_parse_data.message_id, sizeof(g_parse_data.message_id))) {
+                    g_parse_data.found_id = true;
+                    ESP_LOGI(TAG, "Found id: '%s'", g_parse_data.message_id);
                 }
             }
         }
         else if (strcmp(key, "message") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                if (cmp_object_to_str(&cmp, &value_obj, message_text, sizeof(message_text))) {
-                    ESP_LOGI(TAG, "Found message: '%s'", message_text);
-                }
-            }
-            else if (cmp_object_is_map(&value_obj)) {
-                ESP_LOGI(TAG, "Found nested message object - parsing for game data");
-                found_nested_message = true;
-
-                // Parse nested message for echo handling
-                uint32_t nested_map_size;
-                if (cmp_object_as_map(&value_obj, &nested_map_size)) {
-                    // Parse nested fields similar to main parsing
-                    for (uint32_t j = 0; j < nested_map_size; j++) {
-                        cmp_object_t nested_key_obj;
-                        if (!cmp_read_object(&cmp, &nested_key_obj)) break;
-
-                        char nested_key[32] = { 0 };
-                        if (cmp_object_is_str(&nested_key_obj)) {
-                            cmp_object_to_str(&cmp, &nested_key_obj, nested_key, sizeof(nested_key));
-                        }
-
-                        cmp_object_t nested_value_obj;
-                        if (!cmp_read_object(&cmp, &nested_value_obj)) break;
-
-                        if (strcmp(nested_key, "type") == 0 && cmp_object_is_str(&nested_value_obj)) {
-                            cmp_object_to_str(&cmp, &nested_value_obj, nested_type, sizeof(nested_type));
-                        }
-                        else if (strcmp(nested_key, "data") == 0 && cmp_object_is_str(&nested_value_obj)) {
-                            cmp_object_to_str(&cmp, &nested_value_obj, game_data, sizeof(game_data));
-                        }
-                        else if (strcmp(nested_key, "metadata") == 0 && cmp_object_is_str(&nested_value_obj)) {
-                            cmp_object_to_str(&cmp, &nested_value_obj, metadata, sizeof(metadata));
-                        }
-                    }
+                if (cmp_object_to_str(&cmp, &value_obj, g_parse_data.message_text, sizeof(g_parse_data.message_text))) {
+                    ESP_LOGI(TAG, "Found message: '%s'", g_parse_data.message_text);
                 }
             }
         }
         else if (strcmp(key, "data_type") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                cmp_object_to_str(&cmp, &value_obj, data_type, sizeof(data_type));
-                ESP_LOGI(TAG, "Found data_type: '%s'", data_type);
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.data_type, sizeof(g_parse_data.data_type));
+                ESP_LOGI(TAG, "Found data_type: '%s'", g_parse_data.data_type);
             }
         }
         else if (strcmp(key, "data") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                cmp_object_to_str(&cmp, &value_obj, game_data, sizeof(game_data));
-                ESP_LOGI(TAG, "Found data: '%s'", game_data);
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.game_data, sizeof(g_parse_data.game_data));
+                ESP_LOGI(TAG, "Found data: '%s'", g_parse_data.game_data);
+
+                // Handle string-based data for ESP32 clients (player_assignment and opponent_connected)
+                if (strcmp(g_parse_data.status_type, "player_assignment") == 0 || strcmp(g_parse_data.status_type, "opponent_connected") == 0) {
+                    // Data is in template string format: "playerId: X, sessionId: Y, playerCount: Z, color: W"
+                    // Parse the string to extract individual components
+                    int parsed_player_id = 1;
+                    char parsed_session_id[32] = { 0 };
+                    int parsed_player_count = 1;
+                    char parsed_color[16] = "blue";
+
+                    // Parse the comma-separated string
+                    char* data_copy = strdup(g_parse_data.game_data);  // Heap allocation
+                    if (data_copy) {
+                        char* token = strtok(data_copy, ",");
+                        while (token != NULL) {
+                            // Remove leading/trailing whitespace
+                            while (*token == ' ') token++;
+                            char* end = token + strlen(token) - 1;
+                            while (end > token && *end == ' ') *end-- = '\0';
+
+                            if (strncmp(token, "playerId:", 9) == 0) {
+                                parsed_player_id = atoi(token + 10); // Skip "playerId: "
+                                ESP_LOGI(TAG, "Parsed playerId: %d", parsed_player_id);
+                            }
+                            else if (strncmp(token, "sessionId:", 10) == 0) {
+                                strncpy(parsed_session_id, token + 11, sizeof(parsed_session_id) - 1); // Skip "sessionId: "
+                                parsed_session_id[sizeof(parsed_session_id) - 1] = '\0';
+                                ESP_LOGI(TAG, "Parsed sessionId: '%s'", parsed_session_id);
+                            }
+                            else if (strncmp(token, "playerCount:", 12) == 0) {
+                                parsed_player_count = atoi(token + 13); // Skip "playerCount: "
+                                ESP_LOGI(TAG, "Parsed playerCount: %d", parsed_player_count);
+                            }
+                            else if (strncmp(token, "color:", 6) == 0) {
+                                strncpy(parsed_color, token + 7, sizeof(parsed_color) - 1); // Skip "color: "
+                                parsed_color[sizeof(parsed_color) - 1] = '\0';
+                                ESP_LOGI(TAG, "Parsed color: '%s'", parsed_color);
+                            }
+
+                            token = strtok(NULL, ",");
+                        }
+                        free(data_copy);
+
+                        // Format the parsed data for STM32 (same format as before)
+                        snprintf(g_parse_data.status_data, sizeof(g_parse_data.status_data), "%d:%s:%d:%s",
+                            parsed_player_id, parsed_session_id, parsed_player_count, parsed_color);
+                        ESP_LOGI(TAG, "Formatted player assignment data: '%s'", g_parse_data.status_data);
+                    }
+                    else {
+                        ESP_LOGE(TAG, "Failed to allocate memory for string parsing");
+                        strncpy(g_parse_data.status_data, g_parse_data.game_data, sizeof(g_parse_data.status_data) - 1);
+                        g_parse_data.status_data[sizeof(g_parse_data.status_data) - 1] = '\0';
+                    }
+                }
+                else {
+                    // For other message types, copy the string data directly
+                    strncpy(g_parse_data.status_data, g_parse_data.game_data, sizeof(g_parse_data.status_data) - 1);
+                    g_parse_data.status_data[sizeof(g_parse_data.status_data) - 1] = '\0';
+                }
             }
         }
         else if (strcmp(key, "player_id") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                cmp_object_to_str(&cmp, &value_obj, player_id, sizeof(player_id));
-                ESP_LOGI(TAG, "Found player_id: '%s'", player_id);
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.player_id, sizeof(g_parse_data.player_id));
+                ESP_LOGI(TAG, "Found player_id: '%s'", g_parse_data.player_id);
             }
         }
         else if (strcmp(key, "metadata") == 0) {
             if (cmp_object_is_str(&value_obj)) {
-                cmp_object_to_str(&cmp, &value_obj, metadata, sizeof(metadata));
-                ESP_LOGI(TAG, "Found metadata: '%s'", metadata);
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.metadata, sizeof(g_parse_data.metadata));
+                ESP_LOGI(TAG, "Found metadata: '%s'", g_parse_data.metadata);
+            }
+        }
+        else if (strcmp(key, "status") == 0) {
+            if (cmp_object_is_str(&value_obj)) {
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.status_type, sizeof(g_parse_data.status_type));
+                ESP_LOGI(TAG, "Found status: '%s'", g_parse_data.status_type);
+            }
+        }
+        else if (strcmp(key, "command") == 0) {
+            if (cmp_object_is_str(&value_obj)) {
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.command, sizeof(g_parse_data.command));
+                ESP_LOGI(TAG, "Found command: '%s'", g_parse_data.command);
+            }
+        }
+        else if (strcmp(key, "sessionId") == 0) {
+            if (cmp_object_is_str(&value_obj)) {
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.session_id, sizeof(g_parse_data.session_id));
+                ESP_LOGI(TAG, "Found sessionId: '%s'", g_parse_data.session_id);
+            }
+        }
+        else if (strcmp(key, "parameters") == 0) {
+            if (cmp_object_is_str(&value_obj)) {
+                cmp_object_to_str(&cmp, &value_obj, g_parse_data.command_data, sizeof(g_parse_data.command_data));
+                ESP_LOGI(TAG, "Found command data: '%s'", g_parse_data.command_data);
             }
         }
         else if (strcmp(key, "timestamp") == 0) {
@@ -225,13 +286,14 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
         }
     }
 
-    // Process the message based on type
-    if (found_type) {
-        ESP_LOGI(TAG, "Processing message type: %s", type_str);
+    // Process the message based on type - route to STM32 converter
+    if (g_parse_data.found_type) {
+        ESP_LOGI(TAG, "Routing message type: %s", g_parse_data.type_str);
 
-        if (strcmp(type_str, "connection") == 0) {
-            if (found_id) {
-                strncpy(client_id, message_id, sizeof(client_id) - 1);
+        // Handle connection messages to set client ID
+        if (strcmp(g_parse_data.type_str, "connection") == 0) {
+            if (g_parse_data.found_id) {
+                strncpy(client_id, g_parse_data.message_id, sizeof(client_id) - 1);
                 client_id[sizeof(client_id) - 1] = '\0';
                 ESP_LOGI(TAG, "Successfully set client ID: %s", client_id);
 
@@ -240,193 +302,33 @@ static void process_msgpack_data(const uint8_t* data, size_t len) {
                     status_callback(true, client_id);
                 }
 
-                // Send status to STM32
-                uart_send_status(WEBSOCKET_CONNECTED, 0, "WebSocket Connected");
+                // Notify connection callback
+                if (connection_callback) {
+                    connection_callback(g_parse_data.message_id, g_parse_data.message_text);
+                }
             }
-            else {
-                ESP_LOGE(TAG, "Connection message but no ID found");
+        }
+
+        // Handle status messages with specific callback
+        if (strcmp(g_parse_data.type_str, "status") == 0) {
+            if (status_message_callback) {
+                status_message_callback(g_parse_data.status_type, g_parse_data.message_text);
             }
         }
-        else if (strcmp(type_str, "ping") == 0) {
-            ESP_LOGI(TAG, "Received ping message - connection alive");
-        }
-        else if (strcmp(type_str, "echo") == 0) {
-            ESP_LOGI(TAG, "Received echo message");
-            // Handle echo messages if needed, but don't forward to STM32
-            // Echo messages are for acknowledgment only
-        }
-        else if (strcmp(type_str, "game_data") == 0 ||
-            strcmp(type_str, "player_action") == 0 ||
-            strcmp(type_str, "game_state") == 0) {
-            ESP_LOGI(TAG, "GAME CHANNEL: Received game data from server");
-            ESP_LOGI(TAG, "Game data details: type=%s, data=%s", data_type, game_data);
 
-            // Call game callback if registered
-            if (game_callback) {
-                game_callback(type_str, game_data, metadata);
-            }
+        // Route all messages to STM32 converter
+        ws_to_stm32_process_server_message(g_parse_data.type_str, g_parse_data.message_id, g_parse_data.message_text,
+            g_parse_data.data_type, g_parse_data.game_data, g_parse_data.metadata,
+            g_parse_data.status_type, g_parse_data.command, g_parse_data.command_data,
+            g_parse_data.session_id, g_parse_data.player_id, g_parse_data.status_data);
 
-            // Forward to STM32 via game data channel
-            handle_server_game_data(data_type, game_data, metadata);
-        }
-        else if (strcmp(type_str, "chat_message") == 0) {
-            ESP_LOGI(TAG, "CHAT CHANNEL: Received chat message from server");
-            ESP_LOGI(TAG, "Chat message: %s", message_text);
-
-            // Forward to STM32 via chat channel
-            handle_server_chat_message(message_text, metadata);
-        }
-        else if (strcmp(type_str, "broadcast") == 0) {
-            ESP_LOGI(TAG, "Received broadcast message");
-            // Handle broadcast messages (server announcements, etc.)
-        }
-        else if (strcmp(type_str, "command") == 0) {
-            ESP_LOGI(TAG, "Received server command");
-            // Process server commands
-        }
-        else {
-            ESP_LOGW(TAG, "Unknown message type: %s", type_str);
+        // Call game callback if registered (for compatibility)
+        if (game_callback && strlen(g_parse_data.data_type) > 0) {
+            game_callback(g_parse_data.data_type, g_parse_data.game_data, g_parse_data.metadata);
         }
     }
     else {
         ESP_LOGE(TAG, "No message type found in MessagePack data");
-    }
-}
-
-// Handle game data received from server and forward to STM32 (GAME CHANNEL)
-static void handle_server_game_data(const char* data_type, const char* game_data, const char* metadata) {
-    ESP_LOGI(TAG, "GAME CHANNEL: Forwarding game data to STM32");
-    ESP_LOGI(TAG, "Details: type=%s, data=%s", data_type, game_data);
-
-    // Forward to STM32 via UART as game data
-    esp_err_t result = uart_send_game_data(data_type, game_data, metadata);
-    if (result != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to forward game data to STM32: %s", esp_err_to_name(result));
-    }
-}
-
-// Handle chat messages received from server and forward to STM32 (CHAT CHANNEL)
-static void handle_server_chat_message(const char* message, const char* metadata) {
-    ESP_LOGI(TAG, "CHAT CHANNEL: Forwarding chat message to STM32");
-    ESP_LOGI(TAG, "Chat content: %s", message);
-
-    // Forward to STM32 via UART as chat message
-    esp_err_t result = uart_send_chat_message(message, "server", "websocket");
-    if (result != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to forward chat message to STM32: %s", esp_err_to_name(result));
-    }
-}
-
-// Create and send game data message to server
-static esp_err_t send_game_data_to_server(const char* data_type, const char* game_data, const char* metadata) {
-    if (strlen(client_id) == 0) {
-        ESP_LOGW(TAG, "Not sending game data - not connected yet");
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    ESP_LOGI(TAG, "Preparing to send game data to server: type=%s", data_type);
-
-    // Create buffer for MessagePack data
-    uint8_t buffer[MSGPACK_BUFFER_SIZE];
-    uint8_t* buffer_ptr = buffer;
-
-    // Initialize CMP context
-    cmp_ctx_t cmp;
-    cmp_init(&cmp, (void*)&buffer_ptr, buffer_reader, buffer_skipper, buffer_writer);
-
-    // Calculate map size based on provided data
-    uint32_t map_size = 4; // type, data, player_id, timestamp
-    if (metadata && strlen(metadata) > 0) {
-        map_size++;
-    }
-
-    // Write the map header
-    if (!cmp_write_map(&cmp, map_size)) {
-        ESP_LOGE(TAG, "Failed to write map header");
-        return ESP_FAIL;
-    }
-
-    // Write "type" field
-    if (!cmp_write_str(&cmp, "type", 4) ||
-        !cmp_write_str(&cmp, data_type, strlen(data_type))) {
-        ESP_LOGE(TAG, "Failed to write type field");
-        return ESP_FAIL;
-    }
-
-    // Write "data" field
-    if (!cmp_write_str(&cmp, "data", 4) ||
-        !cmp_write_str(&cmp, game_data, strlen(game_data))) {
-        ESP_LOGE(TAG, "Failed to write data field");
-        return ESP_FAIL;
-    }
-
-    // Write "player_id" field
-    if (!cmp_write_str(&cmp, "player_id", 9) ||
-        !cmp_write_str(&cmp, client_id, strlen(client_id))) {
-        ESP_LOGE(TAG, "Failed to write player_id field");
-        return ESP_FAIL;
-    }
-
-    // Write "timestamp" field
-    uint32_t timestamp = esp_log_timestamp();
-    if (!cmp_write_str(&cmp, "timestamp", 9) ||
-        !cmp_write_uint(&cmp, timestamp)) {
-        ESP_LOGE(TAG, "Failed to write timestamp field");
-        return ESP_FAIL;
-    }
-
-    // Write "metadata" field if provided
-    if (metadata && strlen(metadata) > 0) {
-        if (!cmp_write_str(&cmp, "metadata", 8) ||
-            !cmp_write_str(&cmp, metadata, strlen(metadata))) {
-            ESP_LOGE(TAG, "Failed to write metadata field");
-            return ESP_FAIL;
-        }
-    }
-
-    // Calculate the size of data written
-    size_t data_size = buffer_ptr - buffer;
-
-    // Send the MessagePack data
-    esp_err_t err = esp_websocket_client_send_bin(ws_client, (const char*)buffer, data_size, portMAX_DELAY);
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Successfully sent game data to server: type=%s (packed size: %zu bytes)",
-            data_type, data_size);
-    }
-    else {
-        ESP_LOGE(TAG, "Failed to send game data to server: %s (%d)", esp_err_to_name(err), err);
-
-        // Additional debugging
-        if (!esp_websocket_client_is_connected(ws_client)) {
-            ESP_LOGE(TAG, "WebSocket connection lost during send attempt");
-        }
-    }
-
-    return err;
-}
-
-// UART callback to handle game data from STM32
-static void stm32_game_data_callback(const uart_game_data_t* stm32_data) {
-    ESP_LOGI(TAG, "Received game data from STM32: type=%s, data=%s",
-        stm32_data->data_type, stm32_data->game_data);
-
-    // Forward STM32 data to WebSocket server
-    esp_err_t result = send_game_data_to_server(stm32_data->data_type,
-        stm32_data->game_data,
-        stm32_data->metadata);
-    if (result != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to forward STM32 data to server");
-    }
-}
-
-// UART callback to handle chat messages from STM32
-static void stm32_chat_message_callback(const uart_chat_message_t* stm32_chat) {
-    ESP_LOGI(TAG, "Received chat message from STM32: %s", stm32_chat->message);
-
-    // Forward STM32 chat to WebSocket server
-    esp_err_t result = websocket_send_chat_message(stm32_chat->message);
-    if (result != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to forward STM32 chat to server");
     }
 }
 
@@ -441,13 +343,8 @@ static void websocket_event_handler(void* handler_args, esp_event_base_t base, i
         // Clear any old client ID
         memset(client_id, 0, sizeof(client_id));
 
-        // Send initial status to STM32
-        uart_send_status(WEBSOCKET_CONNECTING, 0, "WebSocket Connecting...");
-
-        // Send a test message to ensure the connection is working
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Give server time to send connection message
-        ESP_LOGI(TAG, "Sending connection test message to server");
-        websocket_send_game_data("connection_test", "ESP32 connected", "initial_test");
+        // Send connection status to STM32
+        uart_send_status(SYSTEM_STATUS_WEBSOCKET_CONNECTED, 0, "WebSocket Connected...");
         break;
 
     case WEBSOCKET_EVENT_DISCONNECTED:
@@ -461,7 +358,7 @@ static void websocket_event_handler(void* handler_args, esp_event_base_t base, i
         }
 
         // Send status to STM32
-        uart_send_status(WEBSOCKET_DISCONNECTED, 1, "WebSocket Disconnected");
+        uart_send_status(SYSTEM_STATUS_WEBSOCKET_DISCONNECTED, 1, "WebSocket Disconnected");
         break;
 
     case WEBSOCKET_EVENT_DATA:
@@ -492,6 +389,10 @@ static void websocket_event_handler(void* handler_args, esp_event_base_t base, i
         if (status_callback) {
             status_callback(false, "");
         }
+
+        // Send status to STM32
+        uart_send_status(SYSTEM_STATUS_ERROR, 1, "Error when connecting to websocket");
+        uart_send_status(SYSTEM_STATUS_WEBSOCKET_DISCONNECTED, 1, "WebSocket Disconnected");
         break;
 
     default:
@@ -538,8 +439,8 @@ void websocket_app_main(void) {
 
     ESP_LOGI(TAG, "WebSocket client started successfully");
 
-    // Initialize STM32 integration
-    websocket_init_stm32_integration();
+    // Initialize integration modules
+    websocket_init_integrations();
 
     // Main communication loop - handle bidirectional data flow
     while (1) {
@@ -568,79 +469,6 @@ void websocket_app_main(void) {
     esp_websocket_client_destroy(ws_client);
 }
 
-// Public API implementations
-esp_err_t websocket_send_game_data(const char* data_type, const char* game_data, const char* metadata) {
-    return send_game_data_to_server(data_type, game_data, metadata);
-}
-
-esp_err_t websocket_send_player_action(const char* action, const char* parameters) {
-    // Format action as game data
-    char action_data[128];
-    snprintf(action_data, sizeof(action_data), "{\"action\":\"%s\",\"params\":\"%s\"}",
-        action, parameters ? parameters : "");
-
-    return websocket_send_game_data("player_action", action_data, NULL);
-}
-
-esp_err_t websocket_send_chat_message(const char* message) {
-    if (strlen(client_id) == 0) {
-        ESP_LOGW(TAG, "Not sending chat message - not connected yet");
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    ESP_LOGI(TAG, "Preparing to send chat message to server: %s", message);
-
-    // Create buffer for MessagePack data
-    uint8_t buffer[MSGPACK_BUFFER_SIZE];
-    uint8_t* buffer_ptr = buffer;
-
-    // Initialize CMP context
-    cmp_ctx_t cmp;
-    cmp_init(&cmp, (void*)&buffer_ptr, buffer_reader, buffer_skipper, buffer_writer);
-
-    // Write the map header (type and message)
-    if (!cmp_write_map(&cmp, 3)) {
-        ESP_LOGE(TAG, "Failed to write map header for chat");
-        return ESP_FAIL;
-    }
-
-    // Write "type" field
-    if (!cmp_write_str(&cmp, "type", 4) ||
-        !cmp_write_str(&cmp, "chat_message", 12)) {
-        ESP_LOGE(TAG, "Failed to write type field for chat");
-        return ESP_FAIL;
-    }
-
-    // Write "message" field
-    if (!cmp_write_str(&cmp, "message", 7) ||
-        !cmp_write_str(&cmp, message, strlen(message))) {
-        ESP_LOGE(TAG, "Failed to write message field for chat");
-        return ESP_FAIL;
-    }
-
-    // Write "timestamp" field
-    uint32_t timestamp = esp_log_timestamp();
-    if (!cmp_write_str(&cmp, "timestamp", 9) ||
-        !cmp_write_uint(&cmp, timestamp)) {
-        ESP_LOGE(TAG, "Failed to write timestamp field for chat");
-        return ESP_FAIL;
-    }
-
-    // Calculate the size of data written
-    size_t data_size = buffer_ptr - buffer;
-
-    // Send the MessagePack data
-    esp_err_t err = esp_websocket_client_send_bin(ws_client, (const char*)buffer, data_size, portMAX_DELAY);
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Successfully sent chat message to server (packed size: %zu bytes)", data_size);
-    }
-    else {
-        ESP_LOGE(TAG, "Failed to send chat message to server: %s", esp_err_to_name(err));
-    }
-
-    return err;
-}
-
 bool websocket_is_connected(void) {
     return ws_client && esp_websocket_client_is_connected(ws_client) && strlen(client_id) > 0;
 }
@@ -657,25 +485,21 @@ void websocket_register_game_callback(websocket_game_callback_t callback) {
     game_callback = callback;
 }
 
-void websocket_init_stm32_integration(void) {
-    ESP_LOGI(TAG, "Initializing STM32 integration");
-
-    // Register callback to receive game data from STM32
-    uart_register_game_data_callback(stm32_game_data_callback);
-
-    // Register callback to receive chat messages from STM32
-    uart_register_chat_message_callback(stm32_chat_message_callback);
-
-    ESP_LOGI(TAG, "STM32 integration initialized");
+void websocket_register_connection_callback(websocket_connection_callback_t callback) {
+    connection_callback = callback;
 }
 
-void websocket_forward_to_stm32(const char* data_type, const char* game_data, const char* metadata) {
-    // Public interface for external forwarding if needed
-    handle_server_game_data(data_type, game_data, metadata);
+void websocket_register_status_message_callback(websocket_status_message_callback_t callback) {
+    status_message_callback = callback;
 }
 
-void websocket_forward_from_stm32(const uart_game_data_t* stm32_data) {
-    // This function is called internally by stm32_game_data_callback
-    // Public interface for external forwarding if needed
-    stm32_game_data_callback(stm32_data);
+void websocket_init_integrations(void) {
+    ESP_LOGI(TAG, "Initializing WebSocket integrations");
+
+    // Register STM32 → Server conversion callbacks
+    ws_to_server_register_uart_callbacks();
+
+    // Server → STM32 conversion is handled via message routing in process_msgpack_data()
+
+    ESP_LOGI(TAG, "WebSocket integrations initialized");
 }

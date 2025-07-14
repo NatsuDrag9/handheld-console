@@ -21,13 +21,12 @@
 
 #include "esp_tls.h"
 #include "esp_http_client.h"
-
 #include "esp_websocket_client.h"
-#include "uart_comm.h"  // For STM32 communication
+#include "uart_comm.h"
+#include "../components/cmp/cmp.h"
 
 // Configuration
-#define MSGPACK_BUFFER_SIZE 1024
-#define WEBSOCKET_URI "ws://192.168.53.151:3001/?client=esp32"
+#define WEBSOCKET_URI "ws://192.168.2.151:3001/?client=esp32"
 #define WEBSOCKET_RECONNECT_TIMEOUT_MS 10000
 #define GAME_DATA_POLLING_INTERVAL 100  // Check for STM32 data every 100ms
 
@@ -37,21 +36,32 @@ typedef void (*websocket_status_callback_t)(bool connected, const char* client_i
 // Game data callback type - called when data is received from server  
 typedef void (*websocket_game_callback_t)(const char* data_type, const char* game_data, const char* metadata);
 
+// Connection message callback type
+typedef void (*websocket_connection_callback_t)(const char* message_id, const char* message_text);
+
+// Status message callback type  
+typedef void (*websocket_status_message_callback_t)(const char* status_type, const char* message_data);
+
+// Global WebSocket client handle (accessible by helper modules)
+extern esp_websocket_client_handle_t ws_client;
+
 // Function declarations
 void websocket_app_main(void);
-esp_err_t websocket_send_game_data(const char* data_type, const char* game_data, const char* metadata);
-esp_err_t websocket_send_player_action(const char* action, const char* parameters);
-esp_err_t websocket_send_chat_message(const char* message);
 bool websocket_is_connected(void);
 const char* websocket_get_client_id(void);
 
 // Callback registration
 void websocket_register_status_callback(websocket_status_callback_t callback);
 void websocket_register_game_callback(websocket_game_callback_t callback);
+void websocket_register_connection_callback(websocket_connection_callback_t callback);
+void websocket_register_status_message_callback(websocket_status_message_callback_t callback);
 
-// Integration with STM32 UART
-void websocket_init_stm32_integration(void);
-void websocket_forward_to_stm32(const char* data_type, const char* game_data, const char* metadata);
-void websocket_forward_from_stm32(const uart_game_data_t* stm32_data);
+// Integration initialization
+void websocket_init_integrations(void);
+
+// MessagePack utility functions (shared with helper modules)
+bool websocket_buffer_reader(struct cmp_ctx_s* ctx, void* data, size_t limit);
+bool websocket_buffer_skipper(struct cmp_ctx_s* ctx, size_t count);
+size_t websocket_buffer_writer(struct cmp_ctx_s* ctx, const void* data, size_t count);
 
 #endif // WEBSOCKET_CLIENT_H
