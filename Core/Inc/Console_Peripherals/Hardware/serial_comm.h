@@ -40,11 +40,12 @@ typedef enum {
     MSG_TYPE_DATA = 0x01,      // For game data (repurposed)
     MSG_TYPE_COMMAND = 0x02,   // Commands between STM32<->ESP32
     MSG_TYPE_STATUS = 0x03,    // Status updates
-    MSG_TYPE_CONFIG = 0x04,    // Configuration messages
+	MSG_TYPE_CONNECTION = 0x04,    // Configuration messages
     MSG_TYPE_ACK = 0x05,       // Acknowledgment
     MSG_TYPE_NACK = 0x06,      // Negative acknowledgment
     MSG_TYPE_HEARTBEAT = 0x07, // Keep-alive
-    MSG_TYPE_CHAT = 0x08       // Chat messages
+    MSG_TYPE_CHAT = 0x08,       // Chat messages
+	MSG_TILE_SIZE_VALIDATION = 0x09, // For TileSizeValidationMessage
 } MessageType;
 
 /* Message Structure - Must match ESP32 uart_comm.h */
@@ -86,6 +87,19 @@ typedef struct {
     char status_message[32]; // Human readable status
 } uart_status_t;
 
+//* Connection message structure (matches WebSocket ConnectionMessage) */
+typedef struct {
+    char client_id[7];		// Server generates client id of 6 characters + 1 terminating null character
+    char message[64];       // Message content (e.g., "Acknowledge game server connection")
+    uint32_t timestamp;     // Message timestamp
+} uart_connection_message_t;
+
+/* Tile size validation structure (matches WebSocket TileSizeValidationMessage) */
+typedef struct {
+    uint16_t tile_size;     // Tile size value (must be multiple of 8)
+    uint32_t timestamp;     // Message timestamp
+} uart_tile_size_validation_t;
+
 #pragma pack(pop)
 
 /* Callback function types */
@@ -93,6 +107,7 @@ typedef void (*game_data_received_callback_t)(const uart_game_data_t* game_data)
 typedef void (*chat_message_received_callback_t)(const uart_chat_message_t* chat_message);
 typedef void (*command_received_callback_t)(const uart_command_t* command);
 typedef void (*status_received_callback_t)(const uart_status_t* status);
+typedef void (*connection_message_callback_t)(const uart_connection_message_t* connection_msg);
 
 /* Core communication funcitons */
 UART_Status serial_comm_init(void);
@@ -120,6 +135,8 @@ UART_Status serial_comm_send_game_data(const char* data_type, const char* game_d
 UART_Status serial_comm_send_chat_message(const char* message, const char* sender, const char* chat_type);
 UART_Status serial_comm_send_command(const char* command, const char* parameters);
 UART_Status serial_comm_send_status(uint8_t system_status, uint8_t error_code, const char* message);
+UART_Status serial_comm_send_connection_message(const char* message, const char* client_id);
+UART_Status serial_comm_send_tile_size_validation(uint8_t tile_size);
 UART_Status serial_comm_send_ack(void);
 UART_Status serial_comm_send_nack(void);
 UART_Status serial_comm_send_heartbeat(void);
@@ -129,6 +146,18 @@ void serial_comm_register_game_data_callback(game_data_received_callback_t callb
 void serial_comm_register_chat_message_callback(chat_message_received_callback_t callback);
 void serial_comm_register_command_callback(command_received_callback_t callback);
 void serial_comm_register_status_callback(status_received_callback_t callback);
+void serial_comm_register_connection_message_callback(connection_message_callback_t callback);
+
+/* Multiplayer communication getter Functions */
+const char* serial_comm_get_client_id(void);
+bool serial_comm_get_mp_game_over(void);
+bool serial_comm_get_player_assignment(int* player_id, char* session_id, size_t session_id_size, int* player_count, char* color, size_t color_size);
+bool serial_comm_get_opponent_data(int* player_id, char* session_id, size_t session_id_size,
+                                  int* player_count, char* color, size_t color_size);
+bool serial_comm_has_player_assignment(void);
+bool serial_comm_has_opponent_connected(void);
+int serial_comm_get_local_player_id(void); // For convenience
+int serial_comm_get_opponent_player_id(void); // For convenience
 
 /* Utility functions */
 void serial_comm_send_debug(const char* message, uint32_t timeout);

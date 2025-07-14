@@ -3,6 +3,14 @@
  *
  * Common status definitions for ESP32 and STM32 communication
  * This file should be included in both ESP32 uart_comm.h and STM32 serial_comm.h
+ *
+* Codes:
+ * 10-19 -- Initialization states
+ * 20-29 -- WiFi connection states
+ * 30-39 -- WebSocket connection states
+ * 40-49 -- Game session phase states (infrastructure level describing whether STM32 is ready for multiplayer gaming)
+ * 60-69 -- STM32 system states
+ *
  */
 
 #ifndef COMMON_STATUS_TYPES_H
@@ -12,7 +20,6 @@
 typedef enum {
     /* Error and Disconnected States */
     SYSTEM_STATUS_ERROR = 0,              // General error state
-    SYSTEM_STATUS_WEBSOCKET_DISCONNECTED = 1, // WebSocket disconnected (kept for compatibility)
 
     /* ESP32 Initialization States */
     SYSTEM_STATUS_ESP32_STARTED = 10,     // ESP32 has started and UART is ready
@@ -26,6 +33,7 @@ typedef enum {
     /* WebSocket Connection States */
     SYSTEM_STATUS_WEBSOCKET_CONNECTING = 30, // WebSocket connection in progress  
     SYSTEM_STATUS_WEBSOCKET_CONNECTED = 31,  // WebSocket successfully connected
+    SYSTEM_STATUS_WEBSOCKET_DISCONNECTED = 32, // WebSocket disconnected (kept for compatibility)
 
     /* Game States */
     SYSTEM_STATUS_GAME_READY = 40,        // Ready for game session
@@ -36,6 +44,8 @@ typedef enum {
     SYSTEM_STATUS_OPPONENT_DISCONNECTED = 50, // Opponent disconnected
     SYSTEM_STATUS_OPPONENT_CONNECTED = 51,    // Opponent connected
     SYSTEM_STATUS_PLAYER_ASSIGNMENT = 52,     // Player role/ID assigned
+    SYSTEM_STATUS_TILE_SIZE_RESPONSE = 53, // Tile size response sent by the server
+    SYSTEM_STATUS_SESSION_TIMEOUT = 54, // Inactive game session timeout
 
     /* STM32 States */
     SYSTEM_STATUS_STM32_READY = 60,       // STM32 ready and initialized

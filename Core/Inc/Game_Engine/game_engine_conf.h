@@ -41,4 +41,12 @@ extern const uint16_t SINE_WAVE_TABLE[SAMPLE_COUNT]; // Pre-calculated sine wave
 // Default lives in a game
 #define DEFAULT_LIVES 1
 
+// Device tile size for multiplayer games
+#define MP_DEVICE_TILE_SIZE 8
+
+// Websocket server messages
+#define MSG_ACKNOWLEDGE_WEBSOCKET_SERVER "Acknowledge game server connection"
+#define TILE_SIZE_ACCEPTED "tile_size_accepted"
+#define TILE_SIZE_REJECTED "tile_size_rejected"
+
 #endif /* INC_GAME_ENGINE_GAME_ENGINE_CONF_H_ */
