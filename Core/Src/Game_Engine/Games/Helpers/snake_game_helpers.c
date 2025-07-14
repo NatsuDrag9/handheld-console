@@ -231,3 +231,22 @@ bool snake_helper_positions_overlap(coord_t x1, coord_t y1, coord_t x2, coord_t 
     return (abs(x1 - x2) < SPRITE_SIZE && abs(y1 - y2) < SPRITE_SIZE);
 }
 
+// Convert server co-ordinates to device grid co-ordindates
+coord_t mp_snake_server_to_device_coord(coord_t server_coord) {
+    // Server uses 8-pixel units, device uses actual pixel coordinates
+    return server_coord * MP_DEVICE_TILE_SIZE;
+}
+
+// For parsing values from event strings
+uint8_t mp_snake_parse_single_value(const char* str, const char* key) {
+    if (!str || !key) return 0;
+
+    char search_key[16];
+    snprintf(search_key, sizeof(search_key), "%s:", key);
+
+    const char* pos = strstr(str, search_key);
+    if (pos) {
+        return (uint8_t)atoi(pos + strlen(search_key));
+    }
+    return 0;
+}

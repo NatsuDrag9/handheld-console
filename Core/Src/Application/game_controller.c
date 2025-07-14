@@ -268,24 +268,13 @@ static void handle_menu_navigation(uint8_t direction) {
     uint8_t old_selection = menu_system_get_current_selection(&main_menu);
 
     if (menu_system_handle_navigation(&main_menu, direction)) {
-        bool render_success = false;
-
         if (menu_system_needs_full_refresh(&main_menu)) {
-            render_success = menu_system_render(&main_menu);
+            menu_system_render(&main_menu);
         } else {
-            render_success = menu_system_render_partial_update(&main_menu, old_selection);
+            menu_system_render_partial_update(&main_menu, old_selection);
         }
-
-        // Handle render failure
-        if (!render_success) {
-            DEBUG_PRINTF(false, "Menu navigation render failed, showing menu error\r\n");
-            game_controller_show_error_screen(SCREEN_MENU_ERROR);
-            return;
-        }
-
         menu_system_clear_refresh_flag(&main_menu);
     }
-
 }
 
 static void handle_menu_selection(void) {
@@ -302,18 +291,10 @@ static void handle_menu_selection(void) {
             if (current_menu_type == MENU_TYPE_MAIN) {
                 if (selected.game_mode == GAME_MODE_SINGLE_PLAYER) {
                     menu_system_navigate_to_single_player(&main_menu);
-                    if (!menu_system_render(&main_menu)) {
-                    	DEBUG_PRINTF(false, "Single player menu render failed, showing menu error\r\n");
-                    	game_controller_show_error_screen(SCREEN_MENU_ERROR);
-                    	return;
-                    }
+                    menu_system_render(&main_menu);
                 } else if (selected.game_mode == GAME_MODE_MULTIPLAYER) {
                     if (menu_system_navigate_to_multiplayer(&main_menu)) {
-                    	if (!menu_system_render(&main_menu)) {
-                    		DEBUG_PRINTF(false, "Multi-player menu render failed, showing menu error\r\n");
-                    		game_controller_show_error_screen(SCREEN_MENU_ERROR);
-                    		return;
-                    	}
+                        menu_system_render(&main_menu);
                     }
                     else {
                     	/* WiFi check failed - show WiFi error */
@@ -338,12 +319,7 @@ void game_controller_handle_back_navigation(void) {
     /* Only allow back navigation from sub-menus */
     if (current_menu_type != MENU_TYPE_MAIN) {
         menu_system_navigate_back(&main_menu);
-
-        if (!menu_system_render(&main_menu)) {
-        	DEBUG_PRINTF(false, "Back navigation render failed, showing menu error\r\n");
-        	game_controller_show_error_screen(SCREEN_MENU_ERROR);
-        	return;
-        }
+        menu_system_render(&main_menu);
     }
 }
 
@@ -455,6 +431,12 @@ static void game_controller_render_error_screen(void) {
             break;
 
         case SCREEN_MENU_ERROR:
+
+//        	if (!menu_system_render(&main_menu)) {
+//        	        	DEBUG_PRINTF(false, "Back navigation render failed, showing menu error\r\n");
+//        	        	game_controller_show_error_screen(SCREEN_MENU_ERROR);
+//        	        	return;
+//        	        }
         	display_manager_show_error_message("Menu Unavailable");
         	break;
 
@@ -517,11 +499,7 @@ void game_controller_show_menu(void) {
     menu_system_get_main_menu(&main_menu_items, &main_menu_count);
     menu_system_init(&main_menu, main_menu_items, main_menu_count);
 
-    if (!menu_system_render(&main_menu)) {
-    	DEBUG_PRINTF(false, "Menu rendering failed, showing menu error\r\n");
-    	game_controller_show_error_screen(SCREEN_MENU_ERROR);
-    	return;
-    }
+    menu_system_render(&main_menu);
     current_app_state = APP_STATE_MENU;
 }
 
@@ -553,7 +531,7 @@ GameEngine* game_controller_get_current_game_engine(void) {
         case SCREEN_GAME_PACMAN:
             return &pacman_game_engine;
         case SCREEN_MP_GAME_SNAKE:
-            return &multiplayer_snake_game_engine;  // From mp_snake_game_main.h
+            return &mp_snake_game_engine;  // From mp_snake_game_main.h
         /* Add other multiplayer games as they become available */
         case SCREEN_MP_GAME_PACMAN:
             /* return &multiplayer_pacman_game_engine; // When implemented */

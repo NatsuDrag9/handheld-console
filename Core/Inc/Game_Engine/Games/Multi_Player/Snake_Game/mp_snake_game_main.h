@@ -25,7 +25,6 @@
 #include "mp_snake_game_render.h"
 
 // Public interface functions
-void mp_snake_set_game_params(MultiplayerPlayerId player_id, uint32_t target_score);
 void mp_snake_update_dpad(DPAD_STATUS dpad_status);
 void mp_snake_render(void);
 void mp_snake_cleanup(void);
@@ -43,6 +42,6 @@ uint32_t mp_snake_get_player_score(MultiplayerPlayerId player_id);
 bool mp_snake_is_player_alive(MultiplayerPlayerId player_id);
 
 // Multiplayer snake game engine instance
-extern GameEngine multiplayer_snake_game_engine;
+extern GameEngine mp_snake_game_engine;
 
 #endif /* INC_GAME_ENGINE_GAMES_MULTI_PLAYER_SNAKE_GAME_MP_SNAKE_MAIN_H_ */

@@ -13,8 +13,11 @@
 #include "Game_Engine/Games/Helpers/snake_game_helpers.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-// Game phases
+ // Game phases
 typedef enum {
     MP_PHASE_WAITING,       // Waiting for second player
     MP_PHASE_PLAYING,       // Game in progress
@@ -35,12 +38,35 @@ typedef enum {
     MP_RESULT_DRAW = 3
 } MultiplayerGameResult;
 
+// Game stats (similar to TS getGameStats)
+typedef struct {
+    uint32_t p1_score;
+    uint32_t p1_lives;
+    uint32_t p2_score;
+    uint32_t p2_lives;
+    uint32_t target_score;
+} GameStats;
+
+// Temporary server state for reconciliation
+typedef struct {
+    uint8_t player1_length;
+    uint8_t player2_length;
+    bool player1_alive;
+    bool player2_alive;
+    uint32_t player1_score;
+    uint32_t player2_score;
+    Position food_position;
+    bool valid;
+} TempServerState;
+
 // Multiplayer Snake Game Data Structure (simplified - no prediction)
 typedef struct {
     // Server-authoritative state (received from server)
-	uint16_t session_id;
-    SnakeState server_player1;
-    SnakeState server_player2;
+    char session_id[7];
+    char local_player_client_id[7];
+
+    SnakeState player1;
+    SnakeState player2;
     Position server_food;
     uint32_t server_scores[2];          // [player1_score, player2_score]
     bool players_alive[2];              // [player1_alive, player2_alive]
@@ -60,6 +86,8 @@ typedef struct {
     // Connection status
     bool connected_to_server;
     bool opponent_connected;
+
+    // Add player colors later
 
 } MultiplayerSnakeGameData;
 
@@ -92,16 +120,7 @@ void mp_snake_handle_player_collision(MultiplayerPlayerId player_id);
 void mp_snake_handle_food_eaten(MultiplayerPlayerId player_id);
 void mp_snake_handle_game_event(const char* event_data);
 
-// Game stats (similar to TS getGameStats)
-typedef struct {
-    uint32_t p1_score;
-    uint32_t p1_lives;
-    uint32_t p2_score;
-    uint32_t p2_lives;
-    uint32_t target_score;
-} GameStats;
-
 GameStats mp_snake_get_game_stats(void);
-
+void mp_snake_reconcile_with_server(const TempServerState* server_state);
 
 #endif /* INC_GAME_ENGINE_GAMES_MULTI_PLAYER_SNAKE_GAME_MP_SNAKE_GAME_CORE_H_ */

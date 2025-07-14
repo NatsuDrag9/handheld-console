@@ -30,5 +30,6 @@ bool mp_snake_parse_game_state(const char* game_data);
 
 // Callback handler for serial_comm
 void mp_snake_on_game_data_received(const uart_game_data_t* game_data);
+void mp_snake_on_connection_received(const uart_connection_message_t* communication_message);
 
 #endif /* INC_GAME_ENGINE_GAMES_MULTI_PLAYER_SNAKE_GAME_MP_SNAKE_GAME_NETWORK_H_ */

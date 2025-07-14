@@ -11,8 +11,9 @@
 #include "Game_Engine/Games/Multi_Player/Snake_Game/mp_snake_game_main.h"
 #include "Utils/debug_conf.h"
 
-// Internal game state
+ // Internal game state
 static bool is_initialized = false;
+
 
 // Game engine callbacks
 static void mp_snake_init_game_engine(void);
@@ -21,19 +22,25 @@ static void mp_snake_render_internal(void);
 static void mp_snake_cleanup_internal(void);
 static void mp_snake_show_game_over_message_internal(void);
 
-// Network event callbacks - similar to TS NetworkEventCallbacks
-static void on_connected(void);
-static void on_disconnected(void);
-static void on_game_data_received(const uart_game_data_t* game_data);
-static void on_status_received(const uart_status_t* status);
+/*
+ * The status and command callbacks are not placed in mp_snake_game_network because:
+ * 1.) status_messages and command_messages update the game engine variable.
+ * 2.) Importing the mp_snake_game_core header file in mp_snake_game_network would lead
+ * to circular import issue and be inconsistent with the web-app design
+ */
+static void on_status_received_in_game(const uart_status_t* status);
 static void on_command_received(const uart_command_t* command);
 
+// Miscellaneous functions
+static void mp_snake_load_local_player_data(void);
+static void mp_snake_load_opponent_data(void);
+
 // Initialize the multiplayer snake game engine instance
-GameEngine multiplayer_snake_game_engine = {
+GameEngine mp_snake_game_engine = {
     .init = mp_snake_init_game_engine,
     .render = mp_snake_render_internal,
     .cleanup = mp_snake_cleanup_internal,
-	.show_game_over_message = mp_snake_show_game_over_message_internal,
+    .show_game_over_message = mp_snake_show_game_over_message_internal,
     .update_func = {
         .update_dpad = mp_snake_update_dpad_internal
     },
@@ -49,13 +56,6 @@ GameEngine multiplayer_snake_game_engine = {
 };
 
 // Public interface implementation
-void mp_snake_set_game_params(MultiplayerPlayerId player_id, uint32_t target_score) {
-    // Store parameters for when game engine initializes
-    mp_snake_data.local_player_id = player_id;
-    mp_snake_data.target_score = target_score;
-    DEBUG_PRINTF(false, "Game params set: Player %d, Target Score: %lu\r\n", player_id, target_score);
-}
-
 void mp_snake_update_dpad(DPAD_STATUS dpad_status) {
     if (!is_initialized || mp_snake_data.phase != MP_PHASE_PLAYING) return;
     if (!mp_snake_data.players_alive[mp_snake_data.local_player_id - 1]) return;
@@ -112,10 +112,10 @@ void mp_snake_cleanup(void) {
     }
 
     // Reset game engine state
-    multiplayer_snake_game_engine.base_state.score = 0;
-    multiplayer_snake_game_engine.base_state.lives = 1;
-    multiplayer_snake_game_engine.base_state.paused = false;
-    multiplayer_snake_game_engine.base_state.game_over = false;
+    mp_snake_game_engine.base_state.score = 0;
+    mp_snake_game_engine.base_state.lives = 1;
+    mp_snake_game_engine.base_state.paused = false;
+    mp_snake_game_engine.base_state.game_over = false;
 
     DEBUG_PRINTF(false, "Multiplayer snake cleanup completed\r\n");
 }
@@ -151,17 +151,26 @@ bool mp_snake_is_player_alive(MultiplayerPlayerId player_id) {
 // Internal game engine functions
 static void mp_snake_init_game_engine(void) {
     DEBUG_PRINTF(false, "Multiplayer snake initializing for Player %d\r\n", mp_snake_data.local_player_id);
+    mp_snake_game_engine.base_state.game_over = serial_comm_get_mp_game_over();
 
     // Initialize modules in order (like TS constructor)
+    // 1. Load local player data and send ready message
+    mp_snake_load_local_player_data();
 
-    // 1. Initialize core game logic
+    // 2. Initialize core game logic with loaded player ID
     mp_snake_core_init(mp_snake_data.local_player_id, mp_snake_data.target_score);
 
-    // 2. Initialize rendering
+    // 3. Try to load opponent data (may not be available yet)
+    mp_snake_load_opponent_data();
+
+    // 4. Initialize rendering
     mp_snake_render_init();
 
-    // 3. Register network callback (serial_comm already initialized by game_controller)
+    // 5. Register network callback (serial_comm already initialized by game_controller)
     serial_comm_register_game_data_callback(mp_snake_on_game_data_received);
+    serial_comm_register_connection_message_callback(mp_snake_on_connection_received);
+    serial_comm_register_status_callback(on_status_received_in_game);
+    serial_comm_register_command_callback(on_command_received);
 
     is_initialized = true;
     DEBUG_PRINTF(false, "Multiplayer snake initialization complete\r\n");
@@ -178,7 +187,8 @@ static void mp_snake_show_game_over_message_internal(void) {
         if (mp_snake_data.local_player_id == MP_PLAYER_1) {
             strcpy(result_message, "YOU WIN!");
             final_score = game_stats.p1_score;
-        } else {
+        }
+        else {
             strcpy(result_message, "PLAYER 1 WINS");
             final_score = game_stats.p1_score;
         }
@@ -187,7 +197,8 @@ static void mp_snake_show_game_over_message_internal(void) {
         if (mp_snake_data.local_player_id == MP_PLAYER_2) {
             strcpy(result_message, "YOU WIN!");
             final_score = game_stats.p2_score;
-        } else {
+        }
+        else {
             strcpy(result_message, "PLAYER 2 WINS");
             final_score = game_stats.p2_score;
         }
@@ -201,7 +212,7 @@ static void mp_snake_show_game_over_message_internal(void) {
     display_manager_show_game_over_message(result_message, final_score);
 
     DEBUG_PRINTF(false, "Game over message displayed: %s (Score: %lu)\r\n",
-                 result_message, final_score);
+        result_message, final_score);
 }
 
 static void mp_snake_update_dpad_internal(DPAD_STATUS dpad_status) {
@@ -216,76 +227,31 @@ static void mp_snake_cleanup_internal(void) {
     mp_snake_cleanup();
 }
 
-// Network event callbacks (similar to TS NetworkEventCallbacks)
-static void on_connected(void) {
-    DEBUG_PRINTF(false, "Network connected, sending player ready signal\r\n");
-    // Send player ready when connected
-    mp_snake_send_player_ready();
-}
-
-static void on_disconnected(void) {
-    DEBUG_PRINTF(false, "Network disconnected\r\n");
-    // Game continues to render last known state
-}
-
-static void on_game_data_received(const uart_game_data_t* game_data) {
-    if (!game_data) return;
-
-    DEBUG_PRINTF(false, "Game data received: %s\r\n", game_data->data_type);
-
-    // Route to appropriate handlers based on data type (like TS message routing)
-    if (strcmp(game_data->data_type, "game_event") == 0) {
-        // Handle real-time events (direction_changed, food_eaten, collision)
-        mp_snake_handle_game_event(game_data->game_data);
-    }
-    else if (strcmp(game_data->data_type, "game_state") == 0) {
-        // Handle state updates (length, alive, score, food)
-        mp_snake_parse_game_state(game_data->game_data);
-    }
-    else if (strcmp(game_data->data_type, "player_update") == 0) {
-        // Parse game state data
-        mp_snake_parse_player_update(game_data->game_data);
-    }
-}
-
-static void on_status_received(const uart_status_t* status) {
+static void on_status_received_in_game(const uart_status_t* status) {
+	// These status messages may be received during game play
     DEBUG_PRINTF(false, "Status message received: %d\r\n", status->system_status);
 
     switch (status->system_status) {
-        case SYSTEM_STATUS_PLAYER_ASSIGNMENT:
-        	// Update mp_snake_data:
-        	// 1. local_player_id
-        	// 2. session id
-            DEBUG_PRINTF(false, "Player assignment received\r\n");
-            break;
+    case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
+    	mp_snake_data.opponent_connected = false;
+    	DEBUG_PRINTF(false, "Opponent disconnected\r\n");
+    	break;
 
-        case SYSTEM_STATUS_OPPONENT_CONNECTED:
-            mp_snake_data.opponent_connected = true;
-            // Update mp_snake_data:
-            // 1. opponent player id
-            DEBUG_PRINTF(false, "Opponent connected\r\n");
-            break;
+    case SYSTEM_STATUS_WEBSOCKET_CONNECTED:
+    	mp_snake_data.connected_to_server = true;
+    	break;
 
-        case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
-            mp_snake_data.opponent_connected = false;
-            DEBUG_PRINTF(false, "Opponent disconnected\r\n");
-            break;
+    case SYSTEM_STATUS_SESSION_TIMEOUT:
+    case SYSTEM_STATUS_WEBSOCKET_DISCONNECTED:
+    case SYSTEM_STATUS_WIFI_DISCONNECTED:
+    case SYSTEM_STATUS_ERROR:
+    	mp_snake_game_engine.base_state.game_over = true;
+    	mp_snake_data.connected_to_server = false;
+    	mp_snake_data.opponent_connected = false;
+    	break;
 
-        case SYSTEM_STATUS_WEBSOCKET_CONNECTED:
-            mp_snake_data.connected_to_server = true;
-            on_connected(); // Send ready signal
-            break;
-
-        case SYSTEM_STATUS_WEBSOCKET_DISCONNECTED:
-        case SYSTEM_STATUS_WIFI_DISCONNECTED:
-        case SYSTEM_STATUS_ERROR:
-            mp_snake_data.connected_to_server = false;
-            mp_snake_data.opponent_connected = false;
-            on_disconnected();
-            break;
-
-        default:
-            DEBUG_PRINTF(false, "Unknown status: %d\r\n", status->system_status);
+    default:
+        DEBUG_PRINTF(false, "Unknown status: %d\r\n", status->system_status);
     }
 }
 
@@ -303,14 +269,42 @@ static void on_command_received(const uart_command_t* command) {
         DEBUG_PRINTF(false, "Game ended\r\n");
 
         // Set game over state for engine
-        multiplayer_snake_game_engine.base_state.game_over = true;
+        mp_snake_game_engine.base_state.game_over = true;
     }
     else if (strcmp(command->command, "restart") == 0) {
         // Reset game state
         mp_snake_core_init(mp_snake_data.local_player_id, mp_snake_data.target_score);
-        multiplayer_snake_game_engine.base_state.game_over = false;
+        mp_snake_game_engine.base_state.game_over = false;
     }
     else {
         DEBUG_PRINTF(false, "Unknown command: %s\r\n", command->command);
+    }
+}
+
+// Helper function that gets local data
+static void mp_snake_load_local_player_data(void) {
+    int player_id;
+    char session_id[32];
+    if (serial_comm_get_player_assignment(&player_id, session_id, sizeof(session_id), NULL, NULL, 0)) {
+        mp_snake_data.local_player_id = (MultiplayerPlayerId)player_id;
+        strncpy(mp_snake_data.session_id, session_id, sizeof(mp_snake_data.session_id) - 1);
+        mp_snake_data.session_id[sizeof(mp_snake_data.session_id) - 1] = '\0';
+
+        DEBUG_PRINTF(false, "Loaded local player data: ID=%d, Session=%s\r\n", player_id, session_id);
+
+        // Send player ready immediately after loading local data
+        mp_snake_send_player_ready();
+    } else {
+        DEBUG_PRINTF(false, "Warning: No local player assignment data available\r\n");
+    }
+}
+
+// Gets opponent data
+static void mp_snake_load_opponent_data(void) {
+    int opponent_id;
+    if (serial_comm_get_opponent_data(&opponent_id, NULL, 0, NULL, NULL, 0)) {
+        mp_snake_data.opponent_player_id = (MultiplayerPlayerId)opponent_id;
+        mp_snake_data.opponent_connected = true;
+        DEBUG_PRINTF(false, "Loaded opponent data: ID=%d\r\n", opponent_id);
     }
 }

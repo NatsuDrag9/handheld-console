@@ -65,6 +65,7 @@ void snake_helper_draw_food(const Position* food);
 // Utility functions
 void snake_helper_copy_snake_state(SnakeState* dest, const SnakeState* src);
 bool snake_helper_positions_overlap(coord_t x1, coord_t y1, coord_t x2, coord_t y2);
-
+coord_t mp_snake_server_to_device_coord(coord_t server_coord);
+uint8_t mp_snake_parse_single_value(const char* str, const char* key);
 
 #endif /* INC_GAME_ENGINE_GAMES_HELPERS_SNAKE_GAME_HELPERS_H_ */
