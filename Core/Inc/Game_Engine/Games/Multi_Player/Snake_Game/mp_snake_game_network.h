@@ -15,11 +15,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 #include "mp_snake_game_core.h"
 #include "Utils/misc_utils.h"
 
-// Message sending functions
+ // Message sending functions
 void mp_snake_send_input_to_server(uint8_t direction);
 void mp_snake_send_player_ready(void);
 

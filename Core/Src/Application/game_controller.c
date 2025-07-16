@@ -9,10 +9,10 @@
 #include "Application/game_controller.h"
 #include "Console_Peripherals/Hardware/display_manager.h"
 #include "Console_Peripherals/Hardware/d_pad.h"
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 #include "Game_Engine/Games/Single_Player/snake_game.h"
 #include "Game_Engine/Games/pacman_game.h"
-// Include multiplayer game headers when available
+ // Include multiplayer game headers when available
 #include "Game_Engine/Games/Multi_Player/Snake_Game/mp_snake_game_main.h"
 #include "Utils/debug_conf.h"
 
@@ -38,10 +38,10 @@ extern uint8_t pb2_get_state(void); // Use to go back to the previous menu
 #include "Application/game_controller.h"
 #include "Console_Peripherals/Hardware/display_manager.h"
 #include "Console_Peripherals/Hardware/d_pad.h"
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 #include "Game_Engine/Games/Single_Player/snake_game.h"
 #include "Game_Engine/Games/pacman_game.h"
-// Include multiplayer game headers when available
+ // Include multiplayer game headers when available
 #include "Game_Engine/Games/Multi_Player/Snake_Game/mp_snake_game_main.h"
 #include "Utils/debug_conf.h"
 
@@ -133,31 +133,31 @@ void game_controller_update(void) {
 
 void game_controller_handle_input(JoystickStatus js_status) {
     switch (current_app_state) {
-        case APP_STATE_WELCOME:
-            handle_welcome_input(js_status);
-            break;
+    case APP_STATE_WELCOME:
+        handle_welcome_input(js_status);
+        break;
 
-        case APP_STATE_MENU:
-            game_controller_handle_menu_input(js_status);
-            break;
+    case APP_STATE_MENU:
+        game_controller_handle_menu_input(js_status);
+        break;
 
-        case APP_STATE_GAME_ACTIVE:
-            game_controller_handle_game_input(js_status);
-            break;
+    case APP_STATE_GAME_ACTIVE:
+        game_controller_handle_game_input(js_status);
+        break;
 
-        case APP_STATE_GAME_OVER:
-            /* Auto-return to main menu */
-            game_controller_return_to_menu();
-            break;
+    case APP_STATE_GAME_OVER:
+        /* Auto-return to main menu */
+        game_controller_return_to_menu();
+        break;
 
-        case APP_STATE_ERROR:
-        	handle_error_input();
-        	break;
+    case APP_STATE_ERROR:
+        handle_error_input();
+        break;
 
-        default:
-            /* Error state or unknown - return to menu */
-            game_controller_return_to_menu();
-            break;
+    default:
+        /* Error state or unknown - return to menu */
+        game_controller_return_to_menu();
+        break;
     }
 }
 
@@ -251,13 +251,13 @@ void game_controller_handle_menu_input(JoystickStatus js_status) {
 //}
 
 static void handle_error_input() {
-	/* Pressing PB2 in error state returns to main menu */
-	if (pb2_get_state()) {
-		DEBUG_PRINTF(false, "Error state: Input detected, returning to main menu\r\n");
-		game_controller_return_to_menu();
-	}
+    /* Pressing PB2 in error state returns to main menu */
+    if (pb2_get_state()) {
+        DEBUG_PRINTF(false, "Error state: Input detected, returning to main menu\r\n");
+        game_controller_return_to_menu();
+    }
 
-	// To Do: Fix the error timer later
+    // To Do: Fix the error timer later
 //	/* Or, return to main menu after timer expires */
 //	handle_error_timeout();
 //	DEBUG_PRINTF(false, "Handled error. Exiting...");
@@ -270,7 +270,8 @@ static void handle_menu_navigation(uint8_t direction) {
     if (menu_system_handle_navigation(&main_menu, direction)) {
         if (menu_system_needs_full_refresh(&main_menu)) {
             menu_system_render(&main_menu);
-        } else {
+        }
+        else {
             menu_system_render_partial_update(&main_menu, old_selection);
         }
         menu_system_clear_refresh_flag(&main_menu);
@@ -284,7 +285,8 @@ static void handle_menu_selection(void) {
     if (selected.title != NULL) {
         if (selected.is_game) {
             game_controller_start_game(selected.screen);
-        } else {
+        }
+        else {
             /* Handle menu navigation based on game mode */
             MenuType current_menu_type = menu_system_get_current_menu_type(&main_menu);
 
@@ -292,14 +294,15 @@ static void handle_menu_selection(void) {
                 if (selected.game_mode == GAME_MODE_SINGLE_PLAYER) {
                     menu_system_navigate_to_single_player(&main_menu);
                     menu_system_render(&main_menu);
-                } else if (selected.game_mode == GAME_MODE_MULTIPLAYER) {
+                }
+                else if (selected.game_mode == GAME_MODE_MULTIPLAYER) {
                     if (menu_system_navigate_to_multiplayer(&main_menu)) {
                         menu_system_render(&main_menu);
                     }
                     else {
-                    	/* WiFi check failed - show WiFi error */
-                    	DEBUG_PRINTF(false, "WiFi check failed, showing error screen\r\n");
-                    	game_controller_show_error_screen(SCREEN_WIFI_ERROR);
+                        /* WiFi check failed - show WiFi error */
+                        DEBUG_PRINTF(false, "WiFi check failed, showing error screen\r\n");
+                        game_controller_show_error_screen(SCREEN_WIFI_ERROR);
                     }
 
                 }
@@ -381,7 +384,8 @@ static void process_game_loop(GameEngine* engine) {
     if (engine->is_d_pad_game) {
         DPAD_STATUS dpad_status = d_pad_get_status();
         controller_data = &dpad_status;
-    } else {
+    }
+    else {
         JoystickStatus js_status = joystick_get_status();
         controller_data = &js_status;
     }
@@ -413,7 +417,7 @@ static void game_controller_show_error_screen(ScreenType error_screen) {
     error_start_time = get_current_ms();
     last_error_render_time = 0;
 
-//    /* Render the error screen immediately */
+    //    /* Render the error screen immediately */
     game_controller_render_error_screen();
 }
 
@@ -425,25 +429,25 @@ static void game_controller_render_error_screen(void) {
     DEBUG_PRINTF(false, "Rendering error screen, seconds remaining: %d\r\n", seconds_remaining);
 
     switch (current_error_screen) {
-        case SCREEN_WIFI_ERROR:
-        	display_manager_show_wifi_error();
-//            display_manager_show_wifi_error_with_timer(seconds_remaining);
-            break;
+    case SCREEN_WIFI_ERROR:
+        display_manager_show_wifi_error();
+        //            display_manager_show_wifi_error_with_timer(seconds_remaining);
+        break;
 
-        case SCREEN_MENU_ERROR:
+    case SCREEN_MENU_ERROR:
 
-//        	if (!menu_system_render(&main_menu)) {
-//        	        	DEBUG_PRINTF(false, "Back navigation render failed, showing menu error\r\n");
-//        	        	game_controller_show_error_screen(SCREEN_MENU_ERROR);
-//        	        	return;
-//        	        }
-        	display_manager_show_error_message("Menu Unavailable");
-        	break;
+        //        	if (!menu_system_render(&main_menu)) {
+        //        	        	DEBUG_PRINTF(false, "Back navigation render failed, showing menu error\r\n");
+        //        	        	game_controller_show_error_screen(SCREEN_MENU_ERROR);
+        //        	        	return;
+        //        	        }
+        display_manager_show_error_message("Menu Unavailable");
+        break;
 
-        case SCREEN_ERROR:
-        default:
-            display_manager_show_error_message("System Error");
-            break;
+    case SCREEN_ERROR:
+    default:
+        display_manager_show_error_message("System Error");
+        break;
     }
 }
 
@@ -451,12 +455,12 @@ static void game_controller_render_error_screen(void) {
 /* Conversion functions */
 static uint8_t convert_joystick_to_menu_nav(JoystickStatus js_status) {
     switch (js_status.direction) {
-        case JS_DIR_UP:
-            return MENU_NAV_UP;
-        case JS_DIR_DOWN:
-            return MENU_NAV_DOWN;
-        default:
-            return MENU_NAV_NONE;
+    case JS_DIR_UP:
+        return MENU_NAV_UP;
+    case JS_DIR_DOWN:
+        return MENU_NAV_DOWN;
+    default:
+        return MENU_NAV_NONE;
     }
 }
 
@@ -469,12 +473,12 @@ static uint8_t convert_dpad_to_menu_nav(void) {
     }
 
     switch (dpad_status.direction) {
-        case DPAD_DIR_UP:
-            return MENU_NAV_UP;
-        case DPAD_DIR_DOWN:
-            return MENU_NAV_DOWN;
-        default:
-            return MENU_NAV_NONE;
+    case DPAD_DIR_UP:
+        return MENU_NAV_UP;
+    case DPAD_DIR_DOWN:
+        return MENU_NAV_DOWN;
+    default:
+        return MENU_NAV_NONE;
     }
 }
 
@@ -526,28 +530,28 @@ bool game_controller_is_game_active(void) {
 
 GameEngine* game_controller_get_current_game_engine(void) {
     switch (current_game_screen) {
-        case SCREEN_GAME_SNAKE:
-            return &snake_game_engine;
-        case SCREEN_GAME_PACMAN:
-            return &pacman_game_engine;
-        case SCREEN_MP_GAME_SNAKE:
-            return &mp_snake_game_engine;  // From mp_snake_game_main.h
+    case SCREEN_GAME_SNAKE:
+        return &snake_game_engine;
+    case SCREEN_GAME_PACMAN:
+        return &pacman_game_engine;
+    case SCREEN_MP_GAME_SNAKE:
+        return &mp_snake_game_engine;  // From mp_snake_game_main.h
         /* Add other multiplayer games as they become available */
-        case SCREEN_MP_GAME_PACMAN:
-            /* return &multiplayer_pacman_game_engine; // When implemented */
-            return NULL;  // For now, return NULL until implemented
-        case SCREEN_MP_GAME_3:
-        case SCREEN_MP_GAME_4:
-        case SCREEN_MP_GAME_5:
-            /* return respective multiplayer engines when implemented */
-            return NULL;
-        case SCREEN_GAME_3:
-        case SCREEN_GAME_4:
-        case SCREEN_GAME_5:
-            /* return respective single player engines when implemented */
-            return NULL;
-        default:
-            return NULL;
+    case SCREEN_MP_GAME_PACMAN:
+        /* return &multiplayer_pacman_game_engine; // When implemented */
+        return NULL;  // For now, return NULL until implemented
+    case SCREEN_MP_GAME_3:
+    case SCREEN_MP_GAME_4:
+    case SCREEN_MP_GAME_5:
+        /* return respective multiplayer engines when implemented */
+        return NULL;
+    case SCREEN_GAME_3:
+    case SCREEN_GAME_4:
+    case SCREEN_GAME_5:
+        /* return respective single player engines when implemented */
+        return NULL;
+    default:
+        return NULL;
     }
 }
 

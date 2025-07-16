@@ -8,9 +8,9 @@
 
 #include "Console_Peripherals/UI/menu_system.h"
 #include "Console_Peripherals/Hardware/display_manager.h"
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 
-/* Private function declarations */
+ /* Private function declarations */
 static bool handle_navigation_up(MenuState* menu_state);
 static bool handle_navigation_down(MenuState* menu_state);
 static void update_selection_display(const MenuState* menu_state, uint8_t old_selection);
@@ -101,7 +101,7 @@ bool menu_system_render(const MenuState* menu_state) {
     /* Draw visible menu items */
     uint8_t visible_count = display_manager_get_visible_items_count();
     uint8_t display_count = (menu_state->item_count < visible_count) ?
-                           menu_state->item_count : visible_count;
+        menu_state->item_count : visible_count;
 
     for (uint8_t i = 0; i < display_count; i++) {
         uint8_t menu_index = menu_state->scroll_position + i;
@@ -116,7 +116,7 @@ bool menu_system_render(const MenuState* menu_state) {
     /* Draw scrollbar if needed */
     if (menu_state->item_count > visible_count) {
         display_manager_draw_scrollbar(menu_state->item_count, visible_count,
-                                     menu_state->scroll_position);
+            menu_state->scroll_position);
     }
 
     display_manager_update();
@@ -134,7 +134,7 @@ bool menu_system_render_partial_update(const MenuState* menu_state, uint8_t old_
     uint8_t visible_count = display_manager_get_visible_items_count();
     if (menu_state->item_count > visible_count) {
         display_manager_draw_scrollbar(menu_state->item_count, visible_count,
-                                     menu_state->scroll_position);
+            menu_state->scroll_position);
     }
 
     display_manager_update();
@@ -150,30 +150,31 @@ bool menu_system_handle_navigation(MenuState* menu_state, MenuNavigation directi
     bool changed = false;
 
     switch (direction) {
-        case MENU_NAV_UP:
-            changed = handle_navigation_up(menu_state);
-            break;
+    case MENU_NAV_UP:
+        changed = handle_navigation_up(menu_state);
+        break;
 
-        case MENU_NAV_DOWN:
-            changed = handle_navigation_down(menu_state);
-            break;
+    case MENU_NAV_DOWN:
+        changed = handle_navigation_down(menu_state);
+        break;
 
-        case MENU_NAV_SELECT:
-            menu_system_mark_selected_item(menu_state);
-            return true; /* Always indicate change for selection */
+    case MENU_NAV_SELECT:
+        menu_system_mark_selected_item(menu_state);
+        return true; /* Always indicate change for selection */
 
-        case MENU_NAV_BACK:
-            menu_system_navigate_back(menu_state);
-            return true;
+    case MENU_NAV_BACK:
+        menu_system_navigate_back(menu_state);
+        return true;
 
-        default:
-            return false;
+    default:
+        return false;
     }
 
     /* Determine if we need a full refresh */
     if (old_scroll_position != menu_state->scroll_position) {
         menu_state->needs_full_refresh = true;
-    } else if (changed) {
+    }
+    else if (changed) {
         menu_state->needs_full_refresh = false;
     }
 
@@ -263,7 +264,7 @@ bool menu_system_navigate_to_multiplayer(MenuState* menu_state) {
     // Check WiFi connection first - return false if not connected
     // Game controller will handle the error state
     if (!serial_comm_is_wifi_connected()) {
-    	return false;
+        return false;
     }
 
     menu_state->previous_menu_type = menu_state->current_menu_type;
@@ -288,10 +289,10 @@ void menu_system_navigate_back(MenuState* menu_state) {
         menu_system_navigate_to_main_menu(menu_state);
     }
     else if (target_menu == MENU_TYPE_SINGLE_PLAYER) {
-    	menu_system_navigate_to_single_player(menu_state);
+        menu_system_navigate_to_single_player(menu_state);
     }
     else if (target_menu == MENU_TYPE_MULTIPLAYER) {
-    	menu_system_navigate_to_multiplayer(menu_state);
+        menu_system_navigate_to_multiplayer(menu_state);
     }
     // Add other back navigation cases as needed
 }
@@ -317,7 +318,7 @@ bool menu_system_is_item_visible(const MenuState* menu_state, uint8_t item_index
 
     uint8_t visible_count = display_manager_get_visible_items_count();
     return (item_index >= menu_state->scroll_position &&
-            item_index < menu_state->scroll_position + visible_count);
+        item_index < menu_state->scroll_position + visible_count);
 }
 
 uint8_t menu_system_get_visible_position(const MenuState* menu_state, uint8_t item_index) {
@@ -379,14 +380,14 @@ uint8_t menu_system_get_default_game_menu_size(void) {
 /* Private helper functions */
 static const char* get_menu_title(MenuType menu_type) {
     switch (menu_type) {
-        case MENU_TYPE_MAIN:
-            return "Select Gameplay Mode";
-        case MENU_TYPE_SINGLE_PLAYER:
-            return "Single Player Games";
-        case MENU_TYPE_MULTIPLAYER:
-            return "Multiplayer Games";
-        default:
-            return "Menu";
+    case MENU_TYPE_MAIN:
+        return "Select Gameplay Mode";
+    case MENU_TYPE_SINGLE_PLAYER:
+        return "Single Player Games";
+    case MENU_TYPE_MULTIPLAYER:
+        return "Multiplayer Games";
+    default:
+        return "Menu";
     }
 }
 
@@ -434,6 +435,6 @@ static void update_selection_display(const MenuState* menu_state, uint8_t old_se
         uint8_t new_pos = menu_system_get_visible_position(menu_state, menu_state->current_selection);
         display_manager_clear_menu_item_area(new_pos);
         display_manager_draw_menu_item(menu_state->items[menu_state->current_selection].title,
-                                     new_pos, true);
+            new_pos, true);
     }
 }

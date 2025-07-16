@@ -6,7 +6,7 @@
  *
  */
 
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 #include "Utils/debug_conf.h"
 #include "Utils/comm_utils.h"
 
@@ -33,7 +33,7 @@ static bool is_websocket_connected = false;
 static volatile bool ui_needs_status_update = false;
 
 /* Game related data */
-static char stored_client_id[7] = {0};
+static char stored_client_id[7] = { 0 };
 static bool is_game_over = false;
 typedef struct {
     int player_id;
@@ -43,8 +43,8 @@ typedef struct {
     bool valid;
 } ParsedPlayerData; // Generic structure to hold parsed player data (local and opponent)
 
-static ParsedPlayerData stored_player_assignment = {0};
-static ParsedPlayerData stored_opponent_data = {0};
+static ParsedPlayerData stored_player_assignment = { 0 };
+static ParsedPlayerData stored_opponent_data = { 0 };
 
 
 /* Error handling state */
@@ -139,15 +139,15 @@ static bool parse_and_store_player_data(const char* data_string, bool is_local_p
 
     DEBUG_PRINTF(false, "Parsing player data: %s (local=%d)\r\n", data_string, is_local_player);
 
-    ParsedPlayerData temp_data = {0};
+    ParsedPlayerData temp_data = { 0 };
     temp_data.player_id = 1;  // Default values
     temp_data.player_count = 2;
     strcpy(temp_data.color, "blue");
 
     // Parse format: "player_id:session_id:player_count:color"
     int parsed_items = sscanf(data_string, "%d:%31[^:]:%d:%15s",
-                             &temp_data.player_id, temp_data.session_id,
-                             &temp_data.player_count, temp_data.color);
+        &temp_data.player_id, temp_data.session_id,
+        &temp_data.player_count, temp_data.color);
 
     if (parsed_items >= 3) { // At minimum we need player_id, session_id, and player_count
         // Validate player_id
@@ -161,7 +161,8 @@ static bool parse_and_store_player_data(const char* data_string, bool is_local_p
         // Store in appropriate structure
         if (is_local_player) {
             stored_player_assignment = temp_data;
-        } else {
+        }
+        else {
             stored_opponent_data = temp_data;
         }
 
@@ -174,7 +175,8 @@ static bool parse_and_store_player_data(const char* data_string, bool is_local_p
         }
 
         return true;
-    } else {
+    }
+    else {
         DEBUG_PRINTF(false, "Failed to parse player data. Parsed %d items\r\n", parsed_items);
         return false;
     }
@@ -284,26 +286,26 @@ static void handle_game_data(const uart_game_data_t* game_data)
 
 /* Handle connection messages */
 static void handle_connection_message(uart_connection_message_t* msg) {
-	DEBUG_PRINTF(false, "Connection Message: ID=%.6s, Message=%.63s, Timestamp=%lu\r\n",
-	    msg->client_id, msg->message, msg->timestamp);
+    DEBUG_PRINTF(false, "Connection Message: ID=%.6s, Message=%.63s, Timestamp=%lu\r\n",
+        msg->client_id, msg->message, msg->timestamp);
 
-	// Store client ID for later use
-	strncpy(stored_client_id, msg->client_id, sizeof(stored_client_id) - 1);
-	stored_client_id[sizeof(stored_client_id) - 1] = '\0';
+    // Store client ID for later use
+    strncpy(stored_client_id, msg->client_id, sizeof(stored_client_id) - 1);
+    stored_client_id[sizeof(stored_client_id) - 1] = '\0';
 
-	// Send acknowledgement immediately
-	serial_comm_send_connection_message(MSG_ACKNOWLEDGE_WEBSOCKET_SERVER, msg->client_id);
+    // Send acknowledgement immediately
+    serial_comm_send_connection_message(MSG_ACKNOWLEDGE_WEBSOCKET_SERVER, msg->client_id);
 
-	// Send device tile size for validation
-	serial_comm_send_tile_size_validation(MP_DEVICE_TILE_SIZE);
+    // Send device tile size for validation
+    serial_comm_send_tile_size_validation(MP_DEVICE_TILE_SIZE);
 
     // Call registered callback if available
-      if (connection_message_callback) {
-    	  connection_message_callback(msg);
-      }
+    if (connection_message_callback) {
+        connection_message_callback(msg);
+    }
 
-      // Send ACK for received game data
-      serial_comm_send_ack();
+    // Send ACK for received game data
+    serial_comm_send_ack();
 }
 
 /* Handle chat messages */
@@ -414,38 +416,41 @@ static void handle_esp32_status(const uart_status_t* status) {
         break;
 
     case SYSTEM_STATUS_PLAYER_ASSIGNMENT:
-    	DEBUG_PRINTF(false, "Player assignment received: %s\r\n", status->status_message);
-    	if (parse_and_store_player_data(status->status_message, true)) {
-    		DEBUG_PRINTF(false, "Local player assignment stored successfully\r\n");
-    	} else {
-    		DEBUG_PRINTF(false, "Failed to parse local player assignment\r\n");
-    	}
-    	break;
+        DEBUG_PRINTF(false, "Player assignment received: %s\r\n", status->status_message);
+        if (parse_and_store_player_data(status->status_message, true)) {
+            DEBUG_PRINTF(false, "Local player assignment stored successfully\r\n");
+        }
+        else {
+            DEBUG_PRINTF(false, "Failed to parse local player assignment\r\n");
+        }
+        break;
 
     case SYSTEM_STATUS_OPPONENT_CONNECTED:
-    	DEBUG_PRINTF(false, "Opponent connected: %s\r\n", status->status_message);
-    	if (parse_and_store_player_data(status->status_message, false)) {
-    		DEBUG_PRINTF(false, "Opponent data stored successfully\r\n");
-    	} else {
-    		DEBUG_PRINTF(false, "Failed to parse opponent data\r\n");
-    	}
-    	break;
+        DEBUG_PRINTF(false, "Opponent connected: %s\r\n", status->status_message);
+        if (parse_and_store_player_data(status->status_message, false)) {
+            DEBUG_PRINTF(false, "Opponent data stored successfully\r\n");
+        }
+        else {
+            DEBUG_PRINTF(false, "Failed to parse opponent data\r\n");
+        }
+        break;
 
     case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
-    	DEBUG_PRINTF(false, "Opponent disconnected\r\n");
-    	// Clear opponent data
-    	memset(&stored_opponent_data, 0, sizeof(stored_opponent_data));
-    	break;
+        DEBUG_PRINTF(false, "Opponent disconnected\r\n");
+        // Clear opponent data
+        memset(&stored_opponent_data, 0, sizeof(stored_opponent_data));
+        break;
 
     case SYSTEM_STATUS_TILE_SIZE_RESPONSE:
-     	is_game_over =
-     			!is_tile_size_valid(status->status_message, sizeof(status->status_message)/sizeof(char));
-     	if (is_game_over) {
-     		DEBUG_PRINTF(false, "Tile size validation failed: %s\r\n", status->status_message);
-     	} else {
-     		DEBUG_PRINTF(false, "Tile size validation passed\r\n");
-     	}
-     	break;
+        is_game_over =
+            !is_tile_size_valid(status->status_message, sizeof(status->status_message) / sizeof(char));
+        if (is_game_over) {
+            DEBUG_PRINTF(false, "Tile size validation failed: %s\r\n", status->status_message);
+        }
+        else {
+            DEBUG_PRINTF(false, "Tile size validation passed\r\n");
+        }
+        break;
 
     case SYSTEM_STATUS_ERROR:
         // Detailed debug info
@@ -543,10 +548,10 @@ static void process_received_message(const uart_message_t* msg)
         break;
 
     case MSG_TYPE_CONNECTION:
-    	if (msg->length == sizeof(uart_connection_message_t)) {
-    		handle_connection_message((uart_connection_message_t*)msg->data);
-    	}
-    	break;
+        if (msg->length == sizeof(uart_connection_message_t)) {
+            handle_connection_message((uart_connection_message_t*)msg->data);
+        }
+        break;
 
     case MSG_TYPE_ACK:
         DEBUG_PRINTF(false, "Received ACK from ESP32\r\n");
@@ -725,12 +730,12 @@ const char* serial_comm_get_client_id(void) {
 
 // Get multiplayer game over state
 bool serial_comm_get_mp_game_over(void) {
-	return is_game_over;
+    return is_game_over;
 }
 
 // Get local player assignment data
 bool serial_comm_get_player_assignment(int* player_id, char* session_id, size_t session_id_size,
-                                      int* player_count, char* color, size_t color_size) {
+    int* player_count, char* color, size_t color_size) {
     if (!stored_player_assignment.valid) {
         return false;
     }
@@ -758,7 +763,7 @@ bool serial_comm_get_player_assignment(int* player_id, char* session_id, size_t 
 
 // Get opponent data
 bool serial_comm_get_opponent_data(int* player_id, char* session_id, size_t session_id_size,
-                                  int* player_count, char* color, size_t color_size) {
+    int* player_count, char* color, size_t color_size) {
     if (!stored_opponent_data.valid) {
         return false;
     }
@@ -877,7 +882,7 @@ UART_Status serial_comm_send_connection_message(const char* message, const char*
     payload.timestamp = get_current_ms();
 
     DEBUG_PRINTF(false, "Sending connection data: message='%s', client_id='%s'\r\n",
-            message, client_id);
+        message, client_id);
 
     return serial_comm_send_message(MSG_TYPE_CONNECTION, (const uint8_t*)&payload, sizeof(payload));
 }
@@ -964,8 +969,8 @@ void serial_comm_register_game_data_callback(game_data_received_callback_t callb
 }
 
 void serial_comm_register_connection_message_callback(connection_message_callback_t callback) {
-	connection_message_callback = callback;
-	DEBUG_PRINTF(false, "Connection message callback registered\r\n");
+    connection_message_callback = callback;
+    DEBUG_PRINTF(false, "Connection message callback registered\r\n");
 }
 
 void serial_comm_register_chat_message_callback(chat_message_received_callback_t callback)
