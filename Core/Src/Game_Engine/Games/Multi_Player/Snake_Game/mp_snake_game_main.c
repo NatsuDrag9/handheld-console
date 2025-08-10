@@ -121,10 +121,8 @@ void mp_snake_cleanup(void) {
 }
 
 void mp_snake_process_communication(void) {
-    // Process any pending messages from ESP32 (similar to TS network processing)
-    if (serial_comm_is_message_ready()) {
-        serial_comm_process_messages();
-    }
+    // Process any pending messages from ESP32 (similar to typescript network processing)
+	serial_comm_process_messages();
 }
 
 // Game state query functions

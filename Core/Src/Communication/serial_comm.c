@@ -5,7 +5,6 @@
  *      Author: rohitimandi
  */
 
-
 #include "Communication/serial_comm.h"
 #include "Utils/debug_conf.h"
 
@@ -16,9 +15,6 @@ UART_Status serial_comm_init(void) {
     /* Initialize protocol layer (which initializes hardware and callbacks) */
     protocol_init();
 
-    /* Initialize snake multiplayer layer */
-    snake_multiplayer_init();
-
     DEBUG_PRINTF(false, "MAIN: Serial communication system initialized\r\n");
     return UART_OK;
 }
@@ -26,8 +22,7 @@ UART_Status serial_comm_init(void) {
 UART_Status serial_comm_deinit(void) {
     DEBUG_PRINTF(false, "MAIN: Deinitializing serial communication system\r\n");
 
-    /* Deinitialize in reverse order */
-    snake_multiplayer_deinit();
+    /* Deinitialize protocol layer */
     protocol_deinit();
 
     DEBUG_PRINTF(false, "MAIN: Serial communication system deinitialized\r\n");
@@ -126,4 +121,53 @@ bool serial_comm_get_player_assignment(int* player_id, char* session_id, size_t 
     return protocol_get_player_assignment(player_id, session_id, session_id_size, player_count, color, color_size);
 }
 
-bool serial_comm
+bool serial_comm_get_opponent_data(int* player_id, char* session_id, size_t session_id_size,
+                                  int* player_count, char* color, size_t color_size) {
+    return protocol_get_opponent_data(player_id, session_id, session_id_size, player_count, color, color_size);
+}
+
+bool serial_comm_has_player_assignment(void) {
+    return protocol_has_player_assignment();
+}
+
+bool serial_comm_has_opponent_connected(void) {
+    return protocol_has_opponent_connected();
+}
+
+int serial_comm_get_local_player_id(void) {
+    return protocol_get_local_player_id();
+}
+
+int serial_comm_get_opponent_player_id(void) {
+    return protocol_get_opponent_player_id();
+}
+
+/* Callback registration functions - map directly to callbacks layer */
+void serial_comm_register_game_data_callback(game_data_received_callback_t callback) {
+    callbacks_register_game_data(callback);
+}
+
+void serial_comm_register_chat_message_callback(chat_message_received_callback_t callback) {
+    callbacks_register_chat_message(callback);
+}
+
+void serial_comm_register_command_callback(command_received_callback_t callback) {
+    callbacks_register_command(callback);
+}
+
+void serial_comm_register_status_callback(status_received_callback_t callback) {
+    callbacks_register_status(callback);
+}
+
+void serial_comm_register_connection_message_callback(connection_message_callback_t callback) {
+    callbacks_register_connection_message(callback);
+}
+
+/* Utility functions */
+void serial_comm_print_stats(void) {
+    protocol_print_stats();
+}
+
+void serial_comm_send_debug(const char* message, uint32_t timeout) {
+    protocol_send_debug(message, timeout);
+}

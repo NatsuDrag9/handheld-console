@@ -8,14 +8,7 @@
 #ifndef INC_COMMUNICATION_SERIAL_COMM_CALLBACKS_H_
 #define INC_COMMUNICATION_SERIAL_COMM_CALLBACKS_H_
 
-#include "serial_comm_protocol.h"
-
-/* Callback function types */
-typedef void (*game_data_received_callback_t)(const uart_game_data_t* game_data);
-typedef void (*chat_message_received_callback_t)(const uart_chat_message_t* chat_message);
-typedef void (*command_received_callback_t)(const uart_command_t* command);
-typedef void (*status_received_callback_t)(const uart_status_t* status);
-typedef void (*connection_message_callback_t)(const uart_connection_message_t* connection_msg);
+#include "serial_comm_types.h"
 
 /* Callback system initialization */
 void callbacks_init(void);

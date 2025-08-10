@@ -66,10 +66,12 @@ void uart_test_loop(void) {
 	uint32_t current_time = get_current_ms();
 
 	// Process any incoming messages from ESP32
-	if (serial_comm_is_message_ready()) {
-		//        serial_comm_send_debug("Processing message from ESP32\r\n", 100);
-		serial_comm_process_messages();
-	}
+//	if (serial_comm_is_message_ready()) {
+//		//        serial_comm_send_debug("Processing message from ESP32\r\n", 100);
+//		serial_comm_process_messages();
+//	}
+	//        serial_comm_send_debug("Processing message from ESP32\r\n", 100);
+			serial_comm_process_messages();
 
 	//  Check if UI needs update after processing messages
 	if (serial_comm_needs_ui_update()) {

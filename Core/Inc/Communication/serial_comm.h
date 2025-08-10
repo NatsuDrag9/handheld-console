@@ -10,8 +10,9 @@
 
 /* Include all communication layers */
 #include "Console_Peripherals/Hardware/serial_comm_core.h"
-#include "Communication/serial_comm_protocol.h"
-#include "Communication/serial_comm_callbacks.h"
+#include "serial_comm_types.h"
+#include "serial_comm_protocol.h"
+#include "serial_comm_callbacks.h"
 
 /* Main communication API - these are the functions applications should use */
 

@@ -7,6 +7,7 @@
 
 #include "Communication/serial_comm_callbacks.h"
 #include "Utils/debug_conf.h"
+#include "stdbool.h"
 
 /* Registered callback functions */
 static game_data_received_callback_t game_data_callback = NULL;
