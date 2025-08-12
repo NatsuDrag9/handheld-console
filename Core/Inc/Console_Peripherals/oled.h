@@ -11,7 +11,7 @@
 #include <Console_Peripherals/Hardware/d_pad.h>
 #include <Console_Peripherals/Hardware/Drivers/display_driver.h>
 #include <Console_Peripherals/Hardware/joystick.h>
-#include <Console_Peripherals/Hardware/serial_comm.h>
+#include <Communication/serial_comm.h>
 #include <Console_Peripherals/types.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -28,38 +28,38 @@
 #define SCREEN_WIDTH    DISPLAY_WIDTH
 #define SCREEN_HEIGHT   DISPLAY_HEIGHT
 
-/* Define the macros for display module */
+ /* Define the macros for display module */
 #if defined(DISPLAY_MODULE_OLED)
-	#define MENU_START_Y     25    // Y position where menu items start
-	#define MENU_ITEM_HEIGHT 12    // Height of each menu item
-	#define VISIBLE_ITEMS    3     // Number of items visible at once
-	#define DISPLAY_FONT Font_7x10
-	#define DISPLAY_MENU_CURSOR_FONT Font_7x10
-	#define DISPLAY_TITLE_FONT Font_7x10
-	#define MENU_TITLE_Y 10
-	#define MENU_REFRESH_THROTTLE 100  // 100ms throttle (100Hz refresh rate)
-	#define STATUS_BAR_HEIGHT   15    // Height of the status bar area
-	#define SEPARATOR_LINE_Y    16    // Y position of the separator line
+#define MENU_START_Y     25    // Y position where menu items start
+#define MENU_ITEM_HEIGHT 12    // Height of each menu item
+#define VISIBLE_ITEMS    3     // Number of items visible at once
+#define DISPLAY_FONT Font_7x10
+#define DISPLAY_MENU_CURSOR_FONT Font_7x10
+#define DISPLAY_TITLE_FONT Font_7x10
+#define MENU_TITLE_Y 10
+#define MENU_REFRESH_THROTTLE 100  // 100ms throttle (100Hz refresh rate)
+#define STATUS_BAR_HEIGHT   15    // Height of the status bar area
+#define SEPARATOR_LINE_Y    16    // Y position of the separator line
 #elif defined(DISPLAY_MODULE_LCD)
-	#define MENU_START_Y     50
-	#define MENU_ITEM_HEIGHT 35
-	#define VISIBLE_ITEMS    4
-	#define DISPLAY_FONT Font_7x10
-	#define DISPLAY_MENU_CURSOR_FONT Font_11x18
-	#define DISPLAY_TITLE_FONT Font_16x26
-  	#define STATUS_BAR_HEIGHT   20
-    #define SEPARATOR_LINE_Y    21
-	#define MENU_TITLE_Y 25
-	#define MENU_REFRESH_THROTTLE 50  // 50ms throttle (20Hz refresh rate) -
+#define MENU_START_Y     50
+#define MENU_ITEM_HEIGHT 35
+#define VISIBLE_ITEMS    4
+#define DISPLAY_FONT Font_7x10
+#define DISPLAY_MENU_CURSOR_FONT Font_11x18
+#define DISPLAY_TITLE_FONT Font_16x26
+#define STATUS_BAR_HEIGHT   20
+#define SEPARATOR_LINE_Y    21
+#define MENU_TITLE_Y 25
+#define MENU_REFRESH_THROTTLE 50  // 50ms throttle (20Hz refresh rate) -
 #else
 	// Default to OLED screen
-	#define MENU_START_Y     25    // Y position where menu items start
-	#define MENU_ITEM_HEIGHT 12    // Height of each menu item
-	#define VISIBLE_ITEMS    3     // Number of items visible at once
-    #define DISPLAY_FONT Font_7x10
-	#define MENU_TITLE_Y 10
-  	#define STATUS_BAR_HEIGHT   15
-    #define SEPARATOR_LINE_Y    16
+#define MENU_START_Y     25    // Y position where menu items start
+#define MENU_ITEM_HEIGHT 12    // Height of each menu item
+#define VISIBLE_ITEMS    3     // Number of items visible at once
+#define DISPLAY_FONT Font_7x10
+#define MENU_TITLE_Y 10
+#define STATUS_BAR_HEIGHT   15
+#define SEPARATOR_LINE_Y    16
 #endif
 
  // Core OLED functions

@@ -15,7 +15,7 @@
 #include "mp_snake_game_render.h"
 #include "Game_Engine/game_engine.h"
 #include "Game_Engine/Games/Helpers/snake_game_helpers.h"
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 #include <stdint.h>
 #include <stdbool.h>
 

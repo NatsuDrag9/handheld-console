@@ -448,7 +448,7 @@ void websocket_app_main(void) {
         if (esp_websocket_client_is_connected(ws_client)) {
             if (strlen(client_id) > 0) {
                 // Connection is fully established
-                // TODO: Add periodic heartbeat or other maintenance tasks here
+                // To Do: Add periodic heartbeat or other maintenance tasks here
             }
             else {
                 ESP_LOGW(TAG, "Connected but no client ID yet, waiting...");

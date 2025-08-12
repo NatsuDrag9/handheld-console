@@ -11,12 +11,12 @@
 #define INC_GAME_ENGINE_NETWORK_GAME_ENGINE_NETWORK_H_
 
 #include "Game_Engine/game_engine.h"
-#include "Console_Peripherals/Hardware/serial_comm.h"
+#include "Communication/serial_comm.h"
 #include "Console_Peripherals/Hardware/display_manager.h"
 #include <stdint.h>
 #include <stdbool.h>
 
-// Network error handling functions
+ // Network error handling functions
 void game_engine_network_init(void);
 void game_engine_network_cleanup(void);
 void game_engine_network_check_errors(GameEngine* engine);

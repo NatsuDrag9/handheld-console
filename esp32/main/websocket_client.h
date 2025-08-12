@@ -26,7 +26,7 @@
 #include "../components/cmp/cmp.h"
 
 // Configuration
-#define WEBSOCKET_URI "ws://192.168.2.151:3001/?client=esp32"
+#define WEBSOCKET_URI "ws://10.147.241.151:3001/?client=esp32"
 #define WEBSOCKET_RECONNECT_TIMEOUT_MS 10000
 #define GAME_DATA_POLLING_INTERVAL 100  // Check for STM32 data every 100ms
 
