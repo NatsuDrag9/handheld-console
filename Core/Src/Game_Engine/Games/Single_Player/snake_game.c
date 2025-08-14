@@ -58,16 +58,21 @@ GameEngine snake_game_engine = {
     .update_func = {
         .update_dpad = snake_update_dpad
     },
-	.show_game_over_message = snake_show_game_over_message,
+    .show_game_over_message = snake_show_game_over_message,
     .game_data = &snake_data,
     .base_state = {
-        .score = 0,
-        .lives = 1,
+        .state_data = {
+            .single = {
+                .score = 0,
+                .lives = 1,
+            }
+        },
         .paused = false,
         .game_over = false,
         .is_reset = false
     },
-    .is_d_pad_game = true  // Snake is a D-pad game
+    .is_d_pad_game = true,  // Snake is a D-pad game
+    .is_mp_game = false,
 };
 
 static void snake_init(void) {
@@ -104,7 +109,7 @@ static void handle_food_collision(SnakeGameData* data) {
     if (snake_helper_check_food_collision(&data->snake, &data->food)) {
 
         snake_helper_grow_snake(&data->snake);
-        snake_game_engine.base_state.score += 10;
+        snake_game_engine.base_state.state_data.single.score += 10;
 
         snake_helper_spawn_food(&data->food, &data->snake);
     }
@@ -112,9 +117,9 @@ static void handle_food_collision(SnakeGameData* data) {
 
 static void handle_collision(SnakeGameData* data) {
     if (snake_helper_check_self_collision(&data->snake)) {
-        if (snake_game_engine.base_state.lives > 0) {
-            snake_game_engine.base_state.lives--;
-            if (snake_game_engine.base_state.lives == 0) {
+        if (snake_game_engine.base_state.state_data.single.lives > 0) {
+            snake_game_engine.base_state.state_data.single.lives--;
+            if (snake_game_engine.base_state.state_data.single.lives == 0) {
                 snake_game_engine.base_state.game_over = true;
             }
             else {
@@ -139,7 +144,7 @@ static void snake_update_dpad(DPAD_STATUS dpad_status) {
     handle_direction_change(data, dpad_status);
 
     // Use helper function to calculate snake speed
-    uint16_t current_speed = snake_helper_calculate_speed(snake_game_engine.base_state.score);
+    uint16_t current_speed = snake_helper_calculate_speed(snake_game_engine.base_state.state_data.single.score);
     if (current_time - last_move_time >= current_speed) {
         // Store previous positions for rendering optimization
         previous_head_x = data->snake.head_x;
@@ -163,8 +168,8 @@ static void snake_update_dpad(DPAD_STATUS dpad_status) {
 static void render_status_area(bool force_redraw) {
     // Check if there's a reason to redraw
     if (!force_redraw &&
-        previous_score == snake_game_engine.base_state.score &&
-        previous_lives == snake_game_engine.base_state.lives) {
+        previous_score == snake_game_engine.base_state.state_data.single.score &&
+        previous_lives == snake_game_engine.base_state.state_data.single.lives) {
         return;
     }
 
@@ -174,8 +179,8 @@ static void render_status_area(bool force_redraw) {
     // Draw score and lives
     char status_text[32];
     snprintf(status_text, sizeof(status_text), "Score: %lu Lives: %d",
-        snake_game_engine.base_state.score,
-        snake_game_engine.base_state.lives);
+        snake_game_engine.base_state.state_data.single.score,
+        snake_game_engine.base_state.state_data.single.lives);
     display_set_cursor(2, 2);
 #ifdef DISPLAY_MODULE_LCD
     display_write_string(status_text, Font_11x18, DISPLAY_WHITE);
@@ -184,17 +189,17 @@ static void render_status_area(bool force_redraw) {
 #endif
 
     // Update previous values
-    previous_score = snake_game_engine.base_state.score;
-    previous_lives = snake_game_engine.base_state.lives;
+    previous_score = snake_game_engine.base_state.state_data.single.score;
+    previous_lives = snake_game_engine.base_state.state_data.single.lives;
 }
 
 // Function to clear a region and redraw border if needed
 static void clear_and_redraw_border_if_needed(coord_t x, coord_t y) {
     // Check if position is near any border
     bool near_border = (x <= BORDER_OFFSET + SPRITE_SIZE ||
-                       x >= DISPLAY_WIDTH - BORDER_OFFSET - SPRITE_SIZE - 1 ||
-                       y <= GAME_AREA_TOP + SPRITE_SIZE ||
-                       y >= DISPLAY_HEIGHT - BORDER_OFFSET - SPRITE_SIZE - 1);
+        x >= DISPLAY_WIDTH - BORDER_OFFSET - SPRITE_SIZE - 1 ||
+        y <= GAME_AREA_TOP + SPRITE_SIZE ||
+        y >= DISPLAY_HEIGHT - BORDER_OFFSET - SPRITE_SIZE - 1);
 
     // Clear the region
     display_clear_region(x, y, SPRITE_SIZE, SPRITE_SIZE);
@@ -227,7 +232,8 @@ static void clear_previous_head_position(SnakeGameData* data) {
             previous_head_y > GAME_AREA_TOP &&
             previous_head_y < DISPLAY_HEIGHT - BORDER_OFFSET - SPRITE_SIZE) {
             display_clear_region(previous_head_x, previous_head_y, SPRITE_SIZE, SPRITE_SIZE);
-        } else {
+        }
+        else {
             // Near border - clear and redraw border
             clear_and_redraw_border_if_needed(previous_head_x, previous_head_y);
         }
@@ -245,7 +251,8 @@ static void clear_previous_tail_position(SnakeGameData* data) {
     bool is_part_of_snake = false;
     if (previous_tail_x == data->snake.head_x && previous_tail_y == data->snake.head_y) {
         is_part_of_snake = true;
-    } else {
+    }
+    else {
         for (uint8_t i = 0; i < data->snake.length; i++) {
             if (previous_tail_x == data->snake.body[i].x && previous_tail_y == data->snake.body[i].y) {
                 is_part_of_snake = true;
@@ -267,7 +274,8 @@ static void clear_previous_tail_position(SnakeGameData* data) {
                 SPRITE_SIZE + 2,
                 SPRITE_SIZE + 2
             );
-        } else {
+        }
+        else {
             // Near border - clear and redraw border
             clear_and_redraw_border_if_needed(previous_tail_x, previous_tail_y);
         }
@@ -302,15 +310,15 @@ static void snake_render(void) {
     if (first_render) {
         // Draw border
         display_draw_border_at(1, STATUS_START_Y, 3, 3);
-//        render_status_area(true);
+        //        render_status_area(true);
         first_render = false;
     }
 
     // Update status area if score or lives changed
-    bool status_changed = (previous_score != snake_game_engine.base_state.score) ||
-                         (previous_lives != snake_game_engine.base_state.lives);
+    bool status_changed = (previous_score != snake_game_engine.base_state.state_data.single.score) ||
+        (previous_lives != snake_game_engine.base_state.state_data.single.lives);
     if (status_changed) {
-//        render_status_area(true);
+        //        render_status_area(true);
     }
 
     // Clear previous positions if needed
@@ -326,11 +334,11 @@ static void snake_render(void) {
 }
 
 static void snake_show_game_over_message(void) {
-    if(snake_game_engine.base_state.score >= 100) {
-        display_manager_show_game_over_message("Well Played", snake_game_engine.base_state.score);
+    if (snake_game_engine.base_state.state_data.single.score >= 100) {
+        display_manager_show_game_over_message("Well Played", snake_game_engine.base_state.state_data.single.score);
     }
     else {
-        display_manager_show_game_over_message(NULL, snake_game_engine.base_state.score);
+        display_manager_show_game_over_message(NULL, snake_game_engine.base_state.state_data.single.score);
     }
 }
 
@@ -346,8 +354,8 @@ static void snake_cleanup(void) {
     last_move_time = 0;
 
     // Reset game engine state
-    snake_game_engine.base_state.score = 0;
-    snake_game_engine.base_state.lives = DEFAULT_LIVES;
+    snake_game_engine.base_state.state_data.single.score = 0;
+    snake_game_engine.base_state.state_data.single.lives = DEFAULT_LIVES;
     snake_game_engine.base_state.paused = false;
     snake_game_engine.base_state.game_over = false;
 

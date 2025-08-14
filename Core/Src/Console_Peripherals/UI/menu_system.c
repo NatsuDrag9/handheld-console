@@ -120,6 +120,7 @@ bool menu_system_render(const MenuState* menu_state) {
     }
 
     display_manager_update();
+    return true;
 }
 
 bool menu_system_render_partial_update(const MenuState* menu_state, uint8_t old_selection) {

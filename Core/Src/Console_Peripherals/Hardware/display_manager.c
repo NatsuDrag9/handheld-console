@@ -153,7 +153,7 @@ void display_manager_show_wifi_error() {
 	display_update();
 }
 
-void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int lives, bool in_game) {
+void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, uint8_t lives, bool in_game) {
 	/* Draw horizontal separator line */
 	display_draw_horizontal_line(0, SEPARATOR_LINE_Y, DISPLAY_WIDTH, DISPLAY_WHITE);
 
@@ -170,6 +170,32 @@ void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, int li
 	if (in_game) {
 		char status_text[32];
 		snprintf(status_text, sizeof(status_text), "Score: %lu Lives: %d", score, lives);
+		display_set_cursor(5, 2);
+		display_write_string(status_text, DISPLAY_STATUS_FONT, DISPLAY_WHITE);
+	}
+
+	display_update();
+}
+
+void display_manager_draw_mp_game_status_bar(bool wifi_connected, uint32_t p1_score, uint32_t p2_score, uint32_t target_score, bool in_game) {
+	/* Draw horizontal separator line */
+	display_draw_horizontal_line(0, SEPARATOR_LINE_Y, DISPLAY_WIDTH, DISPLAY_WHITE);
+
+	/* Draw WiFi status icon */
+	if (wifi_connected) {
+		display_draw_bitmap(DISPLAY_WIDTH - 15, 3, wifi_connected_icon,
+				STATUS_ICON_WIDTH, STATUS_ICON_HEIGHT, DISPLAY_WHITE);
+	} else {
+		display_draw_bitmap(DISPLAY_WIDTH - 15, 3, wifi_disconnected_icon,
+				STATUS_ICON_WIDTH, STATUS_ICON_HEIGHT, DISPLAY_WHITE);
+	}
+
+	/* Draw game score and lives if in game */
+	if (in_game) {
+		// Draw scores for both players (like TS renderStatus)
+		char status_text[64];
+		snprintf(status_text, sizeof(status_text), "P1:%lu P2:%lu Target:%lu",
+				p1_score, p2_score, target_score);
 		display_set_cursor(5, 2);
 		display_write_string(status_text, DISPLAY_STATUS_FONT, DISPLAY_WHITE);
 	}

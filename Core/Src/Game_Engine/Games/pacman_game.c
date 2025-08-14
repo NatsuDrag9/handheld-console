@@ -69,12 +69,17 @@ GameEngine pacman_game_engine = {
     .cleanup = pacman_cleanup,
     .game_data = &pacman_data,
     .base_state = {
-        .score = 0,
-        .lives = 3,
+        .state_data = {
+            .single = {
+                .score = 0,
+                .lives = 3,
+            }
+        },
         .paused = false,
         .game_over = false
     },
-    .is_d_pad_game = true  // Pacman is a D-pad game
+    .is_d_pad_game = true,  // Pacman is a D-pad game
+    .is_mp_game = false
 };
 
 static bool check_wall_collision(Position pos) {
@@ -349,14 +354,14 @@ static void handle_dot_collision(void) {
                 // Activate power pellet mode
                 pacman_data.power_pellet_active = true;
                 pacman_data.ghost_mode_timer = get_current_ms();
-                pacman_game_engine.base_state.score += 50;
+                pacman_game_engine.base_state.state_data.single.score += 50;
 
                 for (uint8_t j = 0; j < NUM_GHOSTS; j++) {
                     pacman_data.ghosts[j].mode = MODE_FRIGHTENED;
                 }
             }
             else {
-                pacman_game_engine.base_state.score += 10;
+                pacman_game_engine.base_state.state_data.single.score += 10;
             }
         }
     }
@@ -373,13 +378,13 @@ static void handle_ghost_collision(void) {
             if (ghost->mode == MODE_FRIGHTENED) {
                 // Eat ghost
                 ghost->active = false;
-                pacman_game_engine.base_state.score += 200;
+                pacman_game_engine.base_state.state_data.single.score += 200;
             }
             else {
                 // Lose life
-                if (pacman_game_engine.base_state.lives > 0) {
-                    pacman_game_engine.base_state.lives--;
-                    if (pacman_game_engine.base_state.lives == 0) {
+                if (pacman_game_engine.base_state.state_data.single.lives > 0) {
+                    pacman_game_engine.base_state.state_data.single.lives--;
+                    if (pacman_game_engine.base_state.state_data.single.lives == 0) {
                         pacman_game_engine.base_state.game_over = true;
                     }
                     else {
@@ -442,8 +447,8 @@ static void pacman_update_dpad(DPAD_STATUS dpad_status) {
 static void render_status_area(bool force_redraw) {
     // Check if there's a reason to redraw
     if (!force_redraw &&
-        previous_score == pacman_game_engine.base_state.score &&
-        previous_lives == pacman_game_engine.base_state.lives) {
+        previous_score == pacman_game_engine.base_state.state_data.single.score &&
+        previous_lives == pacman_game_engine.base_state.state_data.single.lives) {
         return;
     }
 
@@ -453,8 +458,8 @@ static void render_status_area(bool force_redraw) {
     // Draw score and lives
     char status_text[32];
     snprintf(status_text, sizeof(status_text), "Score: %lu Lives: %d",
-        pacman_game_engine.base_state.score,
-        pacman_game_engine.base_state.lives);
+        pacman_game_engine.base_state.state_data.single.score,
+        pacman_game_engine.base_state.state_data.single.lives);
     display_set_cursor(2, 2);
 #ifdef DISPLAY_MODULE_LCD
     display_write_string(status_text, Font_11x18, DISPLAY_WHITE);
@@ -463,8 +468,8 @@ static void render_status_area(bool force_redraw) {
 #endif
 
     // Update previous values
-    previous_score = pacman_game_engine.base_state.score;
-    previous_lives = pacman_game_engine.base_state.lives;
+    previous_score = pacman_game_engine.base_state.state_data.single.score;
+    previous_lives = pacman_game_engine.base_state.state_data.single.lives;
 }
 
 // Function to clear a region and redraw border if needed
@@ -595,8 +600,8 @@ static void pacman_render(void) {
     }
 
     // Update status area if score or lives changed
-    bool status_changed = (previous_score != pacman_game_engine.base_state.score) ||
-        (previous_lives != pacman_game_engine.base_state.lives);
+    bool status_changed = (previous_score != pacman_game_engine.base_state.state_data.single.score) ||
+        (previous_lives != pacman_game_engine.base_state.state_data.single.lives);
     if (status_changed) {
         render_status_area(true);
     }
@@ -679,8 +684,8 @@ static void pacman_cleanup(void) {
     last_border_redraw_time = 0;
 
     // Reset game engine state
-    pacman_game_engine.base_state.score = 0;
-    pacman_game_engine.base_state.lives = 3;
+    pacman_game_engine.base_state.state_data.single.score = 0;
+    pacman_game_engine.base_state.state_data.single.lives = 3;
     pacman_game_engine.base_state.paused = false;
     pacman_game_engine.base_state.game_over = false;
 }

@@ -46,13 +46,20 @@ GameEngine mp_snake_game_engine = {
     },
     .game_data = &mp_snake_data,
     .base_state = {
-        .score = 0,
-        .lives = 1,        // Multiplayer typically has single life
+        .state_data = {
+                .multi = {
+                    .p1_score = 0,
+                    .p2_score = 0,
+                    .target_score = 0,
+					.lives = 0, // Multiplayer snake game has single life
+                },
+        },
         .paused = false,
         .game_over = false,
         .is_reset = false
     },
-    .is_d_pad_game = true
+    .is_d_pad_game = true,
+    .is_mp_game = true
 };
 
 // Public interface implementation
@@ -85,6 +92,12 @@ void mp_snake_render(void) {
     ProtocolState connection_status = serial_comm_get_state();
     bool is_spectator = false; // Could be made configurable
 
+    // Storing the score in mp_snake_game_engine for game_controller to display in status bar
+    mp_snake_game_engine.base_state.state_data.multi.p1_score = game_stats.p1_score;
+    mp_snake_game_engine.base_state.state_data.multi.p2_score = game_stats.p2_score;
+    mp_snake_game_engine.base_state.state_data.multi.target_score = game_stats.target_score;
+    mp_snake_game_engine.base_state.state_data.multi.lives = game_stats.p1_lives; // Multiplayer snake game has single life
+
     // Call renderer with all data (like TS render method)
     mp_snake_render_game(
         game_phase,
@@ -112,8 +125,6 @@ void mp_snake_cleanup(void) {
     }
 
     // Reset game engine state
-    mp_snake_game_engine.base_state.score = 0;
-    mp_snake_game_engine.base_state.lives = 1;
     mp_snake_game_engine.base_state.paused = false;
     mp_snake_game_engine.base_state.game_over = false;
 
@@ -122,7 +133,7 @@ void mp_snake_cleanup(void) {
 
 void mp_snake_process_communication(void) {
     // Process any pending messages from ESP32 (similar to typescript network processing)
-	serial_comm_process_messages();
+    serial_comm_process_messages();
 }
 
 // Game state query functions
@@ -226,27 +237,27 @@ static void mp_snake_cleanup_internal(void) {
 }
 
 static void on_status_received_in_game(const uart_status_t* status) {
-	// These status messages may be received during game play
+    // These status messages may be received during game play
     DEBUG_PRINTF(false, "Status message received: %d\r\n", status->system_status);
 
     switch (status->system_status) {
     case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
-    	mp_snake_data.opponent_connected = false;
-    	DEBUG_PRINTF(false, "Opponent disconnected\r\n");
-    	break;
+        mp_snake_data.opponent_connected = false;
+        DEBUG_PRINTF(false, "Opponent disconnected\r\n");
+        break;
 
     case SYSTEM_STATUS_WEBSOCKET_CONNECTED:
-    	mp_snake_data.connected_to_server = true;
-    	break;
+        mp_snake_data.connected_to_server = true;
+        break;
 
     case SYSTEM_STATUS_SESSION_TIMEOUT:
     case SYSTEM_STATUS_WEBSOCKET_DISCONNECTED:
     case SYSTEM_STATUS_WIFI_DISCONNECTED:
     case SYSTEM_STATUS_ERROR:
-    	mp_snake_game_engine.base_state.game_over = true;
-    	mp_snake_data.connected_to_server = false;
-    	mp_snake_data.opponent_connected = false;
-    	break;
+        mp_snake_game_engine.base_state.game_over = true;
+        mp_snake_data.connected_to_server = false;
+        mp_snake_data.opponent_connected = false;
+        break;
 
     default:
         DEBUG_PRINTF(false, "Unknown status: %d\r\n", status->system_status);
@@ -292,7 +303,8 @@ static void mp_snake_load_local_player_data(void) {
 
         // Send player ready immediately after loading local data
         mp_snake_send_player_ready();
-    } else {
+    }
+    else {
         DEBUG_PRINTF(false, "Warning: No local player assignment data available\r\n");
     }
 }

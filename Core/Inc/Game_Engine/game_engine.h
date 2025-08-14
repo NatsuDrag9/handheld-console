@@ -18,31 +18,50 @@
 typedef void (*UpdateWithJoystick)(JoystickStatus);
 typedef void (*UpdateWithDPad)(DPAD_STATUS);
 
+// Single player state structure
+typedef struct {
+    uint32_t score;
+    uint8_t lives;
+} SinglePlayerState;
+
+// Multiplayer state structure
+typedef struct {
+    uint32_t p1_score;
+    uint32_t p2_score;
+    uint32_t target_score;
+    uint8_t lives;
+} MultiPlayerState;
+
 typedef struct {
     void (*init)(void);              // Initialize game state
-//    void (*update)(JoystickStatus);  // Game logic update
     void (*render)(void);            // Draw game state
     void (*cleanup)(void);           // Cleanup resources
     void (*show_game_over_message)(void); // Displays a custom game over message
 
     // Union for different update function signatures
-       union {
-           UpdateWithJoystick update_joystick;
-           UpdateWithDPad update_dpad;
-       } update_func;  // Game logic update
+    union {
+        UpdateWithJoystick update_joystick;
+        UpdateWithDPad update_dpad;
+    } update_func;  // Game logic update
 
     struct {
-        uint32_t score;
-        uint8_t lives;
+        // Common state fields that all games need
         bool paused;
         bool game_over;
         bool is_reset;
+
+        // Union for different state types
+        union {
+            SinglePlayerState single;
+            MultiPlayerState multi;
+        } state_data;
     } base_state;
 
     void* game_data;  // Game-specific data
     bool countdown_over;
     bool return_to_main_menu;
     bool is_d_pad_game;  // Flag to determine input type
+    bool is_mp_game;     // Flag to determine state type
 
 } GameEngine;
 

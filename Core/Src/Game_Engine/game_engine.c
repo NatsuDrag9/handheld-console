@@ -25,8 +25,8 @@ static bool require_full_refresh = true;
 void game_engine_init(GameEngine* engine) {
     if (engine && engine->init) {
         // Initialize base state
-        engine->base_state.score = 0;
-        engine->base_state.lives = DEFAULT_LIVES;
+        engine->base_state.state_data.single.score = 0;
+        engine->base_state.state_data.single.lives = DEFAULT_LIVES;
         engine->base_state.paused = false;
         engine->base_state.is_reset = false;
         engine->base_state.game_over = false;
@@ -188,8 +188,8 @@ void game_engine_render(GameEngine* engine) {
 
         bool current_network_error = game_engine_network_has_error();
         bool state_changed = (was_paused != engine->base_state.paused) ||
-        		(was_game_over != engine->base_state.game_over) ||
-				(was_network_error != current_network_error);
+            (was_game_over != engine->base_state.game_over) ||
+            (was_network_error != current_network_error);
 
         // Clear screen only when needed
         if (state_changed || require_full_refresh) {
@@ -202,7 +202,7 @@ void game_engine_render(GameEngine* engine) {
 
         // Render network error if present
         if (current_network_error) {
-        	game_engine_network_render_error();
+            game_engine_network_render_error();
         }
 
         // Render paused message if game is paused
@@ -212,9 +212,9 @@ void game_engine_render(GameEngine* engine) {
 
         // Show custom game over message only once when state first changes
         if (engine->base_state.game_over && !was_game_over) {
-        	if (engine->show_game_over_message) {
-        		engine->show_game_over_message();
-        	}
+            if (engine->show_game_over_message) {
+                engine->show_game_over_message();
+            }
         }
 
 

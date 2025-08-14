@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 
-// Rendering optimization tracking (similar to TS private properties)
+ // Rendering optimization tracking (similar to TS private properties)
 static coord_t previous_local_head_x = 0, previous_local_head_y = 0;
 static coord_t previous_opponent_head_x = 0, previous_opponent_head_y = 0;
 static coord_t previous_food_x = 0, previous_food_y = 0;
@@ -28,10 +28,14 @@ static bool first_render = true;
 // Private function prototypes (similar to TS private methods)
 static void render_waiting_screen(ProtocolState connection_status, uint8_t local_player_id);
 static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,
-                           GameStats* game_stats, uint8_t local_player_id);
+    GameStats* game_stats, uint8_t local_player_id);
 static void render_game_area(SnakeState* players, uint8_t player_count, Position* food,
-                           GameStats* game_stats, uint8_t local_player_id);
-static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id);
+    GameStats* game_stats, uint8_t local_player_id);
+// NOTE: With GameStats to render scores from here
+// static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id);
+
+// NOTE: Without GameStats to render scores from display_manager
+static void render_multiplayer_ui(uint8_t local_player_id);
 static void clear_previous_positions(SnakeState* players, uint8_t player_count, Position* food);
 static void reset_render_tracking(SnakeState* players, uint8_t player_count, Position* food);
 
@@ -59,15 +63,15 @@ void mp_snake_render_game(
 ) {
     // Route to appropriate phase renderer (like TS switch statement)
     switch (game_phase) {
-        case MP_PHASE_WAITING:
-            render_waiting_screen(connection_status, local_player_id);
-            break;
-        case MP_PHASE_PLAYING:
-            render_gameplay(players, player_count, food, game_stats, local_player_id);
-            break;
-        case MP_PHASE_ENDED:
-            render_gameplay(players, player_count, food, game_stats, local_player_id);
-            break;
+    case MP_PHASE_WAITING:
+        render_waiting_screen(connection_status, local_player_id);
+        break;
+    case MP_PHASE_PLAYING:
+        render_gameplay(players, player_count, food, game_stats, local_player_id);
+        break;
+    case MP_PHASE_ENDED:
+        render_gameplay(players, player_count, food, game_stats, local_player_id);
+        break;
     }
 }
 
@@ -82,52 +86,52 @@ static void render_waiting_screen(ProtocolState connection_status, uint8_t local
     const char* status_text = "";
 
     switch (connection_status) {
-        case PROTO_STATE_INIT:
-            status_text = "Initializing...";
-            break;
-        case PROTO_STATE_ESP32_READY:
-            status_text = "ESP32 Ready";
-            break;
-        case PROTO_STATE_WIFI_CONNECTING:
-            status_text = "Connecting to WiFi...";
-            break;
-        case PROTO_STATE_WIFI_CONNECTED:
-            status_text = "WiFi Connected";
-            break;
-        case PROTO_STATE_WEBSOCKET_CONNECTING:
-            status_text = "Connecting to Server...";
-            break;
-        case PROTO_STATE_WEBSOCKET_CONNECTED:
-            status_text = "Waiting for opponent...";
-            break;
-        case PROTO_STATE_GAME_READY:
-            status_text = "Game ready...";
-            break;
-        case PROTO_STATE_GAME_ACTIVE:
-            status_text = "Starting game...";
-            break;
-        case PROTO_STATE_ERROR:
-            status_text = "Connection Error";
-            break;
+    case PROTO_STATE_INIT:
+        status_text = "Initializing...";
+        break;
+    case PROTO_STATE_ESP32_READY:
+        status_text = "ESP32 Ready";
+        break;
+    case PROTO_STATE_WIFI_CONNECTING:
+        status_text = "Connecting to WiFi...";
+        break;
+    case PROTO_STATE_WIFI_CONNECTED:
+        status_text = "WiFi Connected";
+        break;
+    case PROTO_STATE_WEBSOCKET_CONNECTING:
+        status_text = "Connecting to Server...";
+        break;
+    case PROTO_STATE_WEBSOCKET_CONNECTED:
+        status_text = "Waiting for opponent...";
+        break;
+    case PROTO_STATE_GAME_READY:
+        status_text = "Game ready...";
+        break;
+    case PROTO_STATE_GAME_ACTIVE:
+        status_text = "Starting game...";
+        break;
+    case PROTO_STATE_ERROR:
+        status_text = "Connection Error";
+        break;
     }
 
-    display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT/2 - 10);
+    display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT / 2 - 10);
 
     char player_text[32];
     snprintf(player_text, sizeof(player_text), "You are Player %d", local_player_id);
-    display_manager_show_centered_message(player_text, DISPLAY_HEIGHT/2 + 5);
+    display_manager_show_centered_message(player_text, DISPLAY_HEIGHT / 2 + 5);
 
     // Show debug info if in error state
     if (connection_status == PROTO_STATE_ERROR) {
-        display_manager_show_centered_message("Check ESP32 connection", DISPLAY_HEIGHT/2 + 20);
+        display_manager_show_centered_message("Check ESP32 connection", DISPLAY_HEIGHT / 2 + 20);
     }
 }
 
 static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,
-                           GameStats* game_stats, uint8_t local_player_id) {
+    GameStats* game_stats, uint8_t local_player_id) {
 
     render_game_area(players, player_count, food, game_stats, local_player_id);
-    render_multiplayer_ui(game_stats, local_player_id);
+    render_multiplayer_ui(local_player_id);
 }
 
 static void render_game_area(SnakeState* players, uint8_t player_count, Position* food, GameStats* game_stats, uint8_t local_player_id) {
@@ -144,7 +148,7 @@ static void render_game_area(SnakeState* players, uint8_t player_count, Position
     for (uint8_t i = 0; i < player_count; i++) {
         MultiplayerPlayerId player_id = (i == 0) ? MP_PLAYER_1 : MP_PLAYER_2;
         bool is_alive = (player_id == MP_PLAYER_1) ?
-                       (game_stats->p1_lives > 0) : (game_stats->p2_lives > 0);
+            (game_stats->p1_lives > 0) : (game_stats->p2_lives > 0);
 
         if (is_alive) {
             // Use different colors to distinguish players (when available)
@@ -165,29 +169,45 @@ static void render_game_area(SnakeState* players, uint8_t player_count, Position
     }
 }
 
-static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id) {
-    // Clear status area
-    display_fill_rectangle(2, 2, DISPLAY_WIDTH - 2, STATUS_START_Y - 1, DISPLAY_BLACK);
+// NOTE: This version of the function renders scores. For consistency across the app, I moved score rendering to display_manager where single player scores are also displayed
+// static void render_multiplayer_ui(GameStats* game_stats, uint8_t local_player_id) {
+//     // Clear status area
+//     display_fill_rectangle(2, 2, DISPLAY_WIDTH - 2, STATUS_START_Y - 1, DISPLAY_BLACK);
 
-    // Draw scores for both players (like TS renderStatus)
-    char score_text[64];
-    snprintf(score_text, sizeof(score_text), "P1:%lu P2:%lu Target:%lu",
-             game_stats->p1_score, game_stats->p2_score, game_stats->target_score);
+//     // Draw scores for both players (like TS renderStatus)
+//     char score_text[64];
+//     snprintf(score_text, sizeof(score_text), "P1:%lu P2:%lu Target:%lu",
+//              game_stats->p1_score, game_stats->p2_score, game_stats->target_score);
 
-    display_set_cursor(2, 2);
-    display_write_string(score_text, Font_7x10, DISPLAY_WHITE);
+//     display_set_cursor(2, 2);
+//     display_write_string(score_text, Font_7x10, DISPLAY_WHITE);
 
+//     // Draw player identification (like TS renderPlayerId)
+//     char status_text[64];
+//     if (local_player_id == MP_PLAYER_1) {
+//         strcpy(status_text, "You: P1 (Green)");
+//     } else {
+//         strcpy(status_text, "You: P2 (Blue)");
+//     }
+
+//     display_set_cursor(2, 12);
+//     display_write_string(status_text, Font_7x10, DISPLAY_WHITE);
+// }
+
+static void render_multiplayer_ui(uint8_t local_player_id) {
     // Draw player identification (like TS renderPlayerId)
     char status_text[64];
     if (local_player_id == MP_PLAYER_1) {
         strcpy(status_text, "You: P1 (Green)");
-    } else {
+    }
+    else {
         strcpy(status_text, "You: P2 (Blue)");
     }
 
     display_set_cursor(2, 12);
     display_write_string(status_text, Font_7x10, DISPLAY_WHITE);
 }
+
 
 // Optimization functions (like TS rendering optimization)
 static void clear_previous_positions(SnakeState* players, uint8_t player_count, Position* food) {

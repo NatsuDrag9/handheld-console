@@ -558,18 +558,22 @@ GameEngine* game_controller_get_current_game_engine(void) {
 void game_controller_update_status_bar(void) {
     bool wifi_connected = serial_comm_is_wifi_connected();
     bool in_game = game_controller_is_game_active();
-    uint32_t score = 0;
-    int lives = 0;
+
 
     if (in_game) {
         GameEngine* engine = game_controller_get_current_game_engine();
         if (engine) {
-            score = engine->base_state.score;
-            lives = engine->base_state.lives;
+        	if(!engine->is_mp_game) {
+        		display_manager_draw_status_bar(wifi_connected, engine->base_state.state_data.single.score, (uint8_t) engine->base_state.state_data.single.lives, in_game);
+        	}
+        	else {
+        		display_manager_draw_mp_game_status_bar(wifi_connected, engine->base_state.state_data.multi.p1_score, engine->base_state.state_data.multi.p2_score, engine->base_state.state_data.multi.target_score, in_game);
+        	}
+
         }
     }
 
-    display_manager_draw_status_bar(wifi_connected, score, lives, in_game);
+
 }
 
 MenuItem game_controller_get_selected_menu_item(void) {
