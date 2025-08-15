@@ -77,10 +77,14 @@ void mp_snake_render_game(
 
 // Phase-specific rendering functions (similar to TS screen rendering methods)
 static void render_waiting_screen(ProtocolState connection_status, uint8_t local_player_id) {
-    if (first_render) {
-        display_clear();
-        first_render = false;
-    }
+	if (first_render || serial_comm_needs_ui_update()) {
+		display_manager_clear_main_area();
+		if (serial_comm_needs_ui_update()) {
+			serial_comm_clear_ui_update_flag();
+		}
+		first_render = false;
+	}
+
 
     // Show connection status (similar to TS renderWaitingScreen)
     const char* status_text = "";
@@ -113,18 +117,25 @@ static void render_waiting_screen(ProtocolState connection_status, uint8_t local
     case PROTO_STATE_ERROR:
         status_text = "Connection Error";
         break;
+    default:
+        status_text = "Loading...";
+        break;
     }
 
     display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT / 2 - 10);
 
-    char player_text[32];
-    snprintf(player_text, sizeof(player_text), "You are Player %d", local_player_id);
-    display_manager_show_centered_message(player_text, DISPLAY_HEIGHT / 2 + 5);
+    if((connection_status == PROTO_STATE_WEBSOCKET_CONNECTED) || (connection_status == PROTO_STATE_GAME_READY) || (connection_status == PROTO_STATE_GAME_ACTIVE)) {
+        char player_text[32];
+        snprintf(player_text, sizeof(player_text), "You are Player %d", local_player_id);
+        display_manager_show_centered_message(player_text, DISPLAY_HEIGHT / 2 + 10);
+    }
 
     // Show debug info if in error state
     if (connection_status == PROTO_STATE_ERROR) {
         display_manager_show_centered_message("Check ESP32 connection", DISPLAY_HEIGHT / 2 + 20);
     }
+
+    display_manager_update();
 }
 
 static void render_gameplay(SnakeState* players, uint8_t player_count, Position* food,

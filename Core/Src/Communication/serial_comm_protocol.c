@@ -9,7 +9,7 @@
 #include "Communication/serial_comm_callbacks.h"
 #include "Utils/debug_conf.h"
 
-/* Protocol state */
+ /* Protocol state */
 static ProtocolState current_state = PROTO_STATE_INIT;
 static uint32_t last_activity_time = 0;
 static uint32_t last_heartbeat_time = 0;
@@ -21,7 +21,7 @@ static bool is_websocket_connected = false;
 static volatile bool ui_needs_status_update = false;
 
 /* Game related data */
-static char stored_client_id[7] = {0};
+static char stored_client_id[7] = { 0 };
 static bool is_game_over = false;
 
 typedef struct {
@@ -32,8 +32,8 @@ typedef struct {
     bool valid;
 } ParsedPlayerData;
 
-static ParsedPlayerData stored_player_assignment = {0};
-static ParsedPlayerData stored_opponent_data = {0};
+static ParsedPlayerData stored_player_assignment = { 0 };
+static ParsedPlayerData stored_opponent_data = { 0 };
 
 /* Error handling state */
 static bool network_error_displayed = false;
@@ -103,14 +103,14 @@ static bool parse_and_store_player_data(const char* data_string, bool is_local_p
 
     DEBUG_PRINTF(false, "PROTO: Parsing player data: %s (local=%d)\r\n", data_string, is_local_player);
 
-    ParsedPlayerData temp_data = {0};
+    ParsedPlayerData temp_data = { 0 };
     temp_data.player_id = 1;
     temp_data.player_count = 2;
     strcpy(temp_data.color, "blue");
 
     int parsed_items = sscanf(data_string, "%d:%31[^:]:%d:%15s",
-                             &temp_data.player_id, temp_data.session_id,
-                             &temp_data.player_count, temp_data.color);
+        &temp_data.player_id, temp_data.session_id,
+        &temp_data.player_count, temp_data.color);
 
     if (parsed_items >= 3) {
         if (temp_data.player_id != 1 && temp_data.player_id != 2) {
@@ -122,14 +122,16 @@ static bool parse_and_store_player_data(const char* data_string, bool is_local_p
 
         if (is_local_player) {
             stored_player_assignment = temp_data;
-        } else {
+        }
+        else {
             stored_opponent_data = temp_data;
         }
 
         DEBUG_PRINTF(false, "PROTO: Stored %s player data successfully\r\n",
-                    is_local_player ? "LOCAL" : "OPPONENT");
+            is_local_player ? "LOCAL" : "OPPONENT");
         return true;
-    } else {
+    }
+    else {
         DEBUG_PRINTF(false, "PROTO: Failed to parse player data. Parsed %d items\r\n", parsed_items);
         return false;
     }
@@ -180,6 +182,7 @@ static void handle_esp32_status(const uart_status_t* status) {
             is_esp32_ready = true;
             clear_connection_error();
             DEBUG_PRINTF(false, "PROTO: ESP32 started and ready\r\n");
+            ui_needs_status_update = true;
         }
         break;
 
@@ -189,6 +192,7 @@ static void handle_esp32_status(const uart_status_t* status) {
         clear_connection_error();
         DEBUG_PRINTF(false, "PROTO: ESP32 initialization complete - sending ack\r\n");
         protocol_send_ack();
+        ui_needs_status_update = true;
         break;
 
     case SYSTEM_STATUS_WIFI_CONNECTING:
@@ -196,6 +200,7 @@ static void handle_esp32_status(const uart_status_t* status) {
             current_state = PROTO_STATE_WIFI_CONNECTING;
             clear_connection_error();
             DEBUG_PRINTF(false, "PROTO: ESP32 WiFi connecting\r\n");
+            ui_needs_status_update = true;
         }
         break;
 
@@ -211,12 +216,14 @@ static void handle_esp32_status(const uart_status_t* status) {
         DEBUG_PRINTF(false, "PROTO: WiFi disconnected: reason=%d, message=%s\r\n",
             status->error_code, status->status_message);
         handle_connection_error("WiFi disconnected", "Lost WiFi Connection");
+        // ui_needs_status_update = true; is set inside handle_connection_error
         break;
 
     case SYSTEM_STATUS_WEBSOCKET_CONNECTING:
         if (current_state == PROTO_STATE_WIFI_CONNECTED) {
             current_state = PROTO_STATE_WEBSOCKET_CONNECTING;
             DEBUG_PRINTF(false, "PROTO: ESP32 WebSocket connecting\r\n");
+            ui_needs_status_update = true;
         }
         break;
 
@@ -224,13 +231,16 @@ static void handle_esp32_status(const uart_status_t* status) {
         current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
         is_websocket_connected = true;
         clear_connection_error();
+        ui_needs_status_update = true;
         DEBUG_PRINTF(false, "PROTO: ESP32 WebSocket connected successfully\r\n");
+
         break;
 
     case SYSTEM_STATUS_WEBSOCKET_DISCONNECTED:
         DEBUG_PRINTF(false, "PROTO: WebSocket disconnected: error=%d, message=%s\r\n",
             status->error_code, status->status_message);
         handle_connection_error("WebSocket disconnected", "Lost WiFi Connection");
+        // ui_needs_status_update = true; is set inside handle_connection_error
         break;
 
     case SYSTEM_STATUS_GAME_READY:
@@ -258,7 +268,8 @@ static void handle_esp32_status(const uart_status_t* status) {
         DEBUG_PRINTF(false, "PROTO: Player assignment received: %s\r\n", status->status_message);
         if (parse_and_store_player_data(status->status_message, true)) {
             DEBUG_PRINTF(false, "PROTO: Local player assignment stored successfully\r\n");
-        } else {
+        }
+        else {
             DEBUG_PRINTF(false, "PROTO: Failed to parse local player assignment\r\n");
         }
         break;
@@ -267,7 +278,8 @@ static void handle_esp32_status(const uart_status_t* status) {
         DEBUG_PRINTF(false, "PROTO: Opponent connected: %s\r\n", status->status_message);
         if (parse_and_store_player_data(status->status_message, false)) {
             DEBUG_PRINTF(false, "PROTO: Opponent data stored successfully\r\n");
-        } else {
+        }
+        else {
             DEBUG_PRINTF(false, "PROTO: Failed to parse opponent data\r\n");
         }
         break;
@@ -279,10 +291,11 @@ static void handle_esp32_status(const uart_status_t* status) {
 
     case SYSTEM_STATUS_TILE_SIZE_RESPONSE:
         is_game_over = !is_tile_size_valid(status->status_message,
-                                          sizeof(status->status_message)/sizeof(char));
+            sizeof(status->status_message) / sizeof(char));
         if (is_game_over) {
             DEBUG_PRINTF(false, "PROTO: Tile size validation failed: %s\r\n", status->status_message);
-        } else {
+        }
+        else {
             DEBUG_PRINTF(false, "PROTO: Tile size validation passed\r\n");
         }
         break;
@@ -520,7 +533,7 @@ bool protocol_get_mp_game_over(void) {
 }
 
 bool protocol_get_player_assignment(int* player_id, char* session_id, size_t session_id_size,
-                                   int* player_count, char* color, size_t color_size) {
+    int* player_count, char* color, size_t color_size) {
     if (!stored_player_assignment.valid) {
         return false;
     }
@@ -547,7 +560,7 @@ bool protocol_get_player_assignment(int* player_id, char* session_id, size_t ses
 }
 
 bool protocol_get_opponent_data(int* player_id, char* session_id, size_t session_id_size,
-                               int* player_count, char* color, size_t color_size) {
+    int* player_count, char* color, size_t color_size) {
     if (!stored_opponent_data.valid) {
         return false;
     }
