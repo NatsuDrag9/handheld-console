@@ -83,6 +83,27 @@ static void uart_status_callback(const uart_status_t* status) {
     switch (status->system_status) {
     case SYSTEM_STATUS_STM32_READY:
         ESP_LOGI(TAG, "STM32 is ready for communication");
+        /*
+        Note: Alternatively, the uart_command_callback can be called wth wifi_status command. This requires STM32 to query for wifi status - send protocl_send_command("wifi_status", "") in protocol_init()
+
+        // Trigger the existing wifi_status logic
+        uart_command_t wifi_status_cmd = {"wifi_status", ""};
+        uart_command_callback(&wifi_status_cmd);
+        */
+
+        // Send current WiFi status to newly connected STM32
+        if (wifi_is_connected()) {
+            char ip_str[32];
+            wifi_get_ip_string(ip_str, sizeof(ip_str));
+            char status_msg[64];
+            snprintf(status_msg, sizeof(status_msg), "WiFi Connected: %s", ip_str);
+            uart_send_status(SYSTEM_STATUS_WIFI_CONNECTED, 0, status_msg);
+            ESP_LOGI(TAG, "Sent current WiFi status to STM32: %s", status_msg);
+        }
+        else {
+            uart_send_status(SYSTEM_STATUS_WIFI_DISCONNECTED, 0, "WiFi Disconnected");
+            ESP_LOGI(TAG, "Sent WiFi disconnected status to STM32");
+        }
         break;
     case SYSTEM_STATUS_STM32_GAME_READY:
         ESP_LOGI(TAG, "STM32 game logic is ready");

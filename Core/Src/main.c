@@ -15,11 +15,11 @@
  *
  ******************************************************************************
  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+ /* USER CODE END Header */
+ /* Includes ------------------------------------------------------------------*/
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+ /* Private includes ----------------------------------------------------------*/
+ /* USER CODE BEGIN Includes */
 #include "main.h"
 #include <math.h>
 /* USER CODE END Includes */
@@ -71,16 +71,16 @@ void uart_test_loop(void) {
 //		serial_comm_process_messages();
 //	}
 	//        serial_comm_send_debug("Processing message from ESP32\r\n", 100);
-			serial_comm_process_messages();
+	serial_comm_process_messages();
 
 	//  Check if UI needs update after processing messages
-	if (serial_comm_needs_ui_update()) {
-		if (!console_ui_is_game_active()) {
-			DEBUG_PRINTF(false, "Updating UI due to status change\r\n");
-			game_controller_update_status_bar();
-		}
-		serial_comm_clear_ui_update_flag();
-	}
+	// if (serial_comm_needs_ui_update()) {
+	// 	if (!console_ui_is_game_active()) {
+	// 		DEBUG_PRINTF(false, "Updating UI due to status change\r\n");
+	// 		game_controller_update_status_bar();
+	// 	}
+	// 	serial_comm_clear_ui_update_flag();
+	// }
 
 	//    // Send test messages to ESP32 every 5 seconds
 	//    if (current_time - last_uart_test_time > 5000) {
@@ -142,7 +142,7 @@ int main(void)
 	/* MCU Configuration--------------------------------------------------------*/
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
- 	HAL_Init();
+	HAL_Init();
 
 	/* USER CODE BEGIN Init */
 
@@ -214,7 +214,15 @@ int main(void)
 			console_ui_run_game();
 
 			add_delay(1);  // Control game speed
-		} else {
+		}
+		else {
+			// Handle immediate WiFi status updates
+			if (serial_comm_needs_ui_update() && serial_comm_is_wifi_connected()) {
+				// Force immediate menu refresh to show correct WiFi status
+				display_manager_draw_status_bar(serial_comm_is_wifi_connected(), 0, 0, false);
+				serial_comm_clear_ui_update_flag();
+				DEBUG_PRINTF(false, "MAIN: Menu refreshed due to WiFi status change\r\n");
+			}
 			JoystickStatus js_status = joystick_get_status();
 			console_ui_handle_input(js_status);
 		}
