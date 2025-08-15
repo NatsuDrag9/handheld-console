@@ -122,7 +122,7 @@ void display_write_string(char* str, FontDef font, DisplayColor color) {
 #ifdef DISPLAY_MODULE_OLED
     ssd1306_WriteString(str, font, translate_color(color));
 #elif DISPLAY_MODULE_LCD
-    DEBUG_PRINTF(false, "String: %s\n", str);
+//    DEBUG_PRINTF(false, "String: %s\n", str);
     uint16_t ili_color = (color == DISPLAY_BLACK) ? ILI9341_BLACK : ILI9341_WHITE;
     uint16_t bg_color = (color == DISPLAY_BLACK) ? ILI9341_WHITE : ILI9341_BLACK;
 

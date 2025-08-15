@@ -76,7 +76,7 @@ void display_manager_show_wifi_error();
 
 /* Status bar functions */
 void display_manager_draw_status_bar(bool wifi_connected, uint32_t score, uint8_t lives, bool in_game);
-void display_manager_draw_mp_game_status_bar(bool wifi_connected, uint32_t p1_score, uint32_t p2_score, uint32_t target_score, uint8_t lives, bool in_game);
+void display_manager_draw_mp_game_status_bar(bool wifi_connected, uint32_t p1_score, uint32_t p2_score, uint32_t target_score, bool in_game);
 void display_manager_draw_border(void);
 
 /* Menu-specific drawing functions */

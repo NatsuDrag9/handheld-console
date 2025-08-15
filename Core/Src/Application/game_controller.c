@@ -253,7 +253,7 @@ void game_controller_handle_menu_input(JoystickStatus js_status) {
 static void handle_error_input() {
     /* Pressing PB2 in error state returns to main menu */
     if (pb2_get_state()) {
-        DEBUG_PRINTF(false, "Error state: Input detected, returning to main menu\r\n");
+        DEBUG_PRINTF(false, "Error state: PB2 input detected, returning to main menu\r\n");
         game_controller_return_to_menu();
     }
 
@@ -422,11 +422,11 @@ static void game_controller_show_error_screen(ScreenType error_screen) {
 }
 
 static void game_controller_render_error_screen(void) {
-    uint32_t current_time = get_current_ms();
-    uint32_t elapsed_time = current_time - error_start_time;
-    uint8_t seconds_remaining = (ERROR_DISPLAY_TIMEOUT_MS - elapsed_time) / 1000 + 1;
+    // uint32_t current_time = get_current_ms();
+    // uint32_t elapsed_time = current_time - error_start_time;
+    // uint8_t seconds_remaining = (ERROR_DISPLAY_TIMEOUT_MS - elapsed_time) / 1000 + 1;
 
-    DEBUG_PRINTF(false, "Rendering error screen, seconds remaining: %d\r\n", seconds_remaining);
+    // DEBUG_PRINTF(false, "Rendering error screen, seconds remaining: %d\r\n", seconds_remaining);
 
     switch (current_error_screen) {
     case SCREEN_WIFI_ERROR:
@@ -563,12 +563,12 @@ void game_controller_update_status_bar(void) {
     if (in_game) {
         GameEngine* engine = game_controller_get_current_game_engine();
         if (engine) {
-        	if(!engine->is_mp_game) {
-        		display_manager_draw_status_bar(wifi_connected, engine->base_state.state_data.single.score, (uint8_t) engine->base_state.state_data.single.lives, in_game);
-        	}
-        	else {
-        		display_manager_draw_mp_game_status_bar(wifi_connected, engine->base_state.state_data.multi.p1_score, engine->base_state.state_data.multi.p2_score, engine->base_state.state_data.multi.target_score, in_game);
-        	}
+            if (!engine->is_mp_game) {
+                display_manager_draw_status_bar(wifi_connected, engine->base_state.state_data.single.score, (uint8_t)engine->base_state.state_data.single.lives, in_game);
+            }
+            else {
+                display_manager_draw_mp_game_status_bar(wifi_connected, engine->base_state.state_data.multi.p1_score, engine->base_state.state_data.multi.p2_score, engine->base_state.state_data.multi.target_score, in_game);
+            }
 
         }
     }
