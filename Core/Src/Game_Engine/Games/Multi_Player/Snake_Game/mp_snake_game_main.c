@@ -13,10 +13,12 @@
 
  // Internal game state
 static bool is_initialized = false;
+static bool waiting_for_player_data = false;
 
 
 // Game engine callbacks
 static void mp_snake_init_game_engine(void);
+static void mp_snake_complete_initialization(void);
 static void mp_snake_update_dpad_internal(DPAD_STATUS dpad_status);
 static void mp_snake_render_internal(void);
 static void mp_snake_cleanup_internal(void);
@@ -51,7 +53,7 @@ GameEngine mp_snake_game_engine = {
                     .p1_score = 0,
                     .p2_score = 0,
                     .target_score = 0,
-					.lives = 0, // Multiplayer snake game has single life
+                    .lives = 0, // Multiplayer snake game has single life
                 },
         },
         .paused = false,
@@ -114,6 +116,9 @@ void mp_snake_render(void) {
 void mp_snake_cleanup(void) {
     DEBUG_PRINTF(false, "Multiplayer snake cleanup starting\r\n");
 
+    // Notify ESP32 that game is ending
+    serial_comm_send_status(SYSTEM_STATUS_GAME_ENDED, 0, "Multiplayer Snake Game Ended");
+
     if (is_initialized) {
         // Cleanup rendering
         mp_snake_render_cleanup();
@@ -158,31 +163,79 @@ bool mp_snake_is_player_alive(MultiplayerPlayerId player_id) {
 }
 
 // Internal game engine functions
+//static void mp_snake_init_game_engine(void) {
+//
+//    DEBUG_PRINTF(false, "Multiplayer snake initializing for Player %d\r\n", mp_snake_data.local_player_id);
+//    // Set game over flag based on tile validation response from server
+//    mp_snake_game_engine.base_state.game_over = serial_comm_get_mp_game_over();
+//
+//    // Initialize modules in order (like TS constructor)
+//    // 1. Load local player data and send ready message
+//    mp_snake_load_local_player_data();
+//
+//    // 2. Initialize core game logic with loaded player ID
+//    mp_snake_core_init(mp_snake_data.local_player_id, mp_snake_data.target_score);
+//
+//    // 3. Try to load opponent data (may not be available yet)
+//    mp_snake_load_opponent_data();
+//
+//    // 4. Initialize rendering
+//    mp_snake_render_init();
+//
+//    // 5. Register network callback (serial_comm already initialized by game_controller)
+//    serial_comm_register_game_data_callback(mp_snake_on_game_data_received);
+//    serial_comm_register_connection_message_callback(mp_snake_on_connection_received);
+//    serial_comm_register_status_callback(on_status_received_in_game);
+//    serial_comm_register_command_callback(on_command_received);
+//
+//    is_initialized = true;
+//    DEBUG_PRINTF(false, "Multiplayer snake initialization complete\r\n");
+//}
+
 static void mp_snake_init_game_engine(void) {
-    DEBUG_PRINTF(false, "Multiplayer snake initializing for Player %d\r\n", mp_snake_data.local_player_id);
+    DEBUG_PRINTF(false, "Multiplayer snake basic initialization\r\n");
+
+    // Reset game engine state first
+    // Set game over flag based on tile validation response from server
     mp_snake_game_engine.base_state.game_over = serial_comm_get_mp_game_over();
 
-    // Initialize modules in order (like TS constructor)
-    // 1. Load local player data and send ready message
-    mp_snake_load_local_player_data();
-
-    // 2. Initialize core game logic with loaded player ID
-    mp_snake_core_init(mp_snake_data.local_player_id, mp_snake_data.target_score);
-
-    // 3. Try to load opponent data (may not be available yet)
-    mp_snake_load_opponent_data();
-
-    // 4. Initialize rendering
-    mp_snake_render_init();
-
-    // 5. Register network callback (serial_comm already initialized by game_controller)
+    // Register network callbacks (serial_comm already initialized by game_controller)
     serial_comm_register_game_data_callback(mp_snake_on_game_data_received);
     serial_comm_register_connection_message_callback(mp_snake_on_connection_received);
     serial_comm_register_status_callback(on_status_received_in_game);
     serial_comm_register_command_callback(on_command_received);
 
-    is_initialized = true;
-    DEBUG_PRINTF(false, "Multiplayer snake initialization complete\r\n");
+    // Set state flags
+    is_initialized = true;           // Can now render (waiting screen)
+    waiting_for_player_data = true;  // But waiting for server data
+
+    DEBUG_PRINTF(false, "Basic initialization complete, waiting for server data...\r\n");
+}
+
+static void mp_snake_complete_initialization(void) {
+    if (!waiting_for_player_data) {
+        DEBUG_PRINTF(false, "Initialization already completed\r\n");
+        return;
+    }
+
+    DEBUG_PRINTF(false, "Completing multiplayer snake initialization\r\n");
+
+    // Load player data from protocol layer (now available)
+    mp_snake_load_local_player_data();
+
+    // Initialize core game logic with loaded player ID
+    mp_snake_core_init(mp_snake_data.local_player_id, mp_snake_data.target_score);
+
+    // Try to load opponent data (may not be available yet, but that's okay)
+    mp_snake_load_opponent_data();
+
+    // Clear waiting flag - now fully ready
+    waiting_for_player_data = false;
+
+    // Initialize rendering function
+    mp_snake_render_init();
+
+    DEBUG_PRINTF(false, "Full initialization complete for Player %d\r\n", mp_snake_data.local_player_id);
 }
 
 // Game over message function implementation
@@ -241,6 +294,14 @@ static void on_status_received_in_game(const uart_status_t* status) {
     DEBUG_PRINTF(false, "Status message received: %d\r\n", status->system_status);
 
     switch (status->system_status) {
+    case SYSTEM_STATUS_PLAYER_ASSIGNMENT:
+    	DEBUG_PRINTF(false, "Player assignment received during game initialization\r\n");
+
+    	// Complete initialization if we're still waiting for player data
+    	if (is_initialized && waiting_for_player_data) {
+    		mp_snake_complete_initialization();
+    	}
+    	break;
     case SYSTEM_STATUS_OPPONENT_DISCONNECTED:
         mp_snake_data.opponent_connected = false;
         DEBUG_PRINTF(false, "Opponent disconnected\r\n");
@@ -280,7 +341,7 @@ static void on_command_received(const uart_command_t* command) {
         // Set game over state for engine
         mp_snake_game_engine.base_state.game_over = true;
     }
-    else if (strcmp(command->command, "restart") == 0) {
+    else if (strcmp(command->command, "game_restart") == 0) {
         // Reset game state
         mp_snake_core_init(mp_snake_data.local_player_id, mp_snake_data.target_score);
         mp_snake_game_engine.base_state.game_over = false;

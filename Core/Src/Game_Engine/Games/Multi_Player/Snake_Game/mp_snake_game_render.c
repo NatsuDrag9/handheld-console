@@ -124,7 +124,7 @@ static void render_waiting_screen(ProtocolState connection_status, uint8_t local
 
     display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT / 2 - 10);
 
-    if((connection_status == PROTO_STATE_WEBSOCKET_CONNECTED) || (connection_status == PROTO_STATE_GAME_READY) || (connection_status == PROTO_STATE_GAME_ACTIVE)) {
+    if((connection_status == PROTO_STATE_WEBSOCKET_CONNECTED) || (connection_status == PROTO_STATE_GAME_ACTIVE)) {
         char player_text[32];
         snprintf(player_text, sizeof(player_text), "You are Player %d", local_player_id);
         display_manager_show_centered_message(player_text, DISPLAY_HEIGHT / 2 + 10);

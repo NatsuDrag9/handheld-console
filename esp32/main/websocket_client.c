@@ -442,31 +442,31 @@ void websocket_app_main(void) {
     // Initialize integration modules
     websocket_init_integrations();
 
-    // Main communication loop - handle bidirectional data flow
-    while (1) {
-        // Check WebSocket connection status
-        if (esp_websocket_client_is_connected(ws_client)) {
-            if (strlen(client_id) > 0) {
-                // Connection is fully established
-                // To Do: Add periodic heartbeat or other maintenance tasks here
+    /*     // Main communication loop - handle bidirectional data flow
+        while (1) {
+            // Check WebSocket connection status
+            if (esp_websocket_client_is_connected(ws_client)) {
+                if (strlen(client_id) > 0) {
+                    // Connection is fully established
+                    // To Do: Add periodic heartbeat or other maintenance tasks here
+                }
+                else {
+                    ESP_LOGW(TAG, "Connected but no client ID yet, waiting...");
+                }
             }
             else {
-                ESP_LOGW(TAG, "Connected but no client ID yet, waiting...");
+                ESP_LOGW(TAG, "WebSocket not connected");
             }
-        }
-        else {
-            ESP_LOGW(TAG, "WebSocket not connected");
+
+            // Wait before next check
+            vTaskDelay(pdMS_TO_TICKS(GAME_DATA_POLLING_INTERVAL));
         }
 
-        // Wait before next check
-        vTaskDelay(pdMS_TO_TICKS(GAME_DATA_POLLING_INTERVAL));
-    }
-
-    // This code won't be reached in this example, but here for completeness
-    ESP_LOGI(TAG, "Stopping WebSocket client");
-    esp_websocket_client_stop(ws_client);
-    ESP_LOGI(TAG, "Destroying WebSocket client");
-    esp_websocket_client_destroy(ws_client);
+        // This code won't be reached in this example, but here for completeness
+        ESP_LOGI(TAG, "Stopping WebSocket client");
+        esp_websocket_client_stop(ws_client);
+        ESP_LOGI(TAG, "Destroying WebSocket client");
+        esp_websocket_client_destroy(ws_client); */
 }
 
 bool websocket_is_connected(void) {

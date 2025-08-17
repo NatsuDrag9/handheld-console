@@ -35,7 +35,7 @@ static void uart_command_callback(const uart_command_t* command) {
         // TODO: Implement actual WebSocket status check
         uart_send_status(SYSTEM_STATUS_WEBSOCKET_CONNECTED, 0, "WebSocket Connected");
     }
-    else if (strcmp(command->command, "start_game") == 0) {
+    else if (strcmp(command->command, "game_start") == 0) {
         // Handle game start command from STM32
         ESP_LOGI(TAG, "Game start command received from STM32");
 
@@ -49,7 +49,7 @@ static void uart_command_callback(const uart_command_t* command) {
             uart_send_nack();
         }
     }
-    else if (strcmp(command->command, "end_game") == 0) {
+    else if (strcmp(command->command, "game_end") == 0) {
         // Handle game end command from STM32  
         ESP_LOGI(TAG, "Game end command received from STM32");
         uart_send_status(SYSTEM_STATUS_GAME_ENDED, 0, "Game Ended");
@@ -84,36 +84,58 @@ static void uart_status_callback(const uart_status_t* status) {
     case SYSTEM_STATUS_STM32_READY:
         ESP_LOGI(TAG, "STM32 is ready for communication");
         /*
-        Note: Alternatively, the uart_command_callback can be called wth wifi_status command. This requires STM32 to query for wifi status - send protocl_send_command("wifi_status", "") in protocol_init()
 
         // Trigger the existing wifi_status logic
         uart_command_t wifi_status_cmd = {"wifi_status", ""};
         uart_command_callback(&wifi_status_cmd);
         */
 
-        // Send current WiFi status to newly connected STM32
+        // wifi_set_stm32_restart_flag(true);
+
+        // Disconnect WebSocket first
+        if (websocket_is_connected()) {
+            ESP_LOGI(TAG, "Disconnecting WebSocket (will reconnect when needed)");
+            esp_websocket_client_stop(ws_client);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+
+        // Handle WiFi restart based on current state
         if (wifi_is_connected()) {
-            char ip_str[32];
-            wifi_get_ip_string(ip_str, sizeof(ip_str));
-            char status_msg[64];
-            snprintf(status_msg, sizeof(status_msg), "WiFi Connected: %s", ip_str);
-            uart_send_status(SYSTEM_STATUS_WIFI_CONNECTED, 0, status_msg);
-            ESP_LOGI(TAG, "Sent current WiFi status to STM32: %s", status_msg);
+            ESP_LOGI(TAG, "WiFi connected - disconnecting to restart");
+            esp_wifi_disconnect();
+            // Event handler will automatically reconnect via WIFI_EVENT_STA_DISCONNECTED
         }
         else {
-            uart_send_status(SYSTEM_STATUS_WIFI_DISCONNECTED, 0, "WiFi Disconnected");
-            ESP_LOGI(TAG, "Sent WiFi disconnected status to STM32");
+            ESP_LOGI(TAG, "WiFi not connected - starting fresh connection");
+            uart_send_status(SYSTEM_STATUS_WIFI_CONNECTING, 0, "WiFi Connecting");
+            esp_wifi_connect();
+            // No event handler conflict since we're starting from disconnected state
         }
         break;
     case SYSTEM_STATUS_STM32_GAME_READY:
         ESP_LOGI(TAG, "STM32 game logic is ready");
 
-        // Only start game if we have network connectivity
+        // Check network connectivity and reconnect WebSocket if needed
         if (wifi_is_connected()) {
+            if (!websocket_is_connected()) {
+                ESP_LOGI(TAG, "Reconnecting to WebSocket for multiplayer game");
+                uart_send_status(SYSTEM_STATUS_WEBSOCKET_CONNECTING, 0, "WebSocket Connecting");
+                esp_websocket_client_start(ws_client);
+            }
+            // Send game active status (WebSocket connection status will be sent by WebSocket event handler)
             uart_send_status(SYSTEM_STATUS_GAME_ACTIVE, 0, "Game Session Started");
         }
         else {
             uart_send_status(SYSTEM_STATUS_ERROR, 1, "Cannot start game - No WiFi");
+        }
+        break;
+    case SYSTEM_STATUS_GAME_ENDED:
+        ESP_LOGI(TAG, "STM32 ended the game. Disconnecting from websocket server");
+
+        // Disconnect WebSocket first
+        if (websocket_is_connected()) {
+            esp_websocket_client_stop(ws_client);
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
         break;
     default:

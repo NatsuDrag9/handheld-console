@@ -12,7 +12,7 @@
 #include "System/system_conf.h"
 #include "Utils/comm_utils.h"
 
-/* Protocol initialization and control */
+ /* Protocol initialization and control */
 void protocol_init(void);
 void protocol_deinit(void);
 void protocol_process(void);
@@ -47,9 +47,9 @@ UART_Status protocol_send_heartbeat(void);
 const char* protocol_get_client_id(void);
 bool protocol_get_mp_game_over(void);
 bool protocol_get_player_assignment(int* player_id, char* session_id, size_t session_id_size,
-                                   int* player_count, char* color, size_t color_size);
+    int* player_count, char* color, size_t color_size);
 bool protocol_get_opponent_data(int* player_id, char* session_id, size_t session_id_size,
-                               int* player_count, char* color, size_t color_size);
+    int* player_count, char* color, size_t color_size);
 bool protocol_has_player_assignment(void);
 bool protocol_has_opponent_connected(void);
 int protocol_get_local_player_id(void);

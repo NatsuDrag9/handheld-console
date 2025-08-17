@@ -325,12 +325,12 @@ static void handle_esp32_command(const uart_command_t* command) {
         protocol_send_status(SYSTEM_STATUS_STM32_GAME_READY, 0, "STM32_GAME_READY");
         protocol_send_ack();
     }
-    else if (strncmp(command->command, "start_game", 10) == 0) {
+    else if (strncmp(command->command, "game_start", 10) == 0) {
         current_state = PROTO_STATE_GAME_ACTIVE;
         DEBUG_PRINTF(false, "PROTO: Game session started\r\n");
         protocol_send_ack();
     }
-    else if (strncmp(command->command, "end_game", 8) == 0) {
+    else if (strncmp(command->command, "game_end", 8) == 0) {
         current_state = PROTO_STATE_WEBSOCKET_CONNECTED;
         DEBUG_PRINTF(false, "PROTO: Game session ended\r\n");
         protocol_send_ack();
@@ -454,6 +454,7 @@ void protocol_deinit(void) {
 
     /* Deinitialize layers */
     callbacks_deinit();
+    // To Do: Send a message to ESP32 that communication has been de-initialized to put it to sleep mode
     hardware_serial_deinit();
 
     DEBUG_PRINTF(false, "PROTO: Protocol Layer Deinitialized\r\n");
