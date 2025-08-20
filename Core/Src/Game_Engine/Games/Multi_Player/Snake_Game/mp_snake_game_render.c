@@ -61,6 +61,16 @@ void mp_snake_render_game(
     uint8_t local_player_id,
     bool is_spectator
 ) {
+	static MultiplayerGamePhase previous_phase = MP_PHASE_WAITING;
+
+	// Clear screen when phase changes
+	if (previous_phase != game_phase) {
+		display_manager_clear_screen();
+		display_manager_update();
+		first_render = true;
+		previous_phase = game_phase;
+	}
+
     // Route to appropriate phase renderer (like TS switch statement)
     switch (game_phase) {
     case MP_PHASE_WAITING:
