@@ -403,7 +403,7 @@ static void websocket_event_handler(void* handler_args, esp_event_base_t base, i
 
 // Public function implementations
 void websocket_app_main(void) {
-    ESP_LOGI(TAG, "Starting WebSocket client...");
+    ESP_LOGI(TAG, "Configuring WebSocket client...");
 
     // Wait for WiFi connection to be established
     vTaskDelay(pdMS_TO_TICKS(2000));
@@ -428,45 +428,11 @@ void websocket_app_main(void) {
     ESP_LOGI(TAG, "Registering WebSocket event handler");
     esp_websocket_register_events(ws_client, WEBSOCKET_EVENT_ANY, websocket_event_handler, (void*)ws_client);
 
-    // Start the websocket client
-    ESP_LOGI(TAG, "Starting WebSocket client");
-    esp_err_t err = esp_websocket_client_start(ws_client);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));
-        esp_websocket_client_destroy(ws_client);
-        return;
-    }
-
-    ESP_LOGI(TAG, "WebSocket client started successfully");
+    // NOTE: Not starting the web-socket client connection here because STM32 controls when to start the web-socket connection with server
 
     // Initialize integration modules
     websocket_init_integrations();
 
-    /*     // Main communication loop - handle bidirectional data flow
-        while (1) {
-            // Check WebSocket connection status
-            if (esp_websocket_client_is_connected(ws_client)) {
-                if (strlen(client_id) > 0) {
-                    // Connection is fully established
-                    // To Do: Add periodic heartbeat or other maintenance tasks here
-                }
-                else {
-                    ESP_LOGW(TAG, "Connected but no client ID yet, waiting...");
-                }
-            }
-            else {
-                ESP_LOGW(TAG, "WebSocket not connected");
-            }
-
-            // Wait before next check
-            vTaskDelay(pdMS_TO_TICKS(GAME_DATA_POLLING_INTERVAL));
-        }
-
-        // This code won't be reached in this example, but here for completeness
-        ESP_LOGI(TAG, "Stopping WebSocket client");
-        esp_websocket_client_stop(ws_client);
-        ESP_LOGI(TAG, "Destroying WebSocket client");
-        esp_websocket_client_destroy(ws_client); */
 }
 
 bool websocket_is_connected(void) {
