@@ -16,7 +16,7 @@
 MultiplayerSnakeGameData mp_snake_data = { 0 };
 
 // Movement simulation state
-static uint32_t last_movement_time = 0;
+//static uint32_t last_movement_time = 0;
 static bool movement_simulation_active = false;
 static const uint32_t MOVEMENT_INTERVAL_MS = 100;
 
@@ -37,26 +37,36 @@ void mp_snake_core_init(MultiplayerPlayerId player_id, uint32_t target_score) {
     mp_snake_data.phase = MP_PHASE_WAITING;
     mp_snake_data.winner = MP_RESULT_ONGOING;
 
+
     // Initialize both players using helper functions
-    coord_t start_x = DISPLAY_WIDTH / 2;
-    coord_t start_y = DISPLAY_HEIGHT / 2;
+    /* Converting to device co-ordinate system because server
+     * works in tile-based co-ordinates while snake game
+     * helpers uses pixel based co-ordinate system
+     *
+     * Server start positions: Player 1 at (2,2), Player 2 at (37,25) - hardcoded
+    */
+    coord_t p1_x = mp_snake_server_to_device_coord(2);   // 2 * 8 = 16 pixels
+    coord_t p1_y = mp_snake_server_to_device_coord(2);   // 2 * 8 = 16 pixels
+    coord_t p2_x = mp_snake_server_to_device_coord(35);  // 35 * 8 = 280 pixels
+    coord_t p2_y = mp_snake_server_to_device_coord(25);  // 25 * 8 = 200 pixels
 
     // Player 1 starts on left side, Player 2 on right side (like TS)
-    snake_helper_init_snake(&mp_snake_data.player1,
-        start_x - 32, start_y, DPAD_DIR_RIGHT);
-    snake_helper_init_snake(&mp_snake_data.player2,
-        start_x + 32, start_y, DPAD_DIR_LEFT);
+    snake_helper_init_snake(&mp_snake_data.player1, p1_x, p1_y, DPAD_DIR_RIGHT);
+    snake_helper_init_snake(&mp_snake_data.player2, p2_x, p2_y, DPAD_DIR_LEFT);
 
-    // Initialize food position
-    mp_snake_data.server_food.x = start_x;
-    mp_snake_data.server_food.y = start_y - 32;
+    // Initialize food with safe default position (will be updated by server)
+    mp_snake_data.server_food.x = mp_snake_server_to_device_coord(5);  // 5 * 8 = 40px
+    mp_snake_data.server_food.y = mp_snake_server_to_device_coord(5);  // 5 * 8 = 40px
+
 
     // Set both players as alive initially
     mp_snake_data.players_alive[0] = true;
     mp_snake_data.players_alive[1] = true;
 
     // Reset timing
-    last_movement_time = get_current_ms();
+    // Note: Removed movement_simulation functions
+//    last_movement_time = get_current_ms();
+
     last_processed_sequence = 0;
     last_server_reconciliation = 0;
     mp_snake_data.game_start_time = get_current_ms();
@@ -67,13 +77,14 @@ void mp_snake_core_init(MultiplayerPlayerId player_id, uint32_t target_score) {
 
 void mp_snake_core_cleanup(void) {
     // Stop movement simulation first
-    mp_snake_stop_movement_simulation();
+//    mp_snake_stop_movement_simulation();
 
     // Reset all state (similar to TS cleanup)
     memset(&mp_snake_data, 0, sizeof(MultiplayerSnakeGameData));
 
     // Reset timing
-    last_movement_time = 0;
+    // Note: Removed movement_simulation functions
+//    last_movement_time = 0;
     last_processed_sequence = 0;
     last_server_reconciliation = 0;
     movement_simulation_active = false;
@@ -81,24 +92,38 @@ void mp_snake_core_cleanup(void) {
     DEBUG_PRINTF(false, "Core: Multiplayer snake cleanup completed\r\n");
 }
 
-// Movement simulation
-void mp_snake_start_movement_simulation(void) {
-    movement_simulation_active = true;
-    last_movement_time = get_current_ms();
-    DEBUG_PRINTF(false, "Core: Movement simulation started\r\n");
-}
+//	Note: Simplifying logic by removing movement_simulation functions
+//// Movement simulation
+//void mp_snake_start_movement_simulation(void) {
+//    movement_simulation_active = true;
+//    last_movement_time = get_current_ms();
+//    DEBUG_PRINTF(false, "Core: Movement simulation started\r\n");
+//}
+//
+//void mp_snake_stop_movement_simulation(void) {
+//    movement_simulation_active = false;
+//    DEBUG_PRINTF(false, "Core: Movement simulation stopped\r\n");
+//}
 
-void mp_snake_stop_movement_simulation(void) {
-    movement_simulation_active = false;
-    DEBUG_PRINTF(false, "Core: Movement simulation stopped\r\n");
-}
-
-void mp_snake_move_all_players_locally(void) {
+/* This function exists because:
+ *  1. Server only sends direction_changed events, not positions
+ *  2. We need smooth movement between server updates
+ *  3. Movement timing must match server (100ms intervals)
+ */
+void mp_snake_move_all_players_locally(DPAD_STATUS dpad_status) {
     // Moves both players based on server state
-    if (!movement_simulation_active || mp_snake_data.phase != MP_PHASE_PLAYING) {
+
+//	Note: Simplifying logic by removing movement_simulation functions
+//    if (!movement_simulation_active || mp_snake_data.phase != MP_PHASE_PLAYING) {
+//        return;
+//    }
+
+     // Only move if game is playing
+    if (mp_snake_data.phase != MP_PHASE_PLAYING) {
         return;
     }
 
+    static uint32_t last_movement_time = 0;
     uint32_t current_time = get_current_ms();
     if (current_time - last_movement_time < MOVEMENT_INTERVAL_MS) {
         return; // Not time to move yet
@@ -107,14 +132,10 @@ void mp_snake_move_all_players_locally(void) {
     // Move all players
     if (mp_snake_data.players_alive[0]) {
         snake_helper_move_snake(&mp_snake_data.player1);
-        snake_helper_wrap_coordinates(&mp_snake_data.player1.head_x,
-            &mp_snake_data.player1.head_y);
     }
 
     if (mp_snake_data.players_alive[1]) {
         snake_helper_move_snake(&mp_snake_data.player2);
-        snake_helper_wrap_coordinates(&mp_snake_data.player2.head_x,
-            &mp_snake_data.player2.head_y);
     }
 
     last_movement_time = current_time;
@@ -263,14 +284,14 @@ void mp_snake_reconcile_with_server(const TempServerState* server_state) {
 void mp_snake_handle_game_start(void) {
     mp_snake_data.phase = MP_PHASE_PLAYING;
     mp_snake_data.opponent_connected = true;
-    mp_snake_start_movement_simulation(); // Start local movement simulation
+    //    mp_snake_start_movement_simulation(); // Start local movement simulation
     DEBUG_PRINTF(false, "Core: Multiplayer game started!\r\n");
 }
 
 void mp_snake_handle_game_end(MultiplayerGameResult result) {
     mp_snake_data.phase = MP_PHASE_ENDED;
     mp_snake_data.winner = result;
-    mp_snake_stop_movement_simulation(); // Stop movement simulation
+    //    mp_snake_stop_movement_simulation(); // Stop movement simulation
     DEBUG_PRINTF(false, "Core: Game ended with result: %d\r\n", result);
 }
 

@@ -514,11 +514,10 @@ void game_controller_start_game(ScreenType game_screen) {
     GameEngine* engine = game_controller_get_current_game_engine();
 
     if (engine) {
-    	if (engine->is_mp_game) {
+    	if(engine->is_mp_game) {
     		// Notify ESP32 to connect to WebSocket server
     		protocol_send_status(SYSTEM_STATUS_STM32_GAME_READY, 0, "Multiplayer Game Starting");
     	}
-
         game_engine_init(engine);
     }
 

@@ -61,15 +61,15 @@ void mp_snake_render_game(
     uint8_t local_player_id,
     bool is_spectator
 ) {
-	static MultiplayerGamePhase previous_phase = MP_PHASE_WAITING;
+    static MultiplayerGamePhase previous_phase = MP_PHASE_WAITING;
 
-	// Clear screen when phase changes
-	if (previous_phase != game_phase) {
-		display_manager_clear_screen();
-		display_manager_update();
-		first_render = true;
-		previous_phase = game_phase;
-	}
+    // Clear screen when phase changes
+    if (previous_phase != game_phase) {
+        display_manager_clear_screen();
+        display_manager_update();
+        first_render = true;
+        previous_phase = game_phase;
+    }
 
     // Route to appropriate phase renderer (like TS switch statement)
     switch (game_phase) {
@@ -87,13 +87,13 @@ void mp_snake_render_game(
 
 // Phase-specific rendering functions (similar to TS screen rendering methods)
 static void render_waiting_screen(ProtocolState connection_status, uint8_t local_player_id) {
-	if (first_render || serial_comm_needs_ui_update()) {
-		display_manager_clear_main_area();
-		if (serial_comm_needs_ui_update()) {
-			serial_comm_clear_ui_update_flag();
-		}
-		first_render = false;
-	}
+    if (first_render || serial_comm_needs_ui_update()) {
+        display_manager_clear_main_area();
+        if (serial_comm_needs_ui_update()) {
+            serial_comm_clear_ui_update_flag();
+        }
+        first_render = false;
+    }
 
 
     // Show connection status (similar to TS renderWaitingScreen)
@@ -122,6 +122,7 @@ static void render_waiting_screen(ProtocolState connection_status, uint8_t local
         status_text = "Game ready...";
         break;
     case PROTO_STATE_GAME_ACTIVE:
+        // To Do: This is not displayed as game phase changes to MP_PHASE_PLAYING as soon as ESP32 sends "game_start" command. Remove this state and display GAME_READY (above state) in first_render of render_game_play()
         status_text = "Starting game...";
         break;
     case PROTO_STATE_ERROR:
@@ -134,7 +135,7 @@ static void render_waiting_screen(ProtocolState connection_status, uint8_t local
 
     display_manager_show_centered_message((char*)status_text, DISPLAY_HEIGHT / 2 - 10);
 
-    if((connection_status == PROTO_STATE_WEBSOCKET_CONNECTED) || (connection_status == PROTO_STATE_GAME_ACTIVE)) {
+    if ((connection_status == PROTO_STATE_WEBSOCKET_CONNECTED) || (connection_status == PROTO_STATE_GAME_ACTIVE)) {
         char player_text[32];
         snprintf(player_text, sizeof(player_text), "You are Player %d", local_player_id);
         display_manager_show_centered_message(player_text, DISPLAY_HEIGHT / 2 + 10);
@@ -225,81 +226,67 @@ static void render_multiplayer_ui(uint8_t local_player_id) {
         strcpy(status_text, "You: P2 (Blue)");
     }
 
-    display_set_cursor(2, 12);
+    display_set_cursor(130, 8); // Display after Target:0 in the status bar
     display_write_string(status_text, Font_7x10, DISPLAY_WHITE);
 }
 
 
 // Optimization functions (like TS rendering optimization)
 static void clear_previous_positions(SnakeState* players, uint8_t player_count, Position* food) {
-    // Optimized dirty rectangle clearing for multiplayer (like TS optimization)
+    static SnakeState previous_players[2];
+    static Position previous_food = {0, 0};
+    static bool first_clear = true;
 
-    // Clear previous player 1 head if it moved
-    if (player_count > 0 &&
-        (previous_local_head_x != players[0].head_x || previous_local_head_y != players[0].head_y)) {
+    if (!first_clear) {
+        // For each previous snake
+        for (uint8_t p = 0; p < player_count && p < 2; p++) {
+            // Check each previous body segment
+            for (uint8_t i = 0; i < previous_players[p].length; i++) {
+                coord_t old_x = previous_players[p].body[i].x;
+                coord_t old_y = previous_players[p].body[i].y;
 
-        // Check if previous position is not occupied by any snake
-        bool is_occupied = false;
+                // Check if this position is still occupied by ANY current snake
+                bool still_occupied = false;
+                for (uint8_t curr_p = 0; curr_p < player_count; curr_p++) {
+                    // Check head position
+                    if (snake_helper_positions_overlap(old_x, old_y,
+                                                     players[curr_p].head_x,
+                                                     players[curr_p].head_y)) {
+                        still_occupied = true;
+                        break;
+                    }
 
-        for (uint8_t p = 0; p < player_count; p++) {
-            for (uint8_t i = 0; i < players[p].length; i++) {
-                if (previous_local_head_x == players[p].body[i].x &&
-                    previous_local_head_y == players[p].body[i].y) {
-                    is_occupied = true;
-                    break;
+                    // Check all body segments
+                    for (uint8_t curr_i = 0; curr_i < players[curr_p].length; curr_i++) {
+                        if (snake_helper_positions_overlap(old_x, old_y,
+                                                         players[curr_p].body[curr_i].x,
+                                                         players[curr_p].body[curr_i].y)) {
+                            still_occupied = true;
+                            break;
+                        }
+                    }
+                    if (still_occupied) break;
+                }
+
+                // Only clear if nothing occupies this position now
+                if (!still_occupied) {
+                    display_clear_region(old_x, old_y, SPRITE_SIZE, SPRITE_SIZE);
                 }
             }
-            if (is_occupied) break;
         }
 
-        if (!is_occupied) {
-            display_clear_region(previous_local_head_x, previous_local_head_y, SPRITE_SIZE, SPRITE_SIZE);
-        }
-    }
-
-    // Clear previous player 2 head if it moved
-    if (player_count > 1 &&
-        (previous_opponent_head_x != players[1].head_x || previous_opponent_head_y != players[1].head_y)) {
-
-        // Check if previous position is not occupied by any snake
-        bool is_occupied = false;
-
-        for (uint8_t p = 0; p < player_count; p++) {
-            for (uint8_t i = 0; i < players[p].length; i++) {
-                if (previous_opponent_head_x == players[p].body[i].x &&
-                    previous_opponent_head_y == players[p].body[i].y) {
-                    is_occupied = true;
-                    break;
-                }
-            }
-            if (is_occupied) break;
-        }
-
-        if (!is_occupied) {
-            display_clear_region(previous_opponent_head_x, previous_opponent_head_y, SPRITE_SIZE, SPRITE_SIZE);
+        // Clear previous food if it moved
+        if (!snake_helper_positions_overlap(previous_food.x, previous_food.y, food->x, food->y)) {
+            display_clear_region(previous_food.x, previous_food.y, SPRITE_SIZE, SPRITE_SIZE);
         }
     }
 
-    // Clear previous food position if changed
-    if (previous_food_x != food->x || previous_food_y != food->y) {
-        if (previous_food_x != 0 && previous_food_y != 0) {
-            display_clear_region(previous_food_x, previous_food_y, SPRITE_SIZE, SPRITE_SIZE);
-        }
+    // Store current state for next frame
+    for (uint8_t p = 0; p < player_count && p < 2; p++) {
+        snake_helper_copy_snake_state(&previous_players[p], &players[p]);
     }
-
-    // Update previous positions for next frame
-    if (player_count > 0) {
-        previous_local_head_x = players[0].head_x;
-        previous_local_head_y = players[0].head_y;
-        previous_local_length = players[0].length;
-    }
-    if (player_count > 1) {
-        previous_opponent_head_x = players[1].head_x;
-        previous_opponent_head_y = players[1].head_y;
-        previous_opponent_length = players[1].length;
-    }
-    previous_food_x = food->x;
-    previous_food_y = food->y;
+    previous_food = *food;
+    first_clear = false;
 }
 
 static void reset_render_tracking(SnakeState* players, uint8_t player_count, Position* food) {

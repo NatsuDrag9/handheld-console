@@ -16,7 +16,8 @@ void snake_helper_wrap_coordinates(coord_t* x, coord_t* y) {
     if (*x >= DISPLAY_WIDTH - BORDER_OFFSET) {
         *x = BORDER_OFFSET;
     }
-    else if (*x <= BORDER_OFFSET || *x > DISPLAY_WIDTH) {  // Catches underflow
+    else if (*x <= BORDER_OFFSET || *x > DISPLAY_WIDTH) {
+    	// Catches underflow
         *x = DISPLAY_WIDTH - SPRITE_SIZE - BORDER_OFFSET;
     }
 
@@ -24,7 +25,8 @@ void snake_helper_wrap_coordinates(coord_t* x, coord_t* y) {
     if (*y >= DISPLAY_HEIGHT - BORDER_OFFSET) {
         *y = GAME_AREA_TOP;
     }
-    else if (*y <= GAME_AREA_TOP || *y > DISPLAY_HEIGHT) {  // Catches underflow
+    else if (*y <= GAME_AREA_TOP || *y > DISPLAY_HEIGHT) {
+    	// Catches underflow
         *y = DISPLAY_HEIGHT - SPRITE_SIZE - BORDER_OFFSET;
     }
 }

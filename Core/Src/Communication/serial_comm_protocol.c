@@ -319,13 +319,7 @@ static void handle_esp32_command(const uart_command_t* command) {
     DEBUG_PRINTF(false, "PROTO: ESP32 Command: %.32s %.64s\r\n",
         command->command, command->parameters);
 
-    if (strncmp(command->command, "game_ready", 10) == 0) {
-        current_state = PROTO_STATE_GAME_READY;
-        DEBUG_PRINTF(false, "PROTO: Game session ready\r\n");
-        protocol_send_status(SYSTEM_STATUS_STM32_GAME_READY, 0, "STM32_GAME_READY");
-        protocol_send_ack();
-    }
-    else if (strncmp(command->command, "game_start", 10) == 0) {
+    if (strncmp(command->command, "game_start", 10) == 0) {
         current_state = PROTO_STATE_GAME_ACTIVE;
         DEBUG_PRINTF(false, "PROTO: Game session started\r\n");
         protocol_send_ack();
