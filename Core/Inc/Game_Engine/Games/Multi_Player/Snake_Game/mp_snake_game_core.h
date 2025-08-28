@@ -99,9 +99,7 @@ void mp_snake_core_init(MultiplayerPlayerId player_id, uint32_t target_score);
 void mp_snake_core_cleanup(void);
 
 // Movement simulation (like TS moveAllPlayersLocally)
-void mp_snake_start_movement_simulation(void);
-void mp_snake_stop_movement_simulation(void);
-void mp_snake_move_all_players_locally(void);
+void mp_snake_move_all_players_locally();
 
 // Game state queries (similar to TS getters)
 MultiplayerPlayerId mp_snake_get_opponent_id(void);

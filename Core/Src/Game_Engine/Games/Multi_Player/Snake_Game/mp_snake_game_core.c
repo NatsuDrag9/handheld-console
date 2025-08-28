@@ -15,6 +15,14 @@
  // Static game state (similar to private properties in TS class)
 MultiplayerSnakeGameData mp_snake_data = { 0 };
 
+// Create server-to-device reverse mapping array for DPAD directions
+const uint8_t SERVER_TO_DEVICE_DIR_MAP[4] = {
+    [SERVER_DIR_RIGHT] = DPAD_DIR_RIGHT,  // 0 -> 10
+    [SERVER_DIR_DOWN]  = DPAD_DIR_DOWN,   // 1 -> 11
+    [SERVER_DIR_LEFT]  = DPAD_DIR_LEFT,   // 2 -> 12
+    [SERVER_DIR_UP]    = DPAD_DIR_UP      // 3 -> 9
+};
+
 // Movement simulation state
 //static uint32_t last_movement_time = 0;
 static bool movement_simulation_active = false;
@@ -343,18 +351,24 @@ void mp_snake_handle_game_event(const char* event_data) {
             sequence = strtoul(seq_pos + 11, NULL, 10);
         }
 
-        if (sequence <= last_processed_sequence) {
-            DEBUG_PRINTF(false, "Ignoring old sequence %lu (last: %lu)\r\n",
-                sequence, last_processed_sequence);
-            return;
-        }
-        last_processed_sequence = sequence;
+        // Allow the first message (sequence 0) or newer messages
+        if (sequence == 0 || sequence > last_processed_sequence) {
+        	last_processed_sequence = sequence;
 
-        if (player == MP_PLAYER_1) {
-            mp_snake_data.player1.direction = direction;
-        }
-        else if (player == MP_PLAYER_2) {
-            mp_snake_data.player2.direction = direction;
+        	if (player == MP_PLAYER_1) {
+        		mp_snake_data.player1.direction = SERVER_TO_DEVICE_DIR_MAP[direction];
+        		DEBUG_PRINTF(false, "P1 direction updated: server=%d -> device=%d\r\n",
+        				direction, SERVER_TO_DEVICE_DIR_MAP[direction]);
+        	}
+        	else if (player == MP_PLAYER_2) {
+        		mp_snake_data.player2.direction = SERVER_TO_DEVICE_DIR_MAP[direction];
+        		DEBUG_PRINTF(false, "P2 direction updated: server=%d -> device=%d\r\n",
+        				direction, SERVER_TO_DEVICE_DIR_MAP[direction]);
+        	}
+        } else {
+        	DEBUG_PRINTF(false, "Ignoring old sequence %lu (last: %lu)\r\n",
+        			sequence, last_processed_sequence);
+        	return;
         }
 
         DEBUG_PRINTF(false, "Player %d direction changed to %d\r\n", player, direction);
@@ -396,6 +410,8 @@ void mp_snake_handle_game_event(const char* event_data) {
         DEBUG_PRINTF(false, "Unknown event type in: %s\r\n", event_data);
     }
 }
+
+
 // Game stats (similar to TS getGameStats)
 GameStats mp_snake_get_game_stats(void) {
     GameStats stats = {

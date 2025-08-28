@@ -45,8 +45,8 @@ typedef struct {
 
 /* D-PAD types and macros */
 typedef struct {
-	uint8_t direction;
-	uint8_t is_new;
+    uint8_t direction;
+    uint8_t is_new;
 } DPAD_STATUS;
 
 // Distinct values from JS_DIR to simplify
@@ -55,6 +55,15 @@ typedef struct {
 #define DPAD_DIR_RIGHT 10
 #define DPAD_DIR_DOWN 11
 #define DPAD_DIR_LEFT 12
+
+// Server direction constants (match your JS constants)
+#define SERVER_DIR_RIGHT 0
+#define SERVER_DIR_DOWN 1
+#define SERVER_DIR_LEFT 2
+#define SERVER_DIR_UP 3
+
+// Create reverse mapping array
+extern const uint8_t SERVER_TO_DEVICE_DIR_MAP[4];
 
 /* Audio types */
 // Melody note structure
